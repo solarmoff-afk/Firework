@@ -1,0 +1,8 @@
+[workspace]
+members = [
+    "firework",
+    "examples/example-app"
+]
+
+[workspace.dependencies]
+firework = { path = "./firework" }
