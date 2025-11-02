@@ -1,8 +1,10 @@
 [workspace]
 members = [
     "firework",
-    "examples/example-app"
+    "examples/example-app",
+    "MoonWalk"
 ]
 
 [workspace.dependencies]
 firework = { path = "./firework" }
+moonwalk = { path = "./MoonWalk" }

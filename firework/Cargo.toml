@@ -7,3 +7,4 @@ edition = "2021"
 name = "firework"
 
 [dependencies]
+moonwalk = { workspace = true }
