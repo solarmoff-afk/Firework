@@ -1,0 +1,3 @@
+[submodule "MoonWalk"]
+	path = MoonWalk
+	url = https://github.com/solarmoff-afk/MoonWalk
