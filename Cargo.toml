@@ -1,10 +1,11 @@
 [workspace]
+resolver = "2"
 members = [
     "firework",
     "examples/example-app",
-    "MoonWalk"
+    "moonwalk"
 ]
 
 [workspace.dependencies]
 firework = { path = "./firework" }
-moonwalk = { path = "./MoonWalk" }
+moonwalk = { path = "./moonwalk" }
