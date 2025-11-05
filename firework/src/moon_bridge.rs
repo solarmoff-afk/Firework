@@ -35,7 +35,7 @@ impl MoonBridge {
         })
     }
 
-    pub fn moonwalk(&self) -> std::sync::MutexGuard<MoonWalk> {
+    pub fn moonwalk(&self) -> std::sync::MutexGuard<'_,MoonWalk> {
         self.moonwalk.lock().unwrap()
     }
 
