@@ -6,6 +6,8 @@ use glam::Vec4;
 pub mod element;
 use element::Element;
 
+pub mod signals;
+
 pub mod prelude;
 
 pub fn app<F>(app_func: F)
