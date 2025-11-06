@@ -3,13 +3,17 @@ pub use moon_bridge::MoonBridge;
 
 use glam::Vec4;
 
-pub fn run<F>(app: F)
+pub mod element;
+use element::Element;
+
+pub mod prelude;
+
+pub fn app<F>(app_func: F)
 where
-    F: Fn() -> String + Send + 'static,
+    F: Fn() -> Element + Send + 'static,
 {
-    let content = app();
-    println!("Firework started");
-    println!("UI content: {}", content);
+    let root_element = app_func();
+    println!("{:#?}", root_element);
 
     let bridge = MoonBridge::new().expect("Failed to create MoonBridge");
 
@@ -22,8 +26,4 @@ where
     }
 
     bridge.run();
-}
-
-pub fn hello_firework() -> String {
-    "Hello, firework!".to_string()
 }

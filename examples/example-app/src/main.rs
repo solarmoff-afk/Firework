@@ -1,7 +1,15 @@
-use firework::{run, hello_firework};
+use firework::prelude::*;
 
 fn main() {
-    run(|| {
-        hello_firework()
-    });
+    app(root);
+}
+
+fn root() -> Element {
+    let version = "0.0.1";
+
+    container![
+        text!("Welcome to Firework!").background(Color::WHITE),
+        text!("Version: {}", version),
+        rect!(Color::RED).background(Color::BLUE),
+    ]
 }
