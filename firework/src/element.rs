@@ -1,7 +1,19 @@
 use glam::{Vec2, Vec4};
 use std::fmt::Debug;
+use std::sync::atomic::{AtomicU64, Ordering};
 
 use crate::layout::{ContentAlignment, Layout};
+
+static NEXT_ELEMENT_ID: AtomicU64 = AtomicU64::new(1);
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct ElementId(u64);
+
+impl ElementId {
+    pub fn new() -> Self {
+        Self(NEXT_ELEMENT_ID.fetch_add(1, Ordering::Relaxed))
+    }
+}
 
 #[derive(Clone, Copy, Debug)]
 pub struct Color(pub Vec4);
@@ -22,6 +34,7 @@ pub enum Angle {
 
 #[derive(Clone, Debug)]
 pub struct Element {
+    pub id: ElementId,
     pub kind: ElementKind,
     pub background_color: Option<Color>,
     pub color: Option<Color>,
@@ -31,11 +44,13 @@ pub struct Element {
     pub layout_weight: f32,
     pub self_alignment: Option<ContentAlignment>,
     pub z_index: i32,
+    pub dirty: bool,
 }
 
 impl Default for Element {
     fn default() -> Self {
         Self {
+            id: ElementId::new(),
             kind: ElementKind::default(),
             background_color: None,
             color: None,
@@ -45,6 +60,7 @@ impl Default for Element {
             layout_weight: 0.0,
             self_alignment: None,
             z_index: 0,
+            dirty: true,
         }
     }
 }
