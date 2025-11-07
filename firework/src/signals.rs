@@ -11,7 +11,7 @@ pub struct WriteSignal<T: Copy> {
     _phantom: PhantomData<T>,
 }
 
-pub fn create_signal<T: Copy + Debug>(initial_value: T) -> (ReadSignal<T>, WriteSignal<T>) {
+pub fn signal<T: Copy + Debug>(initial_value: T) -> (ReadSignal<T>, WriteSignal<T>) {
     println!("Сигнал создан со значением {:?}", initial_value);
     (
         ReadSignal { value: initial_value, _phantom: PhantomData },

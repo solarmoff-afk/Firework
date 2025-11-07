@@ -1,6 +1,8 @@
 use glam::{Vec2, Vec4};
 use std::fmt::Debug;
 
+use crate::layout::{AlignItems, Layout};
+
 #[derive(Clone, Copy, Debug)]
 pub struct Color(pub Vec4);
 
@@ -26,6 +28,9 @@ pub struct Element {
     pub position: Option<Vec2>,
     pub size: Option<Vec2>,
     pub rotation: Option<Angle>,
+    pub flex_grow: f32,
+    pub flex_shrink: f32,
+    pub align_self: Option<AlignItems>,
 }
 
 impl Default for Element {
@@ -37,6 +42,9 @@ impl Default for Element {
             position: Some(Vec2::ZERO),
             size: Some(Vec2::ZERO),
             rotation: Some(Angle::Degrees(0.0)),
+            flex_grow: 0.0,
+            flex_shrink: 1.0,
+            align_self: None,
         }
     }
 }
@@ -47,12 +55,21 @@ pub enum ElementKind {
     Empty,
     Rect { roundedness: f32 },
     Text { content: String, font_size: f32 },
-    Container { children: Vec<Element> },
+    Container {
+        children: Vec<Element>,
+        layout: Layout,
+    },
 }
 
 #[macro_export]
 macro_rules! container {
-    ( $($child:expr),* $(,)? ) => { $crate::element::container(vec![$($child),*]) };
+    ( layout: $layout:expr, $($child:expr),* $(,)? ) => {
+        $crate::element::container($layout, vec![$($child),*])
+    };
+    
+    ( $($child:expr),* $(,)? ) => {
+        $crate::element::container(Default::default(), vec![$($child),*])
+    };
 }
 
 #[macro_export]
@@ -88,9 +105,9 @@ pub fn text(content: &str) -> Element {
     }
 }
 
-pub fn container(children: Vec<Element>) -> Element {
+pub fn container(layout: Layout, children: Vec<Element>) -> Element {
     Element {
-        kind: ElementKind::Container { children },
+        kind: ElementKind::Container { children, layout },
         ..Default::default()
     }
 }
@@ -128,4 +145,45 @@ impl Element {
         self.rotation = Some(angle);
         self
     }
+
+    pub fn flex_grow(mut self, factor: f32) -> Self {
+        self.flex_grow = factor;
+        self
+    }
+    
+    pub fn flex_shrink(mut self, factor: f32) -> Self {
+        self.flex_shrink = factor;
+        self
+    }
+    
+    pub fn align_self(mut self, align: AlignItems) -> Self {
+        self.align_self = Some(align);
+        self
+    }
+}
+
+#[macro_export]
+macro_rules! row {
+    ( $($child:expr),* $(,)? ) => {
+        $crate::container![
+            layout: $crate::element::layout::Layout::Flex($crate::element::layout::Flex {
+                direction: $crate::element::layout::FlexDirection::Row,
+                ..Default::default()
+            }),
+            $($child),*
+        ]
+    };
+}
+
+#[macro_export]
+macro_rules! column {
+    ( $($child:expr),* $(,)? ) => {
+        $crate::container![
+            layout: $crate::element::layout::Layout::Flex($crate::element::layout::Flex {
+                direction: $crate::element::layout::FlexDirection::Column,
+                ..Default::default()
+            }),
+            $($child),*
+        ]
+    };
 }
