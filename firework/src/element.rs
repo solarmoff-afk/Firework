@@ -1,7 +1,7 @@
 use glam::{Vec2, Vec4};
 use std::fmt::Debug;
 
-use crate::layout::{AlignItems, Layout};
+use crate::layout::{ContentAlignment, Layout};
 
 #[derive(Clone, Copy, Debug)]
 pub struct Color(pub Vec4);
@@ -28,9 +28,9 @@ pub struct Element {
     pub position: Option<Vec2>,
     pub size: Option<Vec2>,
     pub rotation: Option<Angle>,
-    pub flex_grow: f32,
-    pub flex_shrink: f32,
-    pub align_self: Option<AlignItems>,
+    pub layout_weight: f32,
+    pub self_alignment: Option<ContentAlignment>,
+    pub z_index: i32,
 }
 
 impl Default for Element {
@@ -42,9 +42,9 @@ impl Default for Element {
             position: Some(Vec2::ZERO),
             size: Some(Vec2::ZERO),
             rotation: Some(Angle::Degrees(0.0)),
-            flex_grow: 0.0,
-            flex_shrink: 1.0,
-            align_self: None,
+            layout_weight: 0.0,
+            self_alignment: None,
+            z_index: 0,
         }
     }
 }
@@ -99,7 +99,6 @@ pub fn text(content: &str) -> Element {
             content: content.to_string(),
             font_size: 16.0,
         },
-        
         color: Some(Color::BLACK),
         ..Default::default()
     }
@@ -146,28 +145,41 @@ impl Element {
         self
     }
 
-    pub fn flex_grow(mut self, factor: f32) -> Self {
-        self.flex_grow = factor;
+    pub fn layout_weight(mut self, weight: f32) -> Self {
+        self.layout_weight = weight;
         self
     }
     
-    pub fn flex_shrink(mut self, factor: f32) -> Self {
-        self.flex_shrink = factor;
+    pub fn self_alignment(mut self, align: ContentAlignment) -> Self {
+        self.self_alignment = Some(align);
         self
     }
     
-    pub fn align_self(mut self, align: AlignItems) -> Self {
-        self.align_self = Some(align);
+    pub fn z_index(mut self, index: i32) -> Self {
+        self.z_index = index;
         self
     }
+}
+
+#[macro_export]
+macro_rules! stack {
+    ( $($child:expr),* $(,)? ) => {
+        $crate::container![
+            layout: $crate::layout::Layout::Unwa($crate::layout::Unwa {
+                layout: $crate::layout::LayoutType::Stack,
+                ..Default::default()
+            }),
+            $($child),*
+        ]
+    };
 }
 
 #[macro_export]
 macro_rules! row {
     ( $($child:expr),* $(,)? ) => {
         $crate::container![
-            layout: $crate::element::layout::Layout::Flex($crate::element::layout::Flex {
-                direction: $crate::element::layout::FlexDirection::Row,
+            layout: $crate::layout::Layout::Unwa($crate::layout::Unwa {
+                layout: $crate::layout::LayoutType::Row,
                 ..Default::default()
             }),
             $($child),*
@@ -179,8 +191,8 @@ macro_rules! row {
 macro_rules! column {
     ( $($child:expr),* $(,)? ) => {
         $crate::container![
-            layout: $crate::element::layout::Layout::Flex($crate::element::layout::Flex {
-                direction: $crate::element::layout::FlexDirection::Column,
+            layout: $crate::layout::Layout::Unwa($crate::layout::Unwa {
+                layout: $crate::layout::LayoutType::Column,
                 ..Default::default()
             }),
             $($child),*
