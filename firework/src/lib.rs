@@ -6,8 +6,11 @@ pub mod prelude;
 mod widget_tree;
 mod moon_bridge;
 
-use element::Element;
+use std::collections::HashMap;
+use element::{Element, ElementId};
 use glam::Vec4;
+use moonwalk::ObjectId;
+
 pub use moon_bridge::MoonBridge;
 pub use widget_tree::update_tree;
 
@@ -17,6 +20,8 @@ where
 {
     let root_element = app_func();
     println!("{:#?}", root_element);
+
+    // let mut tree: HashMap<ElementId, Vec<ObjectId>> = HashMap::new();
 
     update_tree(&root_element);
 
