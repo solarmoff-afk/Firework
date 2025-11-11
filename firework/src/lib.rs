@@ -7,7 +7,6 @@ mod widget_tree;
 mod moon_bridge;
 
 use element::Element;
-use glam::Vec4;
 
 pub use moon_bridge::MoonBridge;
 pub use widget_tree::{update_tree, FireTree};

@@ -34,12 +34,29 @@ fn process_element(element: &Element, render_tree: &FireTree, mw: &mut MoonWalk)
     */
 
     match kind {
-        ElementKind::Rect { roundedness } => {
+        // ElementKind::Rect { roundedness } => {
+        ElementKind::Rect { .. } => {
             if !object_exists {
                 let id = mw.new_rect();
                 mw.config_position(id, glam::Vec2::new(100.0, 100.0));
                 mw.config_size(id, glam::Vec2::new(200.0, 150.0));
                 mw.config_color(id, Vec4::new(0.0, 1.0, 0.0, 1.0));
+
+                // Код для кривой безье
+                // let bezier_id = mw.new_bezier();
+
+                // let points = vec![
+                //     glam::Vec2::new(100.0, 300.0),
+                //     glam::Vec2::new(200.0, 100.0),
+                //     glam::Vec2::new(400.0, 500.0),
+                //     glam::Vec2::new(500.0, 300.0),
+                // ];
+
+                // mw.set_bezier_points(bezier_id, points);
+
+                // mw.config_color(bezier_id, glam::Vec4::new(1.0, 0.5, 0.0, 1.0));
+                // mw.config_bezier_thickness(bezier_id, 5.0);
+                // mw.config_bezier_smooth(bezier_id, 1.5);
             }
         },
 
