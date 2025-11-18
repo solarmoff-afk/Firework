@@ -1,10 +1,10 @@
 use std::collections::HashMap;
 use moonwalk::{MoonWalk, ObjectId};
-use glam::Vec4;
+use glam::{Vec2};
 
 use crate::moon_bridge::MoonBridge;
 
-pub use crate::element::{Element, ElementKind, ElementId};
+pub use crate::element::{Element, ElementKind, ElementId, Color};
 
 pub struct FireTree {
     pub tree: HashMap<ElementId, Vec<ObjectId>>,
@@ -38,10 +38,12 @@ fn process_element(element: &Element, render_tree: &FireTree, mw: &mut MoonWalk)
         ElementKind::Rect { .. } => {
             if !object_exists {
                 let id = mw.new_rect();
-                mw.config_position(id, glam::Vec2::new(100.0, 100.0));
-                mw.config_size(id, glam::Vec2::new(200.0, 150.0));
-                mw.config_color(id, Vec4::new(0.0, 1.0, 0.0, 1.0));
-
+                mw.config_position(id, element.position.unwrap_or(Vec2::new(0.0, 0.0)));
+                mw.config_size(id, element.size.unwrap_or(Vec2::new(100.0, 100.0)));
+                
+                let color_vec4 = element.color.unwrap_or(Color::WHITE).0;
+                mw.config_color(id, color_vec4);
+                
                 // Код для кривой безье
                 // let bezier_id = mw.new_bezier();
 

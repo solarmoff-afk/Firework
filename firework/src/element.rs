@@ -41,6 +41,7 @@ pub struct Element {
     pub position: Option<Vec2>,
     pub size: Option<Vec2>,
     pub rotation: Option<Angle>,
+    pub roundedness: i8,
     pub layout_weight: f32,
     pub self_alignment: Option<ContentAlignment>,
     pub z_index: i32,
@@ -55,8 +56,9 @@ impl Default for Element {
             background_color: None,
             color: None,
             position: Some(Vec2::ZERO),
-            size: Some(Vec2::ZERO),
+            size: Some(Vec2::new(100.0, 100.0)),
             rotation: Some(Angle::Degrees(0.0)),
+            roundedness: 0,
             layout_weight: 0.0,
             self_alignment: None,
             z_index: 0,
@@ -69,7 +71,7 @@ impl Default for Element {
 pub enum ElementKind {
     #[default]
     Empty,
-    Rect { roundedness: f32 },
+    Rect { roundedness: i8 },
     Text { content: String, font_size: f32 },
     Container {
         children: Vec<Element>,
@@ -101,7 +103,7 @@ macro_rules! text {
 #[macro_export]
 macro_rules! rect {
     () => {
-        $crate::element::rect(0.0)
+        $crate::element::rect(0)
     };
 
     ($roundedness:expr) => {
@@ -127,10 +129,11 @@ pub fn container(layout: Layout, children: Vec<Element>) -> Element {
     }
 }
 
-pub fn rect(roundedness: f32) -> Element {
+pub fn rect(roundedness: i8) -> Element {
     Element {
         kind: ElementKind::Rect { roundedness },
         color: Some(Color::BLACK),
+        roundedness: roundedness,
         ..Default::default()
     }
 }

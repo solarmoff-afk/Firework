@@ -10,6 +10,6 @@ fn root() -> Element {
     container![
         text!("Welcome to Firework!").background(Color::WHITE),
         text!("Version: {}", version),
-        rect!().background(Color::BLUE),
+        rect!(15).background(Color::BLUE).position((300.0, 200.0)),
     ]
 }
