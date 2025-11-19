@@ -20,10 +20,13 @@ impl FireTree {
 
 pub fn update_tree(root_element: &Element, render_tree: &FireTree, bridge: &MoonBridge) {
     let mut mw = bridge.moonwalk();
-    process_element(root_element, render_tree, &mut mw);
+    process_element(root_element, render_tree, &mut mw, bridge);
 }
 
-fn process_element(element: &Element, render_tree: &FireTree, mw: &mut MoonWalk) {
+fn process_element(element: &Element,
+    render_tree: &FireTree, mw: &mut MoonWalk,
+    bridge: &MoonBridge)
+{
     let object_exists = render_tree.tree.contains_key(&element.id);
     let kind = &element.kind;
     
@@ -38,8 +41,14 @@ fn process_element(element: &Element, render_tree: &FireTree, mw: &mut MoonWalk)
         ElementKind::Rect { .. } => {
             if !object_exists {
                 let id = mw.new_rect();
-                mw.config_position(id, element.position.unwrap_or(Vec2::new(0.0, 0.0)));
-                mw.config_size(id, element.size.unwrap_or(Vec2::new(100.0, 100.0)));
+                
+                bridge.config_position_dp(
+                    mw, id, element.position.unwrap_or(Vec2::new(0.0, 0.0))
+                );
+                
+                bridge.config_size_dp(
+                    mw, id, element.size.unwrap_or(Vec2::new(100.0, 100.0))
+                );
                 
                 let color_vec4 = element.color.unwrap_or(Color::WHITE).0;
 
@@ -65,7 +74,7 @@ fn process_element(element: &Element, render_tree: &FireTree, mw: &mut MoonWalk)
 
         ElementKind::Container { children, .. } => {
             for child in children {
-                process_element(&child, render_tree, mw);
+                process_element(&child, render_tree, mw, bridge);
             }
         },
 

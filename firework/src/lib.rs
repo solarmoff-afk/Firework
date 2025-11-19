@@ -39,7 +39,10 @@ where
         
         update_tree(&root_element, &mut render_tree, app_runner.bridge());
         
-        app_runner.run();
+        app_runner.run(move |bridge| {
+            let root = app_func();
+            update_tree(&root, &mut render_tree, bridge);
+        });
     }
 }
 
