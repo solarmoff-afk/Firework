@@ -42,6 +42,7 @@ fn process_element(element: &Element, render_tree: &FireTree, mw: &mut MoonWalk)
                 mw.config_size(id, element.size.unwrap_or(Vec2::new(100.0, 100.0)));
                 
                 let color_vec4 = element.color.unwrap_or(Color::WHITE).0;
+
                 mw.config_color(id, color_vec4);
                 
                 // Код для кривой безье

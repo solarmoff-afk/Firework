@@ -36,7 +36,6 @@ pub enum Angle {
 pub struct Element {
     pub id: ElementId,
     pub kind: ElementKind,
-    pub background_color: Option<Color>,
     pub color: Option<Color>,
     pub position: Option<Vec2>,
     pub size: Option<Vec2>,
@@ -53,7 +52,6 @@ impl Default for Element {
         Self {
             id: ElementId::new(),
             kind: ElementKind::default(),
-            background_color: None,
             color: None,
             position: Some(Vec2::ZERO),
             size: Some(Vec2::new(100.0, 100.0)),
@@ -139,11 +137,6 @@ pub fn rect(roundedness: i8) -> Element {
 }
 
 impl Element {
-    pub fn background(mut self, color: Color) -> Self {
-        self.background_color = Some(color);
-        self
-    }
-
     pub fn color(mut self, color: Color) -> Self {
         self.color = Some(color);
         self
