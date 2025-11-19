@@ -1,21 +1,33 @@
+use glam::Vec4;
+use moonwalk::MoonWalk;
+use std::sync::{Arc, Mutex};
+
+#[cfg(not(target_os = "android"))]
 use winit::{
     event::{Event, WindowEvent},
     event_loop::{ControlFlow, EventLoop},
     window::{Window, WindowBuilder},
 };
 
-use glam::Vec4;
-use moonwalk::MoonWalk;
-use std::sync::{Arc, Mutex};
-
 pub struct MoonBridge {
-    event_loop: EventLoop<()>,
     moonwalk: Arc<Mutex<MoonWalk>>,
-    _window_ptr: *mut Window,
+}
+
+pub trait Runnable {
+    fn bridge(&self) -> &MoonBridge;
+    fn run(self);
+}
+
+#[cfg(not(target_os = "android"))]
+pub struct DesktopApp {
+    bridge: MoonBridge,
+    event_loop: EventLoop<()>,
+    window_ptr: *mut Window,
 }
 
 impl MoonBridge {
-    pub fn new() -> Result<Self, Box<dyn std::error::Error>> {
+    #[cfg(not(target_os = "android"))]
+    pub fn new() -> Result<DesktopApp, Box<dyn std::error::Error>> {
         let event_loop = EventLoop::new()?;
         let window = WindowBuilder::new()
             .with_title("Firework")
@@ -26,22 +38,38 @@ impl MoonBridge {
         let leaked_window: &'static Window = Box::leak(window_box);
 
         let moonwalk = MoonWalk::new(leaked_window)?;
-        let moonwalk = Arc::new(Mutex::new(moonwalk));
+        let bridge = MoonBridge {
+            moonwalk: Arc::new(Mutex::new(moonwalk)),
+        };
 
-        Ok(Self {
+        Ok(DesktopApp {
+            bridge,
             event_loop,
-            moonwalk,
-            _window_ptr: leaked_window as *const Window as *mut Window,
+            window_ptr: leaked_window as *const Window as *mut Window,
         })
     }
 
-    pub fn moonwalk(&self) -> std::sync::MutexGuard<'_,MoonWalk> {
-        self.moonwalk.lock().unwrap()
+    #[cfg(target_os = "android")]
+    pub fn from_moonwalk(moonwalk: MoonWalk) -> Self {
+        Self {
+            moonwalk: Arc::new(Mutex::new(moonwalk)),
+        }
     }
 
-    pub fn run(self) {
-        let moonwalk = self.moonwalk.clone();
-        let window_ptr = self._window_ptr;
+    pub fn moonwalk(&self) -> std::sync::MutexGuard<'_, MoonWalk> {
+        self.moonwalk.lock().unwrap()
+    }
+}
+
+#[cfg(not(target_os = "android"))]
+impl Runnable for DesktopApp {
+    fn bridge(&self) -> &MoonBridge {
+        &self.bridge
+    }
+
+    fn run(self) {
+        let moonwalk = self.bridge.moonwalk.clone();
+        let window_ptr = self.window_ptr;
 
         self.event_loop
             .run(move |event, elwt| {
@@ -54,20 +82,19 @@ impl MoonBridge {
                             moonwalk.lock().unwrap().set_viewport(size.width, size.height);
                         }
                         _ => {}
-                    }
-
+                    },
+                    
                     Event::AboutToWait => {
                         let _ = moonwalk
                             .lock()
                             .unwrap()
                             .render_frame(Vec4::new(0.1, 0.2, 0.3, 1.0));
                     }
-
-                    Event::LoopExiting => {
-                        unsafe { drop(Box::from_raw(window_ptr)) }
-                        std::process::exit(0);
-                    }
-
+                    
+                    Event::LoopExiting => unsafe {
+                        drop(Box::from_raw(window_ptr));
+                    },
+                    
                     _ => {}
                 }
             })
