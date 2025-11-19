@@ -32,6 +32,8 @@ where
         let app_runner = moon_bridge::MoonBridge::new().expect("Failed to create MoonBridge");
         
         let root_element = app_func();
+
+        println!("{:#?}", root_element);
         
         let mut render_tree = FireTree::new();
         
@@ -59,6 +61,8 @@ fn android_main() {
         match ndk_glue::poll_events() {
             Some(ndk_glue::Event::Draw) => {
                 let root_element = root_fn();
+                println!("{:#?}", root_element);
+                
                 update_tree(&root_element, &mut render_tree, &bridge);
 
                 let mut mw = bridge.moonwalk();
