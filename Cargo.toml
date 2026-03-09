@@ -1,0 +1,19 @@
+[workspace]
+resolver = "2"
+members = [
+  "crates/firework_macro",
+  "examples/example-simple",
+  "firework"    
+]
+
+[profile.release]
+lto = true
+# target-cpu = "native"
+debug = false
+opt-level = 3
+codegen-units = 1
+panic = "abort"
+strip = true
+
+[workspace.dependencies]
+firework = { path = "./firework" }

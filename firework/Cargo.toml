@@ -1,0 +1,10 @@
+[package]
+name = "firework"
+version = "0.1.0"
+edition = "2024"
+
+[lib]
+proc-macro = false
+
+[dependencies]
+firework_macro = { path = "../crates/firework_macro" }
