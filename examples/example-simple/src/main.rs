@@ -5,6 +5,9 @@ use firework::ui;
 
 fn main() {
     ui! {
-        // TODO
+        if a == 5 || a == 10 {
+            let signal = signal!(10);
+            signal += 1;
+        }
     }
 }
