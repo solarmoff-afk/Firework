@@ -12,7 +12,7 @@ use crate::FireworkAst;
 pub fn run_firework_compiler(ast: FireworkAst, id: u64) -> std::result::Result<String, String> {
     {
         let tokens: Vec<TokenTree> = ast.tokens.clone().into_iter().collect();
-        prepare_tokens(tokens, 0);
+        prepare_tokens(tokens);
     }
 
     let _raw_input_string = ast.tokens.to_string();

@@ -2,75 +2,102 @@
 // Лицензия EPL 2.0, подробнее в файле LICENSE. Copyright (c) 2026 Firework
 
 use proc_macro2::TokenTree;
+use proc_macro2::Delimiter;
+use syn::{Stmt, token::Brace};
+use quote::ToTokens;
 
-/// Парсит вектор токенов дерева, задача метода заключается в том, чтобы утсановить
-/// связь сигнала и объекта
-pub fn prepare_tokens(tokens: Vec<TokenTree>, depth: usize) {
-    let indent = "  ".repeat(depth);
-    let mut i = 0;
+pub fn prepare_tokens(tokens: Vec<TokenTree>) { 
+    let token_stream: proc_macro2::TokenStream = tokens.clone().into_iter().collect();
 
-    // Вектор для хранения переменных которые созданы через маркер компилятора
-    // signal!(). Если переменная затеняется другим значением то нужно удалить
-    // сигнал отсюда
-    let mut signals: Vec<String> = Vec::new();
+    let parser = |input: syn::parse::ParseStream| {
+        let mut stmts = Vec::new();
+        
+        while !input.is_empty() {
+            stmts.push(input.parse::<syn::Stmt>()?);
+        }
+        
+        Ok(stmts)
+    };
+    
+    let stmts: Vec<Stmt> = syn::parse::Parser::parse2(parser, token_stream)
+        .expect("Failed to parse statements");
 
-    // Определяет явлется ли этот токен началом строки
-    let mut is_start = true;
+    parse_stmts(stmts);
+}
 
-    while i < tokens.len() {
-        match &tokens[i] {
-            TokenTree::Punct(punct) => {
-                let punct_char = punct.as_char();
-                println!("{}PUNCT: '{}'", indent, punct_char);
+fn parse_stmts(statements: Vec<Stmt>) {
+    for statement in statements {
+        // println!("STATEMENT:");
+        // println!("{:#?}", statement);
 
-                // Заранее нужно установить что этот токен не начало строки чтобы
-                // сделать код чище. Ниже если будет символ завершающий строку то
-                // is_start автоматически станет true
-                is_start = false;
+        match statement {
+            Stmt::Local(local) => {
+                println!("Local");
 
-                // Символы {, } и ; означают завершение строки, то есть маркер signal
-                // там можно не искать. Также запятая может завершать строку, но там
-                // зависит от контекста. Пока что не нужно
-                if punct_char == ';' {
-                    println!("{}NEW LINE: {}", indent, punct_char);
-                    is_start = true;
-                }
-
-                i += 1;
+                parse_local(local);
+            },
+            
+            Stmt::Item(item) => {
+                println!("Item");
             },
 
-            TokenTree::Ident(ident) => {
-                println!("{}IDENT: '{}'", indent, ident);
-                
-                is_start = false;
-                i += 1;
+            Stmt::Expr(expr, semi) => {
+                println!("expr");
             },
 
-            TokenTree::Literal(lit) => {
-                println!("{}LITERAL: '{}'", indent, lit);
-
-                is_start = false;
-                i += 1;
-            }
-
-            TokenTree::Group(group) => {
-                println!("{}GROUP ({:?}) {{", indent, group.delimiter());
-
-                // Внутри группы это уже новая строка
-                is_start = true;
-                println!("{}NEW LINE (START GROUP)", indent);
-                
-                let inner: Vec<TokenTree> = group.stream().into_iter().collect();
-                prepare_tokens(inner, depth + 1);
-
-                println!("{}}}", indent);
-
-                // Когда группа заканчивается то это также начало новой строки
-                is_start = true;
-                println!("{}NEW LINE (END GROUP)", indent);
-
-                i += 1;
-            }
-        } 
+            Stmt::Macro(mac) => {
+                println!("Macro");
+            },
+        };
     }
+}
+
+fn parse_local(local: syn::Local) {
+    parse_pat(local.pat);
+    
+}
+
+fn parse_pat(pat: syn::Pat) {
+    match pat {
+        syn::Pat::Ident(ident) => {
+            let is_mut = ident.mutability.is_some();
+            let is_ref = ident.by_ref.is_some();
+            let name = ident.ident;
+
+            println!("Let: is_mut: {}, is_ref: {}, name: {}", is_mut, is_ref, name);
+        },
+
+        syn::Pat::Type(pat_type) => {
+            let type_str = pat_type.ty.to_token_stream().to_string();
+            println!("Type: {}", type_str);
+
+            parse_pat(*pat_type.pat);
+        },
+
+        syn::Pat::Tuple(pat_tuple) => {
+            for element in pat_tuple.elems.iter() {
+                parse_pat(element.clone());
+            }
+        },
+
+        syn::Pat::Struct(pat_struct) => {
+            for field in pat_struct.fields.iter() {
+                parse_pat(*field.pat.clone());
+            }
+        },
+
+        syn::Pat::Slice(pat_slice) => {
+            for (index, element) in pat_slice.elems.iter().enumerate() {
+                parse_pat(element.clone());
+            }
+        },
+
+        syn::Pat::Or(pat_or) => {
+            for (index, case) in pat_or.cases.iter().enumerate() {
+                parse_pat(case.clone());
+            }
+        },
+
+        _ => {},
+    };
 }
