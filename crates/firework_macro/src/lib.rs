@@ -7,11 +7,16 @@ mod compiler;
 
 use proc_macro::TokenStream;
 use proc_macro2::TokenStream as TokenStream2;
-
 use syn::parse::{Parse, ParseStream};
 use syn::{parse_macro_input, Result};
-
+use std::sync::atomic::{AtomicU64, Ordering};
 use compiler::run_firework_compiler;
+
+// Система id нужна для того чтобы во время выполнения опредить был ли переход на
+// этот экран до этого или перехода не было и его нужно построить. Это нужно
+// чтобы не хранить состояние глобально, а просто реализовать фокус экрана когда
+// фреймворк держит конкретный экран в фокусе и вызывает только его замыкания
+static COMPONENT_COUNTER: AtomicU64 = AtomicU64::new(1);
 
 /// Структура абстрактного синтаксического дерева. Здесь хранятся токены после
 /// парсинга кода макроса для анализа
@@ -31,12 +36,14 @@ impl Parse for FireworkAst {
 
 #[proc_macro]
 pub fn ui(input: TokenStream) -> TokenStream {
+    let id = COMPONENT_COUNTER.fetch_add(1, Ordering::Relaxed);
+
     // Парсинг кода макроса в абстрактно синтаксическое дерево
     let ast = parse_macro_input!(input as FireworkAst);
 
     // Генерация раст кода, если компилятор вернул ошибку (Err) то оборачиваем
     // её в красивую ошибку компиляции
-    let generated_rust_code_string = match run_firework_compiler(ast) {
+    let generated_rust_code_string = match run_firework_compiler(ast, id) {
         Ok(code_string) => code_string,
         Err(err_msg) => {
             let err = syn::Error::new(proc_macro2::Span::call_site(), err_msg);

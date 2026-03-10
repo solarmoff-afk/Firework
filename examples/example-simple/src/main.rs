@@ -1,5 +1,11 @@
 use firework::ui;
 
+fn test_screen() {
+    ui! {
+        let signal = signal!(123);
+    }
+}
+
 // Экран
 fn home() {
     ui! {
@@ -22,4 +28,5 @@ fn home() {
 
 fn main() {
     home();
+    test_screen();
 }
