@@ -1,8 +1,11 @@
 use firework::ui;
 
-fn main() {
+// Экран
+fn home() {
     ui! {
         let signal = signal!(10);
+
+        let (signal1, signal2, b) = (signal!(1), signal!("Govno"), 5);
 
         {
             rect!()
@@ -15,4 +18,8 @@ fn main() {
 
         signal = 5;
     }
+}
+
+fn main() {
+    home();
 }
