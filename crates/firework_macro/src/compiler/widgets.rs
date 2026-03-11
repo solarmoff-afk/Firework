@@ -3,6 +3,5 @@
 
 pub fn is_widget_macro(path: &syn::Path) -> bool {
     path.is_ident("vertical") || path.is_ident("horizontal") ||
-    path.is_ident("rect")     || path.is_ident("text")       ||
-    path.is_ident("stack")    || path.is_ident("button")
+    path.is_ident("stack")
 }

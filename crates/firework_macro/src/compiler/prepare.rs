@@ -416,11 +416,11 @@ pub fn parse_expr(expression: syn::Expr, context: &mut CompilerContext) {
             context.log("MACRO", &format!("{}!", macro_name));
             
             // Хардкод для теста
-            if macro_name == "signal" {
-                context.log("SIGNAL_INIT", "Parsing signal content");
+            if macro_name == "spark" {
+                context.log("SPARK_INIT", "Parsing spark content");
                 
                 let inner_expression: Expr = syn::parse2(expression_macro.mac.tokens)
-                    .expect("Failed to parse tokens inside signal");
+                    .expect("Failed to parse tokens inside spark");
                 
                 context.depth += 1;
                     parse_expr(inner_expression, context);

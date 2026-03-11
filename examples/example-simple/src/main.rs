@@ -2,9 +2,9 @@ use firework::ui;
 
 fn test_screen() {
     ui! {
-        // let signal = signal!(123);
-        // let (signal1, signal2, b) = (signal!(1), signal!(256), 5);
-        // let mut signal3: u32 = signal!(12);
+        // let spark = spark!(123);
+        // let (spark1, spark2, b) = (spark!(1), spark!(256), 5);
+        // let mut signal3: u32 = spark!(12);
         // 
         // rect!();
         // 
@@ -15,27 +15,27 @@ fn test_screen() {
         //    println!("hi!");
         // }
         
-        let signal1 = signal!(1);
+        let spark1 = spark!(1);
     }
 }
 
 // Экран
 // fn home() {
     // ui! {
-        // let signal = signal!(10);
+        // let spark = spark!(10);
         //
-        // let (signal1, signal2, b) = (signal!(1), signal!("Govno"), 5);
+        // let (spark1, sparkl2, b) = (spark!(1), spark!("Govno"), 5);
         //
         // {
         //    rect!()
         //        .width_percent(100);
         // }
         //
-        // if signal > 9 {
+        // if spark > 9 {
         //    text!("Hello world!").font_size(signal);
         // }
         //
-        // signal = 5;
+        // spark = 5;
     // }
 // }
 
