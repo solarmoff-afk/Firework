@@ -2,6 +2,7 @@
 // Лицензия EPL 2.0, подробнее в файле LICENSE. Copyright (c) 2026 Firework
 
 mod prepare;
+mod widgets;
 
 use prepare::prepare_tokens;
 use proc_macro2::TokenTree;

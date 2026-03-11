@@ -12,6 +12,7 @@ fn test_screen() {
 
         vertical! {
             let test = 1;
+            println!("hi!");
         }
     }
 }

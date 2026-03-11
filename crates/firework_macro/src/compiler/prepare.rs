@@ -6,6 +6,8 @@ use proc_macro2::Delimiter;
 use syn::{Stmt, token::Brace};
 use quote::ToTokens;
 
+use super::widgets::is_widget_macro;
+
 pub fn prepare_tokens(tokens: Vec<TokenTree>) { 
     let token_stream: proc_macro2::TokenStream = tokens.clone().into_iter().collect();
 
@@ -47,6 +49,35 @@ fn parse_stmts(statements: Vec<Stmt>) {
 
             Stmt::Macro(mac) => {
                 println!("Macro");
+
+                if is_widget_macro(&mac.mac.path) {
+                    println!("Widget macro");
+
+                    let inner_tokens = &mac.mac.tokens;
+
+                    let parser = |input: syn::parse::ParseStream| -> syn::Result<Vec<Stmt>> {
+                        let mut stmts = Vec::new();
+
+                        while !input.is_empty() {
+                            stmts.push(input.parse::<syn::Stmt>()?);
+                        }
+
+                        Ok(stmts)
+                    };
+
+                    let inner_stmts: Vec<Stmt> = syn::parse2(quote::quote! {
+                        {
+                            #inner_tokens
+                        }
+                    }).and_then(|block: syn::Block| Ok(block.stmts)).expect("Syntax error in macro");
+                    
+                    parse_stmts(inner_stmts);
+                } else {
+                    if let Some(last_segment) = mac.mac.path.segments.last() {
+                        let macro_name = &last_segment.ident;
+                        println!("Inline macro: {}", macro_name);
+                    }
+                }
             },
         };
     }
