@@ -2,18 +2,20 @@ use firework::ui;
 
 fn test_screen() {
     ui! {
-        let signal = signal!(123);
-        let (signal1, signal2, b) = (signal!(1), signal!(256), 5);
-        let mut signal3: u32 = signal!(12);
-
-        rect!();
-
-        let (x, y): (i32, i32) = (4, 5);
-
-        vertical! {
-            let test = 1;
-            println!("hi!");
-        }
+        // let signal = signal!(123);
+        // let (signal1, signal2, b) = (signal!(1), signal!(256), 5);
+        // let mut signal3: u32 = signal!(12);
+        // 
+        // rect!();
+        // 
+        // let (x, y): (i32, i32) = (4, 5);
+        // 
+        // vertical! {
+        //    let test = 1;
+        //    println!("hi!");
+        // }
+        
+        let signal1 = signal!(1);
     }
 }
 

@@ -3,12 +3,56 @@
 
 use proc_macro2::TokenTree;
 use proc_macro2::Delimiter;
-use syn::{Stmt, token::Brace};
+use syn::{Stmt, token::Brace, Expr};
+use syn::{UnOp, BinOp};
 use quote::ToTokens;
 
 use super::widgets::is_widget_macro;
 
-pub fn prepare_tokens(tokens: Vec<TokenTree>) { 
+#[derive(Debug, Clone)]
+pub struct VariableDeclaration {
+    pub name: String,
+    pub ty: Option<String>,
+    pub is_mut: bool,
+}
+
+pub struct CompilerContext {
+    pub depth: usize,
+    pub active_targets: Vec<VariableDeclaration>,
+    pub is_mutation: bool,
+}
+
+impl CompilerContext {
+    fn indent(&self) -> String {
+        "  ".repeat(self.depth)
+    }
+
+    fn log(&self, label: &str, details: &str) {
+        let targets: Vec<String> = self.active_targets.iter().map(|v| v.name.clone()).collect();
+        let targets_str = if targets.is_empty() {
+            "NONE".to_string()
+        } else {
+            targets.join(", ")
+        };
+        
+        println!(
+            "{}[{}] Target: [{}] | Mutation: {} | Details: {}",
+            self.indent(),
+            label,
+            targets_str,
+            self.is_mutation,
+            details
+        );
+    }
+}
+
+pub fn prepare_tokens(tokens: Vec<TokenTree>) {
+    let mut context = CompilerContext {
+        depth: 0,
+        active_targets: Vec::new(),
+        is_mutation: false,
+    };
+
     let token_stream: proc_macro2::TokenStream = tokens.clone().into_iter().collect();
 
     let parser = |input: syn::parse::ParseStream| {
@@ -24,35 +68,29 @@ pub fn prepare_tokens(tokens: Vec<TokenTree>) {
     let stmts: Vec<Stmt> = syn::parse::Parser::parse2(parser, token_stream)
         .expect("Failed to parse statements");
 
-    parse_stmts(stmts);
+    parse_stmts(stmts, &mut context);
 }
 
-fn parse_stmts(statements: Vec<Stmt>) {
+fn parse_stmts(statements: Vec<Stmt>, context: &mut CompilerContext) {
     for statement in statements {
         // println!("STATEMENT:");
-        // println!("{:#?}", statement);
+        // println!("{:#?}", statement); 
 
         match statement {
             Stmt::Local(local) => {
-                println!("Local");
-
-                parse_local(local);
+                parse_local(local, context);
             },
             
             Stmt::Item(item) => {
-                println!("Item");
+                // TODO
             },
 
             Stmt::Expr(expr, semi) => {
-                println!("expr");
+                parse_expr(expr, context);
             },
 
             Stmt::Macro(mac) => {
-                println!("Macro");
-
                 if is_widget_macro(&mac.mac.path) {
-                    println!("Widget macro");
-
                     let inner_tokens = &mac.mac.tokens;
 
                     let parser = |input: syn::parse::ParseStream| -> syn::Result<Vec<Stmt>> {
@@ -69,13 +107,15 @@ fn parse_stmts(statements: Vec<Stmt>) {
                         {
                             #inner_tokens
                         }
-                    }).and_then(|block: syn::Block| Ok(block.stmts)).expect("Syntax error in macro");
+                    }).and_then(|block: syn::Block| Ok(block.stmts))
+                        .expect("Syntax error in macro");
                     
-                    parse_stmts(inner_stmts);
+                    parse_stmts(inner_stmts, context);
                 } else {
                     if let Some(last_segment) = mac.mac.path.segments.last() {
                         let macro_name = &last_segment.ident;
-                        println!("Inline macro: {}", macro_name);
+                        
+                        // Это обычный макрос, нужен инлайн
                     }
                 }
             },
@@ -83,52 +123,487 @@ fn parse_stmts(statements: Vec<Stmt>) {
     }
 }
 
-fn parse_local(local: syn::Local) {
-    parse_pat(local.pat);
-    
+fn parse_local(local: syn::Local, context: &mut CompilerContext) {
+    parse_pat(local.pat, None, context);
+
+    if let Some(init) = local.init {
+        context.depth += 1;
+            parse_expr(*init.expr, context);
+        context.depth -= 1;
+    }
 }
 
-fn parse_pat(pat: syn::Pat) {
+fn parse_pat(pat: syn::Pat, current_type: Option<String>, context: &mut CompilerContext) {
     match pat {
         syn::Pat::Ident(ident) => {
-            let is_mut = ident.mutability.is_some();
-            let is_ref = ident.by_ref.is_some();
-            let name = ident.ident;
+            let variable = VariableDeclaration {
+                name: ident.ident.to_string(),
+                ty: current_type.clone(),
+                is_mut: ident.mutability.is_some(),
+            };
 
-            println!("Let: is_mut: {}, is_ref: {}, name: {}", is_mut, is_ref, name);
+            println!(
+                "{}Let: is_mut: {}, name: {}, type: {}",
+                context.indent(), variable.is_mut, variable.name,
+                current_type.unwrap_or("NO TYPE".to_string())
+            );
+
+            context.active_targets.push(variable);
         },
 
         syn::Pat::Type(pat_type) => {
             let type_str = pat_type.ty.to_token_stream().to_string();
-            println!("Type: {}", type_str);
-
-            parse_pat(*pat_type.pat);
+            parse_pat(*pat_type.pat, Some(type_str), context);
         },
 
         syn::Pat::Tuple(pat_tuple) => {
             for element in pat_tuple.elems.iter() {
-                parse_pat(element.clone());
+                parse_pat(element.clone(), None, context);
             }
         },
 
         syn::Pat::Struct(pat_struct) => {
             for field in pat_struct.fields.iter() {
-                parse_pat(*field.pat.clone());
+                parse_pat(*field.pat.clone(), None, context);
             }
         },
 
         syn::Pat::Slice(pat_slice) => {
             for (index, element) in pat_slice.elems.iter().enumerate() {
-                parse_pat(element.clone());
+                parse_pat(element.clone(), None, context);
             }
         },
 
         syn::Pat::Or(pat_or) => {
             for (index, case) in pat_or.cases.iter().enumerate() {
-                parse_pat(case.clone());
+                parse_pat(case.clone(), None, context);
             }
         },
 
         _ => {},
     };
+}
+
+pub fn parse_expr(expression: syn::Expr, context: &mut CompilerContext) {
+    match expression {
+        // Массив ( [a, b, c, d] )
+        Expr::Array(expression_array) => {
+            context.log("ARRAY", "Entering array elements");
+            context.depth += 1;
+            
+            for element in expression_array.elems {
+                parse_expr(element, context);
+            }
+            
+            context.depth -= 1;
+        },
+
+        // Присваивание (a = compute())
+        Expr::Assign(expression_assign) => {
+            let left_name = expression_assign.left.to_token_stream().to_string();
+            context.log("ASSIGN_START", &format!("Target: {}", left_name));
+
+            let previous_targets = context.active_targets.clone();
+            let previous_mutation_state = context.is_mutation;
+
+            context.active_targets = vec![VariableDeclaration {
+                name: left_name,
+                ty: None,
+                is_mut: true,
+            }];
+            context.is_mutation = true;
+
+            context.depth += 1;
+                parse_expr(*expression_assign.left, context);
+                parse_expr(*expression_assign.right, context);
+            context.depth -= 1;
+
+            context.active_targets = previous_targets;
+            context.is_mutation = previous_mutation_state;
+            context.log("ASSIGN_END", "");
+        },
+
+        // Асинхронность ( async { ... } )
+        Expr::Async(expression_async) => {
+            context.log("ASYNC_BLOCK", "Entering async block");
+            context.depth += 1;
+            
+            parse_stmts(expression_async.block.stmts, context);
+            context.depth -= 1;
+        },
+
+        // fut.await
+        Expr::Await(expression_await) => {
+            context.log("AWAIT", "Awaiting expression");
+            parse_expr(*expression_await.base, context);
+        },
+
+        // Бинарные операции (a + b, a += b)
+        Expr::Binary(expression_binary) => {
+            let operator = expression_binary.op.to_token_stream().to_string();
+            
+            let op_type = match expression_binary.op {
+                BinOp::Add(_) => "ADD",
+                BinOp::Sub(_) => "SUB",
+                BinOp::Mul(_) => "MUL",
+                BinOp::Div(_) => "DIV",
+                BinOp::Rem(_) => "REM",
+                BinOp::And(_) => "AND",
+                BinOp::Or(_) => "OR",
+                BinOp::BitXor(_) => "BIT_XOR",
+                BinOp::BitAnd(_) => "BIT_AND",
+                BinOp::BitOr(_) => "BIT_OR",
+                BinOp::Shl(_) => "SHL",
+                BinOp::Shr(_) => "SHR",
+                BinOp::Eq(_) => "EQ",
+                BinOp::Lt(_) => "LT",
+                BinOp::Le(_) => "LE",
+                BinOp::Ne(_) => "NE",
+                BinOp::Ge(_) => "GE",
+                BinOp::Gt(_) => "GT",
+
+                // Заглушка
+                _ => "BINARY_OP",
+            };
+            
+            context.log(op_type, &format!("Operator: {}", operator));
+            
+            context.depth += 1;
+                parse_expr(*expression_binary.left, context);
+                parse_expr(*expression_binary.right, context);
+            context.depth -= 1;
+        },
+
+        // Блок ( { ... } )
+        Expr::Block(expression_block) => {
+            context.log("BLOCK_EXPR", "Entering block");
+            
+            context.depth += 1;
+                parse_stmts(expression_block.block.stmts, context);
+            context.depth -= 1;
+        },
+
+        // Break (выход из цикла)
+        Expr::Break(expression_break) => {
+            context.log("BREAK", "");
+            
+            if let Some(break_expression) = expression_break.expr {
+                parse_expr(*break_expression, context);
+            }
+        },
+
+        // Вызов функции (invoke(a, b))
+        Expr::Call(expression_call) => {
+            let func_name = expression_call.func.to_token_stream().to_string();
+            context.log("CALL", &format!("Function: {}", func_name));
+            
+            context.depth += 1;
+                for argument in expression_call.args {
+                    parse_expr(argument, context);
+                }
+            context.depth -= 1;
+        },
+
+        // Каст (foo as f64)
+        Expr::Cast(expression_cast) => {
+            let type_name = expression_cast.ty.to_token_stream().to_string();
+            
+            context.log("CAST", &format!("To type: {}", type_name));
+            parse_expr(*expression_cast.expr, context);
+        },
+        
+        // Замыкание ( |a, b| a + b )
+        Expr::Closure(expression_closure) => {
+            context.log("CLOSURE", "Entering closure body");
+            
+            context.depth += 1;
+                parse_expr(*expression_closure.body, context);
+            context.depth -= 1;
+        },
+
+        // Константа ( const { ... } )
+        Expr::Const(expression_const) => {
+            context.log("CONST_BLOCK", "Entering const block");
+            context.depth += 1;
+            parse_stmts(expression_const.block.stmts, context);
+            context.depth -= 1;
+        },
+
+        // Скипает шаг цикла
+        Expr::Continue(_expression_continue) => {
+            context.log("CONTINUE", "");
+        },
+
+        // Обращение по полю экземлпяра структуры (obj.k или для структур у которых поля
+        // без имени obj.0)
+        Expr::Field(expression_field) => {
+            let member = expression_field.member.to_token_stream().to_string();
+            context.log("FIELD_ACCESS", &format!("Member: .{}", member));
+            
+            parse_expr(*expression_field.base, context);
+        },
+
+        // for i in collection { ... }
+        Expr::ForLoop(expression_for_loop) => {
+            let pattern = expression_for_loop.pat.to_token_stream().to_string();
+            context.log("FOR_LOOP", &format!("Pattern: {}", pattern));
+            context.depth += 1;
+            parse_expr(*expression_for_loop.expr, context);
+            parse_stmts(expression_for_loop.body.stmts, context);
+            context.depth -= 1;
+        },
+
+        // Просто контейнер для выражения
+        Expr::Group(expression_group) => {
+            parse_expr(*expression_group.expr, context);
+        },
+
+        // Условие ( if expr { ... } else { ... } )
+        Expr::If(expression_if) => {
+            context.log("IF_START", "Condition:");
+            
+            context.depth += 1;
+                parse_expr(*expression_if.cond, context);
+                context.log("IF_THEN", "Then branch:");
+            
+                parse_stmts(expression_if.then_branch.stmts, context);
+               
+                // Если есть else
+                if let Some((_else_token, else_expression)) = expression_if.else_branch {
+                    context.log("IF_ELSE", "Else branch:");
+                    parse_expr(*else_expression, context);
+                }
+            context.depth -= 1;
+        },
+
+        // Обращение по индексу (vector[2])
+        Expr::Index(expression_index) => {
+            context.log("INDEX_ACCESS", "");
+            parse_expr(*expression_index.expr, context);
+            parse_expr(*expression_index.index, context);
+        },
+
+        // _
+        Expr::Infer(_expression_infer) => {
+            context.log("INFER", "Underscore _");
+        },
+
+        // let внутри выражения (например внутри условия или цикла, let Some(x) = opt)
+        Expr::Let(expression_let) => {
+            let pattern = expression_let.pat.to_token_stream().to_string();
+            context.log("LET_EXPR", &format!("Pattern: {}", pattern));
+            
+            parse_expr(*expression_let.expr, context);
+        },
+
+        // Литерал, это 1, "foo" и так далее
+        Expr::Lit(expression_literal) => {
+            context.log("LITERAL", &expression_literal.to_token_stream().to_string());
+        },
+
+        // Бесконечный цикл ( loop { ... } )
+        Expr::Loop(expression_loop) => {
+            context.log("LOOP", "Entering infinite loop");
+            
+            context.depth += 1;
+                parse_stmts(expression_loop.body.stmts, context);
+            context.depth -= 1;
+        },
+
+        // Вызов макроса в выражении, например format!("{}", q)
+        Expr::Macro(expression_macro) => {
+            let macro_name = expression_macro.mac.path.to_token_stream().to_string();
+            context.log("MACRO", &format!("{}!", macro_name));
+            
+            // Хардкод для теста
+            if macro_name == "signal" {
+                context.log("SIGNAL_INIT", "Parsing signal content");
+                
+                let inner_expression: Expr = syn::parse2(expression_macro.mac.tokens)
+                    .expect("Failed to parse tokens inside signal");
+                
+                context.depth += 1;
+                    parse_expr(inner_expression, context);
+                context.depth -= 1;
+            }
+        },
+
+        // Матч ( match n { Some(n) => {}, None => {} } )
+        Expr::Match(expression_match) => {
+            context.log("MATCH", "Matching expression:");
+            
+            context.depth += 1;
+                parse_expr(*expression_match.expr, context);
+                
+                for arm in expression_match.arms {
+                    let arm_pat = arm.pat.to_token_stream().to_string();
+                    context.log("MATCH_ARM", &format!("Arm pattern: {}", arm_pat));
+                
+                    if let Some(guard) = arm.guard {
+                        context.log("MATCH_GUARD", "Guard condition:");
+                        parse_expr(*guard.1, context);
+                    }
+                    
+                    parse_expr(*arm.body, context);
+                }
+            context.depth -= 1;
+        },
+
+        // Вызов метода x.foo::<T>(a, b)
+        Expr::MethodCall(expression_method_call) => {
+            let method = expression_method_call.method.to_string();
+            context.log("METHOD_CALL", &format!("Method: .{}()", method));
+            context.depth += 1;
+            parse_expr(*expression_method_call.receiver, context);
+            for argument in expression_method_call.args {
+                parse_expr(argument, context);
+            }
+            context.depth -= 1;
+        },
+        
+        // (a + b)
+        Expr::Paren(expression_paren) => {
+            parse_expr(*expression_paren.expr, context);
+        },
+
+        // Путь
+        Expr::Path(expression_path) => {
+            let path = expression_path.to_token_stream().to_string();
+            context.log("PATH_USAGE", &format!("Variable: {}", path));
+        },
+
+        // 1..2, 1.., ..2, 1..=2, ..=2
+        Expr::Range(expression_range) => {
+            context.log("RANGE", "");
+            
+            if let Some(start) = expression_range.start {
+                parse_expr(*start, context);
+            }
+            
+            if let Some(end) = expression_range.end {
+                parse_expr(*end, context);
+            }
+        },
+
+        // Использование ссылки на переменной, &a или &mut a
+        Expr::Reference(expression_reference) => {
+            context.log("REFERENCE", "Taking reference");
+            parse_expr(*expression_reference.expr, context);
+        },
+
+        // Массив который состоит из одного элемента который повторяется
+        // [0u8; N]
+        Expr::Repeat(expression_repeat) => {
+            context.log("ARRAY_REPEAT", "");
+            parse_expr(*expression_repeat.expr, context);
+            parse_expr(*expression_repeat.len, context);
+        },
+
+        // return
+        Expr::Return(expression_return) => {
+            context.log("RETURN", "");
+            if let Some(return_expression) = expression_return.expr {
+                parse_expr(*return_expression, context);
+            }
+        },
+
+        // Point { x: 1, y: 1 }
+        Expr::Struct(expression_struct) => {
+            let struct_name = expression_struct.path.to_token_stream().to_string();
+            context.log("STRUCT_INIT", &format!("Struct: {}", struct_name));
+            
+            context.depth += 1;
+                for field in expression_struct.fields {
+                    let field_name = field.member.to_token_stream().to_string();
+                    context.log("FIELD_INIT", &format!("Field: {}", field_name));
+                    
+                    parse_expr(field.expr, context);
+                }
+                
+                if let Some(rest_expression) = expression_struct.rest {
+                    context.log("STRUCT_REST", "");
+                    parse_expr(*rest_expression, context);
+                }
+            context.depth -= 1;
+        },
+
+        // expr? (Оператор ?)
+        Expr::Try(expression_try) => {
+            context.log("TRY_OP", "Using ? operator");
+            parse_expr(*expression_try.expr, context);
+        },
+
+        // try { ... }
+        Expr::TryBlock(expression_try_block) => {
+            context.log("TRY_BLOCK", "Entering try block");
+            context.depth += 1;
+            parse_stmts(expression_try_block.block.stmts, context);
+            context.depth -= 1;
+        },
+
+        // Кортеж (a, b, c, d)
+        Expr::Tuple(expression_tuple) => {
+            context.log("TUPLE", "Entering tuple elements");
+            
+            context.depth += 1;
+                for element in expression_tuple.elems {
+                    parse_expr(element, context);
+                }
+            context.depth -= 1;
+        },
+
+        // Унарные операторы, это минус, НЕ, дереф (*x, !x, -x)
+        Expr::Unary(expression_unary) => {
+            let operator = expression_unary.op.to_token_stream().to_string();
+            
+            let op_type = match expression_unary.op {
+                UnOp::Deref(_) => "DEREF",
+                UnOp::Not(_) => "NOT",
+                UnOp::Neg(_) => "NEG",
+                _ => "OTHER_UNARY_OP",
+            };
+            
+            context.log(op_type, &format!("Operator: {}", operator));
+            parse_expr(*expression_unary.expr, context);
+        },
+
+        // unsafe { ... } блок
+        Expr::Unsafe(expression_unsafe) => {
+            context.log("UNSAFE_BLOCK", "Entering unsafe block");
+            
+            context.depth += 1;
+                parse_stmts(expression_unsafe.block.stmts, context);
+            context.depth -= 1;
+        },
+
+        // Цикл while expr { ... }
+        Expr::While(expression_while) => {
+            context.log("WHILE_LOOP", "Condition:");
+            
+            context.depth += 1;
+                parse_expr(*expression_while.cond, context);
+                context.log("WHILE_BODY", "Body:");
+
+                parse_stmts(expression_while.body.stmts, context);
+            context.depth -= 1;
+        },
+
+        // Night фича компилятора раст для коротин
+        Expr::Yield(expression_yield) => {
+            context.log("YIELD", "");
+
+            if let Some(yield_expression) = expression_yield.expr {
+                parse_expr(*yield_expression, context);
+            }
+        },
+
+        // Выражение не кушает syn
+        Expr::Verbatim(token_stream) => {
+            context.log("VERBATIM", &token_stream.to_string());
+        },
+
+        _ => {
+            context.log("UNKNOWN", "");
+        }
+    }
 }
