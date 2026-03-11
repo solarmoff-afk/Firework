@@ -10,10 +10,9 @@ use proc_macro2::TokenStream as TokenStream2;
 use syn::parse::{Parse, ParseStream};
 use syn::{parse_macro_input, Result};
 use std::sync::atomic::{AtomicU64, Ordering};
-use compiler::{run_firework_compiler, run_firework_compiler_temp};
+use compiler::*;
 
 // TODO:
-//  - Добавить валидацию затенения спарка для кортежей и других случаев когда имён много
 //  - Начать писать генератор FIREWORK-IR в prepare 
 
 // Система id нужна для того чтобы во время выполнения опредить был ли переход на

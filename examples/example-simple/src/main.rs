@@ -3,6 +3,8 @@ use firework::ui;
 ui! {
     fn test_screen() { 
         let mut spark1 = spark!(100);
+        let (x, x2) = (10, 10);
+
         // let mut spark1 = 5;
 
         // print(spark!(100));

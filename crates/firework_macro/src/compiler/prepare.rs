@@ -2,18 +2,16 @@
 // Лицензия EPL 2.0, подробнее в файле LICENSE. Copyright (c) 2026 Firework
 
 use proc_macro2::TokenTree;
-use proc_macro2::Delimiter;
-use syn::{Stmt, token::Brace, Expr, Error};
+use syn::{Stmt, Expr, Error};
 use syn::{UnOp, BinOp};
 use quote::ToTokens;
 use std::collections::HashSet;
 
-use super::CompileResult;
 use super::widgets::is_widget_macro;
-use super::{compile_error_spanned, compile_error, SPARK_USAGE_ERROR, SPARK_SHADOWING_ERROR};
+use super::{compile_error_spanned, SPARK_USAGE_ERROR, SPARK_SHADOWING_ERROR};
 
 /// Структура которая собирает метаинформацию о каждой функции в ui блоке
-struct ItemMetadata {
+pub struct ItemMetadata {
     sparks: HashSet<String>, 
 }
 
@@ -56,7 +54,17 @@ impl CompilerContext {
     }
 
     fn log(&self, label: &str, details: &str) {
-        let targets: Vec<String> = self.active_targets.iter().map(|v| v.name.clone()).collect();
+        let targets: Vec<String> = self.active_targets
+            .iter()
+            .map(|v| {
+                if let Some(ty) = &v.ty {
+                    format!("{}: {}", v.name, ty)
+                } else {
+                    v.name.clone()
+                }
+            })
+            .collect();
+            
         let targets_str = if targets.is_empty() {
             "NONE".to_string()
         } else {
@@ -69,7 +77,7 @@ impl CompilerContext {
             label,
             targets_str,
             self.is_mutation,
-            details
+            details,
         );
     }
 }
@@ -137,7 +145,7 @@ fn parse_stmts(statements: Vec<Stmt>, context: &mut CompilerContext) {
                 parse_items(item, context);
             },
 
-            Stmt::Expr(expr, semi) => {
+            Stmt::Expr(expr, _semi) => {
                 parse_expr(expr, context);
             },
 
@@ -145,7 +153,7 @@ fn parse_stmts(statements: Vec<Stmt>, context: &mut CompilerContext) {
                 if is_widget_macro(&mac.mac.path) {
                     let inner_tokens = &mac.mac.tokens;
 
-                    let parser = |input: syn::parse::ParseStream| -> syn::Result<Vec<Stmt>> {
+                    let _parser = |input: syn::parse::ParseStream| -> syn::Result<Vec<Stmt>> {
                         let mut stmts = Vec::new();
 
                         while !input.is_empty() {
@@ -165,7 +173,7 @@ fn parse_stmts(statements: Vec<Stmt>, context: &mut CompilerContext) {
                     parse_stmts(inner_stmts, context);
                 } else {
                     if let Some(last_segment) = mac.mac.path.segments.last() {
-                        let macro_name = &last_segment.ident;
+                        let _macro_name = &last_segment.ident;
                         
                         // Это обычный макрос, нужен инлайн
                     }
@@ -234,13 +242,13 @@ fn parse_pat(pat: syn::Pat, current_type: Option<String>, context: &mut Compiler
         },
 
         syn::Pat::Slice(pat_slice) => {
-            for (index, element) in pat_slice.elems.iter().enumerate() {
+            for (_index, element) in pat_slice.elems.iter().enumerate() {
                 parse_pat(element.clone(), None, context);
             }
         },
 
         syn::Pat::Or(pat_or) => {
-            for (index, case) in pat_or.cases.iter().enumerate() {
+            for (_index, case) in pat_or.cases.iter().enumerate() {
                 parse_pat(case.clone(), None, context);
             }
         },
@@ -785,7 +793,7 @@ fn parse_items(item: syn::Item, context: &mut CompilerContext) -> proc_macro2::T
             });
         },
         
-        syn::Item::Impl(item_impl) => {
+        syn::Item::Impl(_item_impl) => {
             context.log("IMPL_PASSTHROUGH", "Implementation block");
             output.extend(quote::quote! {
                 #item
@@ -801,7 +809,7 @@ fn parse_items(item: syn::Item, context: &mut CompilerContext) -> proc_macro2::T
             });
         },
 
-        syn::Item::Use(item_use) => {
+        syn::Item::Use(_item_use) => {
             context.log("USE_PASSTHROUGH", "Use statement");
             
             output.extend(quote::quote! {
@@ -816,7 +824,7 @@ fn parse_items(item: syn::Item, context: &mut CompilerContext) -> proc_macro2::T
             });
         },
         
-        syn::Item::ForeignMod(item_foreign) => {
+        syn::Item::ForeignMod(_item_foreign) => {
             context.log("FOREIGN_MOD_PASSTHROUGH", "Foreign module");
             
             output.extend(quote::quote! {
