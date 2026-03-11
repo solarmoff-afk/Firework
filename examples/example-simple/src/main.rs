@@ -1,24 +1,19 @@
 use firework::ui;
 
 ui! {
-    fn test_screen() { 
-        let mut spark1 = spark!(100);
-        let (x, x2) = (10, 10);
+    fn test_screen(govno: u32) { 
+        let spark1: u32 = spark!(0); // Statement 0
 
-        let (a, b): (i32, String) = (42, "hello".to_string());
+        spark1 = 2; // Statement 1
 
-        // let mut spark1 = 5;
+        spark1.push(1); // Statement 2
 
-        // print(spark!(100));
-
-        // let mut spark1 = 123;
-        // let a = 1;
-        // let mut spark2 = spark!(100);
-
-        // rect!().width(spark1);
+        if spark1 == 5 { // Statement 3
+            println!("Hello world!"); // Statement 4
+        }
     }
 }
 
 fn main() {
-    test_screen();
+    test_screen(0);
 }

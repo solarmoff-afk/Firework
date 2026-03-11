@@ -14,7 +14,7 @@ use super::{
 
 /// Структура которая собирает метаинформацию о каждой функции в ui блоке
 pub struct ItemMetadata {
-    sparks: HashSet<String>, 
+    sparks: HashSet<String>,
 }
 
 impl ItemMetadata {
@@ -50,6 +50,11 @@ pub struct CompilerContext {
     pub variable_name: String,
 
     pub variable_type: String,
+
+    // Statement это блок кода от начала до ; или фигурных скобок. Нужно точно знать
+    // на каком statement мы сейчас. На старте это 0, поэтому итерацию нужно начать
+    // с нуля
+    pub statement_index: usize,
 }
 
 impl CompilerContext {
@@ -96,6 +101,7 @@ pub fn prepare_tokens(tokens: Vec<TokenTree>) -> (proc_macro2::TokenStream, Opti
         compile_errors: Vec::new(),
         variable_name: String::from(""),
         variable_type: String::from(""),
+        statement_index: 0,
     };
 
     let token_stream: proc_macro2::TokenStream = tokens.clone().into_iter().collect();
@@ -185,6 +191,9 @@ fn parse_stmts(statements: Vec<Stmt>, context: &mut CompilerContext) {
                 }
             },
         };
+
+        println!("Statement index: {}", context.statement_index);
+        context.statement_index += 1;
     }
 }
 
@@ -299,6 +308,11 @@ pub fn parse_expr(expression: syn::Expr, context: &mut CompilerContext) {
         Expr::Assign(expression_assign) => {
             let left_name = expression_assign.left.to_token_stream().to_string();
             context.log("ASSIGN_START", &format!("Target: {}", left_name));
+
+            // Попытка изменить значение spark
+            if context.metadata.sparks.contains(&left_name) {
+                println!("Reactivity!")
+            }
 
             let previous_targets = context.active_targets.clone();
             let previous_mutation_state = context.is_mutation;

@@ -21,6 +21,7 @@ pub const SPARK_TYPE_ERROR: &str = "\
 error[FE003]: type annotations needed for spark variable
    = note: spark!() creates a reactive value that requires an explicit type
    = help: annotate the variable type: `let name: Type = spark!(value);`
+   = help: example annotate the variable type: `let name: u32 = spark!(0);`
    = note: for more information, see: [WORK IN PROGRESS]
 ";
 
