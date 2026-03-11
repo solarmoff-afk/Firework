@@ -46,7 +46,7 @@ impl CompilerContext {
     }
 }
 
-pub fn prepare_tokens(tokens: Vec<TokenTree>) {
+pub fn prepare_tokens(tokens: Vec<TokenTree>) -> proc_macro2::TokenStream {
     let mut context = CompilerContext {
         depth: 0,
         active_targets: Vec::new(),
@@ -55,20 +55,26 @@ pub fn prepare_tokens(tokens: Vec<TokenTree>) {
 
     let token_stream: proc_macro2::TokenStream = tokens.clone().into_iter().collect();
 
-    let parser = |input: syn::parse::ParseStream| {
-        let mut stmts = Vec::new();
+    let parser = |input: syn::parse::ParseStream| -> syn::Result<Vec<syn::Item>> {
+        let mut items = Vec::new();
         
         while !input.is_empty() {
-            stmts.push(input.parse::<syn::Stmt>()?);
+            items.push(input.parse::<syn::Item>()?);
         }
         
-        Ok(stmts)
+        Ok(items)
     };
     
-    let stmts: Vec<Stmt> = syn::parse::Parser::parse2(parser, token_stream)
-        .expect("Failed to parse statements");
+    let items: Vec<syn::Item> = syn::parse::Parser::parse2(parser, token_stream)
+        .expect("Failed to parse items");
 
-    parse_stmts(stmts, &mut context);
+    let mut output = proc_macro2::TokenStream::new();
+    
+    for item in items {
+        output.extend(parse_items(item, &mut context));
+    }
+    
+    output
 }
 
 fn parse_stmts(statements: Vec<Stmt>, context: &mut CompilerContext) {
@@ -82,7 +88,7 @@ fn parse_stmts(statements: Vec<Stmt>, context: &mut CompilerContext) {
             },
             
             Stmt::Item(item) => {
-                // TODO
+                parse_items(item, context);
             },
 
             Stmt::Expr(expr, semi) => {
@@ -606,4 +612,149 @@ pub fn parse_expr(expression: syn::Expr, context: &mut CompilerContext) {
             context.log("UNKNOWN", "");
         }
     }
+}
+
+fn parse_items(item: syn::Item, context: &mut CompilerContext) -> proc_macro2::TokenStream {
+    let mut output = proc_macro2::TokenStream::new();
+    
+    match &item {
+        // TEMP: Заглушка чтобы компилятор не жаловался пока макрос в разработке
+        syn::Item::Fn(item_fn) => {
+            let fn_name = item_fn.sig.ident.to_string();
+            context.log("fn_found", &format!("function: {}", fn_name));
+            
+            context.depth += 1;
+                parse_stmts(item_fn.block.stmts.clone(), context);
+            context.depth -= 1;
+            
+            context.log("FN_STUB", &format!("Generating stub for: {}", fn_name));
+            
+            let mut fn_stub = item_fn.clone();
+            fn_stub.block = syn::parse2(quote::quote! {
+                {}
+            }).expect("Failed to parse item");
+
+            output.extend(quote::quote! {
+                #fn_stub
+            });
+        },
+        
+        syn::Item::Struct(item_struct) => {
+            let struct_name = item_struct.ident.to_string();
+            context.log("STRUCT_PASSTHROUGH", &format!("Struct: {}", struct_name));
+
+            output.extend(quote::quote! {
+                #item
+            });
+        },
+        
+        syn::Item::Enum(item_enum) => {
+            let enum_name = item_enum.ident.to_string();
+            context.log("ENUM_PASSTHROUGH", &format!("Enum: {}", enum_name));
+            
+            output.extend(quote::quote! {
+                #item
+            });
+        },
+        
+        syn::Item::Type(item_type) => {
+            let type_name = item_type.ident.to_string();
+            context.log("TYPE_PASSTHROUGH", &format!("Type alias: {}", type_name));
+            
+            output.extend(quote::quote! {
+                #item
+            });
+        },
+        
+        syn::Item::Const(item_const) => {
+            let const_name = item_const.ident.to_string();
+            context.log("CONST_PASSTHROUGH", &format!("Const: {}", const_name));
+            
+            output.extend(quote::quote! {
+                #item
+            });
+        },
+        
+        syn::Item::Static(item_static) => {
+            let static_name = item_static.ident.to_string();
+            context.log("STATIC_PASSTHROUGH", &format!("Static: {}", static_name));
+            
+            output.extend(quote::quote! {
+                #item
+            });
+        },
+        
+        syn::Item::Trait(item_trait) => {
+            let trait_name = item_trait.ident.to_string();
+            context.log("TRAIT_PASSTHROUGH", &format!("Trait: {}", trait_name));
+            output.extend(quote::quote! {
+                #item
+            });
+        },
+        
+        syn::Item::Impl(item_impl) => {
+            context.log("IMPL_PASSTHROUGH", "Implementation block");
+            output.extend(quote::quote! {
+                #item
+            });
+        },
+        
+        syn::Item::Mod(item_mod) => {
+            let mod_name = item_mod.ident.to_string();
+            context.log("MOD_PASSTHROUGH", &format!("Module: {} (keeping original)", mod_name));
+            
+            output.extend(quote::quote! {
+                #item_mod
+            });
+        },
+
+        syn::Item::Use(item_use) => {
+            context.log("USE_PASSTHROUGH", "Use statement");
+            
+            output.extend(quote::quote! {
+                #item
+            });
+        },
+        
+        syn::Item::ExternCrate(item_extern) => {
+            context.log("EXTERN_CRATE_PASSTHROUGH", &format!("Extern crate: {}", item_extern.ident));
+            output.extend(quote::quote! {
+                #item
+            });
+        },
+        
+        syn::Item::ForeignMod(item_foreign) => {
+            context.log("FOREIGN_MOD_PASSTHROUGH", "Foreign module");
+            
+            output.extend(quote::quote! {
+                #item
+            });
+        },
+        
+        syn::Item::Macro(item_macro) => {
+            if let Some(last_segment) = item_macro.mac.path.segments.last() {
+                let macro_name = &last_segment.ident;
+                context.log("MACRO_ITEM_PASSTHROUGH", &format!("Macro: {}!", macro_name));
+            }
+
+            output.extend(quote::quote! {
+                #item
+            });
+        },
+        
+        syn::Item::Verbatim(tokens) => {
+            context.log("VERBATIM_PASSTHROUGH", "Raw tokens");
+            output.extend(tokens.clone());
+        },
+        
+        _ => {
+            context.log("UNKNOWN_ITEM", "Unknown item type");
+            
+            output.extend(quote::quote! {
+                #item
+            });
+        }
+    };
+    
+    output
 }

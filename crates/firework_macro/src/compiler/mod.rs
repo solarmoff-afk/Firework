@@ -28,3 +28,8 @@ pub fn run_firework_compiler(ast: FireworkAst, id: u64) -> std::result::Result<S
 
     Ok(generated_code.to_string())
 }
+
+pub fn run_firework_compiler_temp(ast: FireworkAst, id: u64) ->std::result::Result<proc_macro2::TokenStream, String> {
+    let tokens: Vec<TokenTree> = ast.tokens.clone().into_iter().collect();
+    Ok(prepare_tokens(tokens)) 
+}

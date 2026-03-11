@@ -10,7 +10,11 @@ use proc_macro2::TokenStream as TokenStream2;
 use syn::parse::{Parse, ParseStream};
 use syn::{parse_macro_input, Result};
 use std::sync::atomic::{AtomicU64, Ordering};
-use compiler::run_firework_compiler;
+use compiler::{run_firework_compiler, run_firework_compiler_temp};
+
+// TODO:
+//  - Добавить валидацию spark (нельзя затенить спарк)
+//  - Начать писать генератор FIREWORK-IR в prepare 
 
 // Система id нужна для того чтобы во время выполнения опредить был ли переход на
 // этот экран до этого или перехода не было и его нужно построить. Это нужно
@@ -43,18 +47,29 @@ pub fn ui(input: TokenStream) -> TokenStream {
 
     // Генерация раст кода, если компилятор вернул ошибку (Err) то оборачиваем
     // её в красивую ошибку компиляции
-    let generated_rust_code_string = match run_firework_compiler(ast, id) {
-        Ok(code_string) => code_string,
-        Err(err_msg) => {
-            let err = syn::Error::new(proc_macro2::Span::call_site(), err_msg);
-            return err.to_compile_error().into();
-        }
-    };
+    // let generated_rust_code_string = match run_firework_compiler(ast, id) {
+    //    Ok(code_string) => code_string,
+    //    Err(err_msg) => {
+    //        let err = syn::Error::new(proc_macro2::Span::call_site(), err_msg);
+    //        return err.to_compile_error().into();
+    //    }
+    // };
 
     // Отправка созданной компилятором Firework строки в rustc
-    let output_tokens: TokenStream2 = generated_rust_code_string
-        .parse()
-        .expect("FATAL: Firework compiler generated_code is invalid");
+    // let output_tokens: TokenStream2 = generated_rust_code_string
+    //    .parse()
+    //    .expect("FATAL: Firework compiler generated_code is invalid");
 
-    output_tokens.into()
+    match run_firework_compiler_temp(ast, id) {
+        Ok(token_tree) => { 
+            TokenStream::from(token_tree)
+        },
+
+        Err(err_msg) => {
+            let err = syn::Error::new(proc_macro2::Span::call_site(), err_msg);
+            err.to_compile_error().into()
+        }
+    }
+
+    // output_tokens.into()
 }
