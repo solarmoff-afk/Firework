@@ -3,11 +3,27 @@
 
 use proc_macro2::TokenTree;
 use proc_macro2::Delimiter;
-use syn::{Stmt, token::Brace, Expr};
+use syn::{Stmt, token::Brace, Expr, Error};
 use syn::{UnOp, BinOp};
 use quote::ToTokens;
+use std::collections::HashSet;
 
+use super::CompileResult;
 use super::widgets::is_widget_macro;
+use super::{compile_error_spanned, compile_error, SPARK_USAGE_ERROR, SPARK_SHADOWING_ERROR};
+
+/// Структура которая собирает метаинформацию о каждой функции в ui блоке
+struct ItemMetadata {
+    sparks: HashSet<String>, 
+}
+
+impl ItemMetadata {
+    pub fn default() -> Self {
+        Self {
+            sparks: HashSet::new(),
+        }
+    }
+}
 
 #[derive(Debug, Clone)]
 pub struct VariableDeclaration {
@@ -20,6 +36,18 @@ pub struct CompilerContext {
     pub depth: usize,
     pub active_targets: Vec<VariableDeclaration>,
     pub is_mutation: bool,
+    pub metadata: ItemMetadata,
+
+    // Определяет явлемся ли мы правой частью присваивания. Это нужно чтобы понять
+    // относится ли вызов макроса (например spark!) к переменной или он вызван не там
+    // где нужно
+    pub is_right_side: bool,
+
+    // Вектор ошибок компиляции чтобы накопить их
+    pub compile_errors: Vec<Error>,
+
+    // Последняя переменная найденная в local ветке
+    pub variable_name: String,
 }
 
 impl CompilerContext {
@@ -46,11 +74,15 @@ impl CompilerContext {
     }
 }
 
-pub fn prepare_tokens(tokens: Vec<TokenTree>) -> proc_macro2::TokenStream {
+pub fn prepare_tokens(tokens: Vec<TokenTree>) -> (proc_macro2::TokenStream, Option<String>) {
     let mut context = CompilerContext {
         depth: 0,
         active_targets: Vec::new(),
         is_mutation: false,
+        metadata: ItemMetadata::default(),
+        is_right_side: false,
+        compile_errors: Vec::new(),
+        variable_name: String::from(""),
     };
 
     let token_stream: proc_macro2::TokenStream = tokens.clone().into_iter().collect();
@@ -73,10 +105,24 @@ pub fn prepare_tokens(tokens: Vec<TokenTree>) -> proc_macro2::TokenStream {
     for item in items {
         output.extend(parse_items(item, &mut context));
     }
+
+    let error_msg = if !context.compile_errors.is_empty() {
+        let mut msg = String::new();
+        for error in context.compile_errors {
+            msg.push_str(&error.to_string());
+            msg.push_str("\n");
+        }
+
+        Some(msg)
+    } else {
+        None
+    };
     
-    output
+    (output, error_msg)
 }
 
+/// Парсит statement, это конкретная команда. Можно упростить и сказать что это
+/// строки, но это не совсем так
 fn parse_stmts(statements: Vec<Stmt>, context: &mut CompilerContext) {
     for statement in statements {
         // println!("STATEMENT:");
@@ -129,16 +175,20 @@ fn parse_stmts(statements: Vec<Stmt>, context: &mut CompilerContext) {
     }
 }
 
+/// Парсит создание переменной
 fn parse_local(local: syn::Local, context: &mut CompilerContext) {
     parse_pat(local.pat, None, context);
 
     if let Some(init) = local.init {
+        context.is_right_side = true;
         context.depth += 1;
             parse_expr(*init.expr, context);
         context.depth -= 1;
+        context.is_right_side = false;
     }
 }
 
+/// Парсит паттерн, это может быть a, (a, b), [a, b, c] и так далее
 fn parse_pat(pat: syn::Pat, current_type: Option<String>, context: &mut CompilerContext) {
     match pat {
         syn::Pat::Ident(ident) => {
@@ -153,6 +203,15 @@ fn parse_pat(pat: syn::Pat, current_type: Option<String>, context: &mut Compiler
                 context.indent(), variable.is_mut, variable.name,
                 current_type.unwrap_or("NO TYPE".to_string())
             );
+
+            context.variable_name = ident.ident.to_string();
+
+            if context.metadata.sparks.contains(&context.variable_name) {
+                context.compile_errors.push(compile_error_spanned(
+                    &ident,
+                    SPARK_SHADOWING_ERROR,
+                ));
+            }
 
             context.active_targets.push(variable);
         },
@@ -190,6 +249,8 @@ fn parse_pat(pat: syn::Pat, current_type: Option<String>, context: &mut Compiler
     };
 }
 
+/// Парсит выражение. Выражение это почти всё что существует. Break, Continue,
+/// 2 + 2, x += 1, услоовие в if и так далее
 pub fn parse_expr(expression: syn::Expr, context: &mut CompilerContext) {
     match expression {
         // Массив ( [a, b, c, d] )
@@ -353,9 +414,10 @@ pub fn parse_expr(expression: syn::Expr, context: &mut CompilerContext) {
         Expr::ForLoop(expression_for_loop) => {
             let pattern = expression_for_loop.pat.to_token_stream().to_string();
             context.log("FOR_LOOP", &format!("Pattern: {}", pattern));
+            
             context.depth += 1;
-            parse_expr(*expression_for_loop.expr, context);
-            parse_stmts(expression_for_loop.body.stmts, context);
+                parse_expr(*expression_for_loop.expr, context);
+                parse_stmts(expression_for_loop.body.stmts, context);
             context.depth -= 1;
         },
 
@@ -423,6 +485,27 @@ pub fn parse_expr(expression: syn::Expr, context: &mut CompilerContext) {
             
             // Хардкод для теста
             if macro_name == "spark" {
+                // [FE001]
+                // Если спарк создаётся не как правая часть создания переменной то ошибка 
+                // омпиляции, так нельзя
+                if !context.is_right_side {
+                    context.compile_errors.push(compile_error_spanned(
+                        &expression_macro.mac,
+                        SPARK_USAGE_ERROR,
+                    ));
+                } else {
+                    // Мы точно знаем что имя в контексте это имя спарка, так как
+                    // мы точно находимся в правой части локальной ветки. Мы можем
+                    // попасть сюда только если мы в объявлении переменной в правой
+                    // части которой используется spark!, а в local ветке мы записываем
+                    // имя в context.variable_name
+                    let variable_name = &context.variable_name;
+                    
+                    context.metadata.sparks.insert(variable_name.to_string());
+                }
+
+                // Так как это макрос то 
+
                 context.log("SPARK_INIT", "Parsing spark content");
                 
                 let inner_expression: Expr = syn::parse2(expression_macro.mac.tokens)
@@ -459,11 +542,12 @@ pub fn parse_expr(expression: syn::Expr, context: &mut CompilerContext) {
         Expr::MethodCall(expression_method_call) => {
             let method = expression_method_call.method.to_string();
             context.log("METHOD_CALL", &format!("Method: .{}()", method));
+            
             context.depth += 1;
-            parse_expr(*expression_method_call.receiver, context);
-            for argument in expression_method_call.args {
-                parse_expr(argument, context);
-            }
+                parse_expr(*expression_method_call.receiver, context);
+                for argument in expression_method_call.args {
+                    parse_expr(argument, context);
+                }
             context.depth -= 1;
         },
         
@@ -542,8 +626,9 @@ pub fn parse_expr(expression: syn::Expr, context: &mut CompilerContext) {
         // try { ... }
         Expr::TryBlock(expression_try_block) => {
             context.log("TRY_BLOCK", "Entering try block");
+            
             context.depth += 1;
-            parse_stmts(expression_try_block.block.stmts, context);
+                parse_stmts(expression_try_block.block.stmts, context);
             context.depth -= 1;
         },
 
@@ -614,6 +699,8 @@ pub fn parse_expr(expression: syn::Expr, context: &mut CompilerContext) {
     }
 }
 
+/// Парсит предметы. Предмет это верхушка пищевой цепи в Rust, это модули, функции,
+/// трейты, структуры и так далее
 fn parse_items(item: syn::Item, context: &mut CompilerContext) -> proc_macro2::TokenStream {
     let mut output = proc_macro2::TokenStream::new();
     
@@ -622,6 +709,12 @@ fn parse_items(item: syn::Item, context: &mut CompilerContext) -> proc_macro2::T
         syn::Item::Fn(item_fn) => {
             let fn_name = item_fn.sig.ident.to_string();
             context.log("fn_found", &format!("function: {}", fn_name));
+
+            // Если context.depth это ноль то мы находимся в корне ui! блока, а значит
+            // заходим в функцию экрана. Архитектура фреймворка разрешает делать несколько
+            // экранов (функций) в одном ui! блоке поэтому для каждого экрана должны
+            // быть чистые метаданные, поэтому очищаем их
+            context.metadata.sparks.clear();
             
             context.depth += 1;
                 parse_stmts(item_fn.block.stmts.clone(), context);

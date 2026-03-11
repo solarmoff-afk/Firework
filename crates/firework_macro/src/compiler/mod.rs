@@ -3,6 +3,7 @@
 
 mod prepare;
 mod widgets;
+mod error;
 
 use prepare::prepare_tokens;
 use proc_macro2::TokenTree;
@@ -10,9 +11,18 @@ use quote::quote;
 
 use crate::FireworkAst;
 
-pub fn run_firework_compiler(ast: FireworkAst, id: u64) -> std::result::Result<String, String> {
+pub use error::*;
+
+/// Обёртка над Result для удобства изменения
+pub type CompileResult<T> = std::result::Result<T, syn::Error>;
+
+pub fn run_firework_compiler(ast: FireworkAst, id: u64) -> Result<String, String> {
     {
         let tokens: Vec<TokenTree> = ast.tokens.clone().into_iter().collect();
+        
+        // Компилятор должен в любом случае вернуть заглушки чтобы не было ошибок с тем
+        // что функция экрана не найдена в обоасти видимости. prepare_tokens генерирует
+        // эти заглушки на случай если компиляция упадёт
         prepare_tokens(tokens);
     }
 
@@ -29,7 +39,11 @@ pub fn run_firework_compiler(ast: FireworkAst, id: u64) -> std::result::Result<S
     Ok(generated_code.to_string())
 }
 
-pub fn run_firework_compiler_temp(ast: FireworkAst, id: u64) ->std::result::Result<proc_macro2::TokenStream, String> {
+pub fn run_firework_compiler_temp(ast: FireworkAst, id: u64) -> (proc_macro2::TokenStream, Option<String>) {
+    // Компилятор должен в любом случае вернуть заглушки чтобы не было ошибок с тем
+    // что функция экрана не найдена в обоасти видимости. prepare_tokens генерирует
+    // эти заглушки на случай если компиляция упадёт
+
     let tokens: Vec<TokenTree> = ast.tokens.clone().into_iter().collect();
-    Ok(prepare_tokens(tokens)) 
+    prepare_tokens(tokens) 
 }

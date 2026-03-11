@@ -13,7 +13,7 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use compiler::{run_firework_compiler, run_firework_compiler_temp};
 
 // TODO:
-//  - Добавить валидацию spark (нельзя затенить спарк)
+//  - Добавить валидацию затенения спарка для кортежей и других случаев когда имён много
 //  - Начать писать генератор FIREWORK-IR в prepare 
 
 // Система id нужна для того чтобы во время выполнения опредить был ли переход на
@@ -60,16 +60,14 @@ pub fn ui(input: TokenStream) -> TokenStream {
     //    .parse()
     //    .expect("FATAL: Firework compiler generated_code is invalid");
 
-    match run_firework_compiler_temp(ast, id) {
-        Ok(token_tree) => { 
-            TokenStream::from(token_tree)
-        },
-
-        Err(err_msg) => {
-            let err = syn::Error::new(proc_macro2::Span::call_site(), err_msg);
-            err.to_compile_error().into()
-        }
+    let (token_stream, error_msg) = run_firework_compiler_temp(ast, id);
+    
+    let mut output: proc_macro2::TokenStream = token_stream.into();
+    
+    if let Some(msg) = error_msg {
+        let err = syn::Error::new(proc_macro2::Span::call_site(), msg);
+        output.extend(err.to_compile_error());
     }
-
-    // output_tokens.into()
+    
+    output.into()
 }
