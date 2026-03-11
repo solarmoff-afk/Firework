@@ -17,6 +17,13 @@ error[FE002]: spark variables cannot be shadowed
    = note: for more information, see: [WORK IN PROGRESS]
 ";
 
+pub const SPARK_TYPE_ERROR: &str = "\
+error[FE003]: type annotations needed for spark variable
+   = note: spark!() creates a reactive value that requires an explicit type
+   = help: annotate the variable type: `let name: Type = spark!(value);`
+   = note: for more information, see: [WORK IN PROGRESS]
+";
+
 pub fn compile_error_spanned<T: quote::ToTokens>(tokens: T, msg: &str) -> Error {
     Error::new_spanned(tokens, msg)
 }

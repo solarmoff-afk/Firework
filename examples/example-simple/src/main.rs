@@ -5,6 +5,8 @@ ui! {
         let mut spark1 = spark!(100);
         let (x, x2) = (10, 10);
 
+        let (a, b): (i32, String) = (42, "hello".to_string());
+
         // let mut spark1 = 5;
 
         // print(spark!(100));

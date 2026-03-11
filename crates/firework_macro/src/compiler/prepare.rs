@@ -8,7 +8,9 @@ use quote::ToTokens;
 use std::collections::HashSet;
 
 use super::widgets::is_widget_macro;
-use super::{compile_error_spanned, SPARK_USAGE_ERROR, SPARK_SHADOWING_ERROR};
+use super::{
+    compile_error_spanned, SPARK_USAGE_ERROR, SPARK_SHADOWING_ERROR, SPARK_TYPE_ERROR
+};
 
 /// Структура которая собирает метаинформацию о каждой функции в ui блоке
 pub struct ItemMetadata {
@@ -46,6 +48,8 @@ pub struct CompilerContext {
 
     // Последняя переменная найденная в local ветке
     pub variable_name: String,
+
+    pub variable_type: String,
 }
 
 impl CompilerContext {
@@ -91,6 +95,7 @@ pub fn prepare_tokens(tokens: Vec<TokenTree>) -> (proc_macro2::TokenStream, Opti
         is_right_side: false,
         compile_errors: Vec::new(),
         variable_name: String::from(""),
+        variable_type: String::from(""),
     };
 
     let token_stream: proc_macro2::TokenStream = tokens.clone().into_iter().collect();
@@ -206,13 +211,16 @@ fn parse_pat(pat: syn::Pat, current_type: Option<String>, context: &mut Compiler
                 is_mut: ident.mutability.is_some(),
             };
 
+            let variable_type = current_type.unwrap_or("NO TYPE".to_string()); 
+
             println!(
                 "{}Let: is_mut: {}, name: {}, type: {}",
                 context.indent(), variable.is_mut, variable.name,
-                current_type.unwrap_or("NO TYPE".to_string())
+                variable_type,
             );
 
             context.variable_name = ident.ident.to_string();
+            context.variable_type = variable_type;
 
             if context.metadata.sparks.contains(&context.variable_name) {
                 context.compile_errors.push(compile_error_spanned(
@@ -226,6 +234,20 @@ fn parse_pat(pat: syn::Pat, current_type: Option<String>, context: &mut Compiler
 
         syn::Pat::Type(pat_type) => {
             let type_str = pat_type.ty.to_token_stream().to_string();
+            
+            // Если это кортеж с типом
+            if let syn::Type::Tuple(type_tuple) = &*pat_type.ty {
+                // Для каждого элемента кортежа свой тип
+                if let syn::Pat::Tuple(pat_tuple) = &*pat_type.pat {
+                    for (i, elem_pat) in pat_tuple.elems.iter().enumerate() {
+                        let elem_type = type_tuple.elems.get(i).map(|t| t.to_token_stream().to_string());
+                        parse_pat(elem_pat.clone(), elem_type, context);
+                    }
+                
+                    return;
+                }
+            }
+    
             parse_pat(*pat_type.pat, Some(type_str), context);
         },
 
@@ -496,6 +518,7 @@ pub fn parse_expr(expression: syn::Expr, context: &mut CompilerContext) {
                 // [FE001]
                 // Если спарк создаётся не как правая часть создания переменной то ошибка 
                 // омпиляции, так нельзя
+
                 if !context.is_right_side {
                     context.compile_errors.push(compile_error_spanned(
                         &expression_macro.mac,
@@ -508,9 +531,18 @@ pub fn parse_expr(expression: syn::Expr, context: &mut CompilerContext) {
                     // части которой используется spark!, а в local ветке мы записываем
                     // имя в context.variable_name
                     let variable_name = &context.variable_name;
+
+                    // Если спарку не задан тип то эта ошибка, так как спарк должен быть
+                    // определён в структуре на следующих этапах компиляции
+                    if context.variable_type == "NO TYPE" {
+                        context.compile_errors.push(compile_error_spanned(
+                            &expression_macro.mac,
+                            SPARK_TYPE_ERROR,
+                        ));
+                    }
                     
                     context.metadata.sparks.insert(variable_name.to_string());
-                }
+                } 
 
                 // Так как это макрос то 
 
