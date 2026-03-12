@@ -51,6 +51,9 @@ pub struct CompilerContext {
     // относится ли вызов макроса (например spark!) к переменной или он вызван не там
     // где нужно
     pub is_right_side: bool,
+    
+    // Находимся ли мы в присваивании
+    pub is_assign: bool,
 
     // Вектор ошибок компиляции чтобы накопить их
     pub compile_errors: Vec<Error>,
@@ -115,6 +118,7 @@ pub fn prepare_tokens(tokens: Vec<TokenTree>) -> (proc_macro2::TokenStream, Opti
         is_mutation: false,
         metadata: ItemMetadata::default(),
         is_right_side: false,
+        is_assign: false,
         compile_errors: Vec::new(),
         variable_name: String::from(""),
         variable_type: String::from(""),
@@ -347,6 +351,8 @@ pub fn parse_expr(expression: syn::Expr, context: &mut CompilerContext) {
             let left_name = expression_assign.left.to_token_stream().to_string();
             context.log("ASSIGN_START", &format!("Target: {}", left_name));
 
+            context.is_assign = true;
+
             // Попытка изменить значение spark
             if context.metadata.sparks.contains(&left_name) {
                 context.last_statement.action = FireworkAction::SparkUpdate(left_name.clone());
@@ -370,6 +376,8 @@ pub fn parse_expr(expression: syn::Expr, context: &mut CompilerContext) {
             context.active_targets = previous_targets;
             context.is_mutation = previous_mutation_state;
             context.log("ASSIGN_END", "");
+
+            context.is_assign = false;
         },
 
         // Асинхронность ( async { ... } )
@@ -511,8 +519,12 @@ pub fn parse_expr(expression: syn::Expr, context: &mut CompilerContext) {
         Expr::Field(expression_field) => {
             let member = expression_field.member.to_token_stream().to_string();
             context.log("FIELD_ACCESS", &format!("Member: .{}", member));
-            
-            parse_expr(*expression_field.base, context);
+           
+            // Base внутри это путь который ведёт к левой части работы с полем
+            // (То есть если стейтемент a.push(1) то a это база)
+            context.spark_mut_maybe = context.is_assign; // Copy чтобы избежать условия
+                parse_expr(*expression_field.base, context);
+            context.spark_mut_maybe = false;
         },
 
         // for i in collection { ... }
@@ -687,7 +699,10 @@ pub fn parse_expr(expression: syn::Expr, context: &mut CompilerContext) {
 
             // Если это выражение часть мутации спарка то фиксируем это в контексте 
             if context.spark_mut_maybe {
-                context.last_statement.action = FireworkAction::SparkUpdate(path);
+                if context.metadata.sparks.contains(&path) {
+                    context.last_statement.action = FireworkAction::SparkUpdate(path);
+                }
+                
                 context.spark_mut_maybe = false;
             }
         },

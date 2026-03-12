@@ -1,17 +1,20 @@
 use firework::ui;
 
 ui! {
-    fn test_screen() { 
-        // let mut spark1 = 0;
+    fn test_screen() {  
+        let mut spark1: u32 = spark!(0); // Statement 1
+        let mut spark2: u32 = spark!(0); // Statement 2
 
-        let mut spark1: u32 = spark!(0); // Statement 0
+        spark1 = 2; // Statement 3
 
-        spark1 = 2; // Statement 1 
+        spark1.push(1); // Statement 4
 
-        spark1.push(1); // Statement 2
+        spark2 += 2; // Statement 5
+        
+        spark1.field = 10; // Statement 6
 
-        if spark1 == 5 { // Statement 3
-            println!("Hello world!"); // Statement 4
+        if spark1 == 5 { // Statement 7
+            println!("Hello world!"); // Statement 8
         }
     }
 }
