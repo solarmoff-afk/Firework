@@ -6,6 +6,17 @@ ui! {
 
         spark1 = 2; // Statement 1
 
+        spark1 += 1;
+        spark1 -= 2;
+        spark1 *= 5;
+        spark1 /= 2;
+        spark1 %= 1;
+        spark1 &= 1;
+        spark1 |= 1;
+        spark1 ^= y;
+        spark1 <<= y;
+        spark1 >>= y;
+
         spark1.push(1); // Statement 2
 
         if spark1 == 5 { // Statement 3

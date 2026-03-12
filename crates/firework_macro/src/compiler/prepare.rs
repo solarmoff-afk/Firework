@@ -59,6 +59,11 @@ pub struct CompilerContext {
 
     pub statements: Vec<FireworkStatement>,
     pub last_statement: FireworkStatement,
+
+    // Флаг который включается когда спарк может быть изменён, но чтобы узнать точную
+    // переменную нужно пропарсить expr и залезть в path, этот флаг нужен чтобы ветка
+    // path поняла что сейчас ожидается спарк на изменение и запустила проверку
+    pub spark_mut_maybe: bool,
 }
 
 impl CompilerContext {
@@ -112,6 +117,8 @@ pub fn prepare_tokens(tokens: Vec<TokenTree>) -> (proc_macro2::TokenStream, Opti
             action: FireworkAction::DefaultCode,
             index: 0,
         },
+
+        spark_mut_maybe: false,
     };
 
     let token_stream: proc_macro2::TokenStream = tokens.clone().into_iter().collect();
@@ -156,8 +163,8 @@ pub fn prepare_tokens(tokens: Vec<TokenTree>) -> (proc_macro2::TokenStream, Opti
 /// строки, но это не совсем так
 fn parse_stmts(statements: Vec<Stmt>, context: &mut CompilerContext) {
     for statement in statements {
-        // println!("STATEMENT:");
-        // println!("{:#?}", statement);
+        println!("STATEMENT:");
+        println!("{:#?}", statement);
         
         context.last_statement.action = FireworkAction::DefaultCode;
 
@@ -393,11 +400,34 @@ pub fn parse_expr(expression: syn::Expr, context: &mut CompilerContext) {
                 // Заглушка
                 _ => "BINARY_OP",
             };
+
+            let assign_op = match expression_binary.op {
+                BinOp::AddAssign(_) => true,
+                BinOp::SubAssign(_) => true,
+                BinOp::MulAssign(_) => true,
+                BinOp::DivAssign(_) => true,
+                BinOp::RemAssign(_) => true,
+                BinOp::BitXorAssign(_) => true,
+                BinOp::BitAndAssign(_) => true,
+                BinOp::BitOrAssign(_) => true,
+                BinOp::ShlAssign(_) => true,
+                BinOp::ShrAssign(_) => true,
+                _ => false,
+            };
+
+            if assign_op {
+                // Ветка path поймёт что флаг включён и пометить этот стейтемент
+                // как мутацию спарка
+                context.spark_mut_maybe = true;
+            }
             
             context.log(op_type, &format!("Operator: {}", operator));
             
             context.depth += 1;
                 parse_expr(*expression_binary.left, context);
+
+                // Для правой части проверка спарка не нужна
+                context.spark_mut_maybe = false; 
                 parse_expr(*expression_binary.right, context);
             context.depth -= 1;
         },
@@ -632,6 +662,12 @@ pub fn parse_expr(expression: syn::Expr, context: &mut CompilerContext) {
         Expr::Path(expression_path) => {
             let path = expression_path.to_token_stream().to_string();
             context.log("PATH_USAGE", &format!("Variable: {}", path));
+
+            // Если это выражение часть мутации спарка то фиксируем это в контексте 
+            if context.spark_mut_maybe {
+                context.last_statement.action = FireworkAction::SparkUpdate;
+                context.spark_mut_maybe = false;
+            }
         },
 
         // 1..2, 1.., ..2, 1..=2, ..=2
