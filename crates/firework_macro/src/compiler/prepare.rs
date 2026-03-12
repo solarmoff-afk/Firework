@@ -162,7 +162,7 @@ pub fn prepare_tokens(tokens: Vec<TokenTree>) -> (proc_macro2::TokenStream, Opti
         error_tokens = Some(final_error.to_compile_error());
     }
 
-    // println!("{:#?}", context.statements);
+    println!("{:#?}", context.statements);
     
     (output, error_tokens)
 }
@@ -171,8 +171,8 @@ pub fn prepare_tokens(tokens: Vec<TokenTree>) -> (proc_macro2::TokenStream, Opti
 /// строки, но это не совсем так
 fn parse_stmts(statements: Vec<Stmt>, context: &mut CompilerContext) {
     for statement in statements {
-        // println!("STATEMENT:");
-        // println!("{:#?}", statement);
+        println!("STATEMENT:");
+        println!("{:#?}", statement);
         
         context.last_statement.action = FireworkAction::DefaultCode;
 
@@ -671,12 +671,18 @@ pub fn parse_expr(expression: syn::Expr, context: &mut CompilerContext) {
         },
 
         // Вызов метода x.foo::<T>(a, b)
+        // TODO: Сейчас вызов любого метода спарка считается как мутация самого
+        // спарка, нужно добавить логику для того чтобы отличить мутабельные
+        // методы и имутабельные для стандартных типов раст
         Expr::MethodCall(expression_method_call) => {
             let method = expression_method_call.method.to_string();
             context.log("METHOD_CALL", &format!("Method: .{}()", method));
             
             context.depth += 1;
-                parse_expr(*expression_method_call.receiver, context);
+                context.spark_mut_maybe = true;
+                    parse_expr(*expression_method_call.receiver, context);
+                context.spark_mut_maybe = false;
+
                 for argument in expression_method_call.args {
                     parse_expr(argument, context);
                 }

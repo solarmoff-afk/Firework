@@ -2,7 +2,7 @@ use firework::ui;
 
 ui! {
     fn test_screen() {  
-        let mut spark2: u32 = spark!(0); // Statement 1
+        let mut spark1: Vec<u32> = spark!(Vec::new()); // Statement 1
         let mut spark2: u32 = spark!(0); // Statement 2
 
         spark1 = 2; // Statement 3
