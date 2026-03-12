@@ -4,6 +4,7 @@
 mod prepare;
 mod widgets;
 mod error;
+mod codegen;
 
 use prepare::prepare_tokens;
 use proc_macro2::TokenTree;

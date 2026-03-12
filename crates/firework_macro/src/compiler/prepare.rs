@@ -8,6 +8,7 @@ use quote::ToTokens;
 use std::collections::HashSet;
 
 use super::widgets::is_widget_macro;
+use super::codegen::actions::{FireworkStatement, FireworkAction, WidgetType};
 use super::{
     compile_error_spanned, SPARK_USAGE_ERROR, SPARK_SHADOWING_ERROR, SPARK_TYPE_ERROR
 };
@@ -55,6 +56,9 @@ pub struct CompilerContext {
     // на каком statement мы сейчас. На старте это 0, поэтому итерацию нужно начать
     // с нуля
     pub statement_index: usize,
+
+    pub statements: Vec<FireworkStatement>,
+    pub last_statement: FireworkStatement,
 }
 
 impl CompilerContext {
@@ -102,6 +106,12 @@ pub fn prepare_tokens(tokens: Vec<TokenTree>) -> (proc_macro2::TokenStream, Opti
         variable_name: String::from(""),
         variable_type: String::from(""),
         statement_index: 0,
+        statements: Vec::new(),
+
+        last_statement: FireworkStatement {
+            action: FireworkAction::DefaultCode,
+            index: 0,
+        },
     };
 
     let token_stream: proc_macro2::TokenStream = tokens.clone().into_iter().collect();
@@ -136,6 +146,8 @@ pub fn prepare_tokens(tokens: Vec<TokenTree>) -> (proc_macro2::TokenStream, Opti
     } else {
         None
     };
+
+    println!("{:#?}", context.statements);
     
     (output, error_msg)
 }
@@ -145,7 +157,9 @@ pub fn prepare_tokens(tokens: Vec<TokenTree>) -> (proc_macro2::TokenStream, Opti
 fn parse_stmts(statements: Vec<Stmt>, context: &mut CompilerContext) {
     for statement in statements {
         // println!("STATEMENT:");
-        // println!("{:#?}", statement); 
+        // println!("{:#?}", statement);
+        
+        context.last_statement.action = FireworkAction::DefaultCode;
 
         match statement {
             Stmt::Local(local) => {
@@ -194,6 +208,9 @@ fn parse_stmts(statements: Vec<Stmt>, context: &mut CompilerContext) {
 
         println!("Statement index: {}", context.statement_index);
         context.statement_index += 1;
+        context.last_statement.index += 1;
+
+        context.statements.push(context.last_statement);
     }
 }
 
@@ -311,7 +328,7 @@ pub fn parse_expr(expression: syn::Expr, context: &mut CompilerContext) {
 
             // Попытка изменить значение spark
             if context.metadata.sparks.contains(&left_name) {
-                println!("Reactivity!")
+                context.last_statement.action = FireworkAction::SparkUpdate;
             }
 
             let previous_targets = context.active_targets.clone();
@@ -556,6 +573,7 @@ pub fn parse_expr(expression: syn::Expr, context: &mut CompilerContext) {
                     }
                     
                     context.metadata.sparks.insert(variable_name.to_string());
+                    context.last_statement.action = FireworkAction::InitialSpark;
                 } 
 
                 // Так как это макрос то 
