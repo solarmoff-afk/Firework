@@ -1,21 +1,12 @@
 use firework::ui;
 
 ui! {
-    fn test_screen(govno: u32) { 
-        let spark1: u32 = spark!(0); // Statement 0
+    fn test_screen() { 
+        // let mut spark1 = 0;
 
-        spark1 = 2; // Statement 1
+        let mut spark1: u32 = spark!(0); // Statement 0
 
-        spark1 += 1;
-        spark1 -= 2;
-        spark1 *= 5;
-        spark1 /= 2;
-        spark1 %= 1;
-        spark1 &= 1;
-        spark1 |= 1;
-        spark1 ^= y;
-        spark1 <<= y;
-        spark1 >>= y;
+        spark1 = 2; // Statement 1 
 
         spark1.push(1); // Statement 2
 
@@ -26,5 +17,5 @@ ui! {
 }
 
 fn main() {
-    test_screen(0);
+    test_screen();
 }

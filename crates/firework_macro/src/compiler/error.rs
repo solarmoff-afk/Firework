@@ -25,6 +25,13 @@ error[FE003]: type annotations needed for spark variable
    = note: for more information, see: [WORK IN PROGRESS]
 ";
 
+pub const SPARK_UNIQUE_NAME_ERROR: &str = "\
+error[FE004]: spark variable requires a unique name
+   = note: spark!() must be initialized with a new variable name
+   = help: use a different name that is not already in scope
+   = note: for more information, see: [WORK IN PROGRESS]
+";
+
 pub fn compile_error_spanned<T: quote::ToTokens>(tokens: T, msg: &str) -> Error {
     Error::new_spanned(tokens, msg)
 }

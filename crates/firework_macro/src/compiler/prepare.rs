@@ -10,19 +10,27 @@ use std::collections::HashSet;
 use super::widgets::is_widget_macro;
 use super::codegen::actions::{FireworkStatement, FireworkAction, WidgetType};
 use super::{
-    compile_error_spanned, SPARK_USAGE_ERROR, SPARK_SHADOWING_ERROR, SPARK_TYPE_ERROR
+    compile_error_spanned, SPARK_USAGE_ERROR, SPARK_SHADOWING_ERROR, SPARK_TYPE_ERROR,
+    SPARK_UNIQUE_NAME_ERROR,
 };
 
 /// Структура которая собирает метаинформацию о каждой функции в ui блоке
 pub struct ItemMetadata {
     sparks: HashSet<String>,
+    variables: HashSet<String>,
 }
 
 impl ItemMetadata {
     pub fn default() -> Self {
         Self {
             sparks: HashSet::new(),
+            variables: HashSet::new(),
         }
+    }
+
+    pub fn clear(&mut self) {
+        self.sparks.clear();
+        self.variables.clear();
     }
 }
 
@@ -229,6 +237,12 @@ fn parse_local(local: syn::Local, context: &mut CompilerContext) {
         context.is_right_side = true;
         context.depth += 1;
             parse_expr(*init.expr, context);
+            
+            // Нужно добавлять переменную только после обработки макроса spark чтобы
+            // избежать механизма который бросает FE004, обработка макроса spark как раз
+            // находится в одной из веток parse_expr, поэтому делаем insert только после
+            // вызова parse_expr
+            context.metadata.variables.insert(context.variable_name.clone());
         context.depth -= 1;
         context.is_right_side = false;
     }
@@ -262,7 +276,7 @@ fn parse_pat(pat: syn::Pat, current_type: Option<String>, context: &mut Compiler
                 ));
             }
 
-            context.active_targets.push(variable);
+            context.active_targets.push(variable); 
         },
 
         syn::Pat::Type(pat_type) => {
@@ -579,7 +593,6 @@ pub fn parse_expr(expression: syn::Expr, context: &mut CompilerContext) {
                 // [FE001]
                 // Если спарк создаётся не как правая часть создания переменной то ошибка 
                 // омпиляции, так нельзя
-
                 if !context.is_right_side {
                     context.compile_errors.push(compile_error_spanned(
                         &expression_macro.mac,
@@ -604,9 +617,16 @@ pub fn parse_expr(expression: syn::Expr, context: &mut CompilerContext) {
                     
                     context.metadata.sparks.insert(variable_name.to_string());
                     context.last_statement.action = FireworkAction::InitialSpark;
-                } 
+                }
 
-                // Так как это макрос то 
+                // [FE004]
+                // Переменной с таким именем не должно существовать
+                if context.metadata.variables.contains(&context.variable_name) {
+                    context.compile_errors.push(compile_error_spanned(
+                        &expression_macro.mac,
+                        SPARK_UNIQUE_NAME_ERROR,
+                    ));
+                } 
 
                 context.log("SPARK_INIT", "Parsing spark content");
                 
@@ -822,7 +842,7 @@ fn parse_items(item: syn::Item, context: &mut CompilerContext) -> proc_macro2::T
             // заходим в функцию экрана. Архитектура фреймворка разрешает делать несколько
             // экранов (функций) в одном ui! блоке поэтому для каждого экрана должны
             // быть чистые метаданные, поэтому очищаем их
-            context.metadata.sparks.clear();
+            context.metadata.clear();
             
             context.depth += 1;
                 parse_stmts(item_fn.block.stmts.clone(), context);
