@@ -15,6 +15,7 @@ use super::{
 };
 
 /// Структура которая собирает метаинформацию о каждой функции в ui блоке
+#[derive(Clone)]
 pub struct ItemMetadata {
     sparks: HashSet<String>,
     variables: HashSet<String>,
@@ -454,9 +455,33 @@ pub fn parse_expr(expression: syn::Expr, context: &mut CompilerContext) {
         Expr::Block(expression_block) => {
             context.log("BLOCK_EXPR", "Entering block");
             
+            // Сохранение метеданных (спарки и переменные) для области видимости
+            // до блока. Спарки и сигналы будут в метаданных, но после того как
+            // блок завершён то нужно сбросить метаданные до статуса в котором
+            // они были до входа в новую область видимости. Если визуализировать:
+            // fn ...(...) {
+            //  // Тут одна область видимости
+            //  let mut spark1: u32 = spark!(0);
+            //
+            //  // Тут другая область видимости
+            //  {
+            //      let mut spark2: u32 = spark!(0);
+            //
+            //      // Тут можно работать и с spark1 и с spark2
+            //  }
+            //
+            //  // Тут срабатывает строка context.metadata = global_metadata;
+            //  // Теперь доступ есть только к spark1 так как он находится в
+            //  // в этой области видимости
+            //  spark1 += 1;
+            // }
+            let global_metadata = context.metadata.clone();
+
             context.depth += 1;
                 parse_stmts(expression_block.block.stmts, context);
             context.depth -= 1;
+
+            context.metadata = global_metadata;
         },
 
         // Break (выход из цикла)
