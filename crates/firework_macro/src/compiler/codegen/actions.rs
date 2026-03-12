@@ -7,7 +7,7 @@ pub enum WidgetType {
     Text,
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 pub enum FireworkAction {
     // Этот statement не нуждается в обработке
     DefaultCode,
@@ -36,14 +36,14 @@ pub enum FireworkAction {
     // Матч который зависит от спарка
     MatchSpark,
 
-    // Инициализация спарка
-    InitialSpark,
+    // Инициализация спарка (String, String это имя, тип)
+    InitialSpark(String, String),
 
     // Обновление спарка (spark1 = 5, spark1 += 1, spark1.push(...))
-    SparkUpdate,
+    SparkUpdate(String),
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 pub struct FireworkStatement {
     pub action: FireworkAction,
     pub index: usize,

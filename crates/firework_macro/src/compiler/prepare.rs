@@ -10,8 +10,8 @@ use std::collections::HashSet;
 use super::widgets::is_widget_macro;
 use super::codegen::actions::{FireworkStatement, FireworkAction, WidgetType};
 use super::{
-    compile_error_spanned, SPARK_USAGE_ERROR, SPARK_SHADOWING_ERROR, SPARK_TYPE_ERROR,
-    SPARK_UNIQUE_NAME_ERROR,
+    compile_error_spanned, is_mutable_method,
+    SPARK_USAGE_ERROR, SPARK_SHADOWING_ERROR, SPARK_TYPE_ERROR, SPARK_UNIQUE_NAME_ERROR,
 };
 
 /// Структура которая собирает метаинформацию о каждой функции в ui блоке
@@ -225,7 +225,7 @@ fn parse_stmts(statements: Vec<Stmt>, context: &mut CompilerContext) {
         context.statement_index += 1;
         context.last_statement.index += 1;
 
-        context.statements.push(context.last_statement);
+        context.statements.push(context.last_statement.clone());
     }
 }
 
@@ -349,7 +349,7 @@ pub fn parse_expr(expression: syn::Expr, context: &mut CompilerContext) {
 
             // Попытка изменить значение spark
             if context.metadata.sparks.contains(&left_name) {
-                context.last_statement.action = FireworkAction::SparkUpdate;
+                context.last_statement.action = FireworkAction::SparkUpdate(left_name.clone());
             }
 
             let previous_targets = context.active_targets.clone();
@@ -616,7 +616,9 @@ pub fn parse_expr(expression: syn::Expr, context: &mut CompilerContext) {
                     }
                     
                     context.metadata.sparks.insert(variable_name.to_string());
-                    context.last_statement.action = FireworkAction::InitialSpark;
+                    context.last_statement.action = FireworkAction::InitialSpark(
+                        context.variable_name.clone(), context.variable_type.clone(),
+                    );
                 }
 
                 // [FE004]
@@ -685,7 +687,7 @@ pub fn parse_expr(expression: syn::Expr, context: &mut CompilerContext) {
 
             // Если это выражение часть мутации спарка то фиксируем это в контексте 
             if context.spark_mut_maybe {
-                context.last_statement.action = FireworkAction::SparkUpdate;
+                context.last_statement.action = FireworkAction::SparkUpdate(path);
                 context.spark_mut_maybe = false;
             }
         },

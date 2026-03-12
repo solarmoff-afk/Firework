@@ -3,6 +3,7 @@
 
 mod prepare;
 mod widgets;
+mod utils;
 mod error;
 mod codegen;
 
@@ -13,6 +14,7 @@ use quote::quote;
 use crate::FireworkAst;
 
 pub use error::*;
+pub use utils::*;
 
 pub fn _run_firework_compiler(ast: FireworkAst, id: u64) -> Result<String, String> {
     {
