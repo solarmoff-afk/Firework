@@ -1,20 +1,19 @@
 // Часть проекта Firework с открытым исходным кодом.
 // Лицензия EPL 2.0, подробнее в файле LICENSE. Copyright (c) 2026 Firework
 
-mod prepare;
+mod analyze;
 mod widgets;
 mod utils;
 mod error;
 mod codegen;
 
-use prepare::prepare_tokens;
+use analyze::prepare::prepare_tokens;
 use proc_macro2::TokenTree;
 use quote::quote;
 
 use crate::FireworkAst;
 
 pub use error::*;
-pub use utils::*;
 
 pub fn _run_firework_compiler(ast: FireworkAst, id: u64) -> Result<String, String> {
     {

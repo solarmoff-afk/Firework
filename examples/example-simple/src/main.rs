@@ -9,6 +9,10 @@ ui! {
         if a == b {
             let mut spark2: u32 = spark!(0);
         }
+
+        if let Some(x) = opt {
+
+        }
     }
 }
 
