@@ -100,18 +100,11 @@ impl CompilerContext {
             targets.join(", ")
         };
         
-        println!(
-            "{}[{}] Target: [{}] | Mutation: {} | Details: {}",
-            self.indent(),
-            label,
-            targets_str,
-            self.is_mutation,
-            details,
-        );
+        // println!("{}[{}] Target: [{}] | Mutation: {} | Details: {}", self.indent(), label, targets_str, self.is_mutation, details);
     }
 }
 
-pub fn prepare_tokens(tokens: Vec<TokenTree>) -> (proc_macro2::TokenStream, Option<String>) {
+pub fn prepare_tokens(tokens: Vec<TokenTree>) -> (proc_macro2::TokenStream, Option<proc_macro2::TokenStream>) {
     let mut context = CompilerContext {
         depth: 0,
         active_targets: Vec::new(),
@@ -144,39 +137,42 @@ pub fn prepare_tokens(tokens: Vec<TokenTree>) -> (proc_macro2::TokenStream, Opti
         
         Ok(items)
     };
-    
-    let items: Vec<syn::Item> = syn::parse::Parser::parse2(parser, token_stream)
-        .expect("Failed to parse items");
+
+    let items = match syn::parse::Parser::parse2(parser, token_stream) {
+        Ok(items_vec) => items_vec,
+        Err(message) => {
+            return (proc_macro2::TokenStream::new(), Some(message.to_compile_error()));
+        },
+    }; 
 
     let mut output = proc_macro2::TokenStream::new();
+    let mut error_tokens = None;
     
     for item in items {
         output.extend(parse_items(item, &mut context));
     }
 
-    let error_msg = if !context.compile_errors.is_empty() {
-        let mut msg = String::new();
+    if !context.compile_errors.is_empty() {
+        let mut final_error = context.compile_errors.remove(0);
+        
         for error in context.compile_errors {
-            msg.push_str(&error.to_string());
-            msg.push_str("\n");
+            final_error.combine(error);
         }
 
-        Some(msg)
-    } else {
-        None
-    };
+        error_tokens = Some(final_error.to_compile_error());
+    }
 
-    println!("{:#?}", context.statements);
+    // println!("{:#?}", context.statements);
     
-    (output, error_msg)
+    (output, error_tokens)
 }
 
 /// Парсит statement, это конкретная команда. Можно упростить и сказать что это
 /// строки, но это не совсем так
 fn parse_stmts(statements: Vec<Stmt>, context: &mut CompilerContext) {
     for statement in statements {
-        println!("STATEMENT:");
-        println!("{:#?}", statement);
+        // println!("STATEMENT:");
+        // println!("{:#?}", statement);
         
         context.last_statement.action = FireworkAction::DefaultCode;
 

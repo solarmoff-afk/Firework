@@ -59,13 +59,14 @@ pub fn ui(input: TokenStream) -> TokenStream {
     //    .parse()
     //    .expect("FATAL: Firework compiler generated_code is invalid");
 
-    let (token_stream, error_msg) = run_firework_compiler_temp(ast, id);
+    let (token_stream, error_tokens) = run_firework_compiler_temp(ast, id);
     
     let mut output: proc_macro2::TokenStream = token_stream.into();
     
-    if let Some(msg) = error_msg {
-        let err = syn::Error::new(proc_macro2::Span::call_site(), msg);
-        output.extend(err.to_compile_error());
+    // Если есть ошибки компиляции - добавляем их к выходному потоку
+    // Каждая ошибка уже содержит правильный спан через compile_error! макрос
+    if let Some(err_tokens) = error_tokens {
+        output.extend(err_tokens);
     }
     
     output.into()

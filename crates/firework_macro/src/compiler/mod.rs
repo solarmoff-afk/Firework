@@ -39,7 +39,7 @@ pub fn _run_firework_compiler(ast: FireworkAst, id: u64) -> Result<String, Strin
     Ok(generated_code.to_string())
 }
 
-pub fn run_firework_compiler_temp(ast: FireworkAst, _id: u64) -> (proc_macro2::TokenStream, Option<String>) {
+pub fn run_firework_compiler_temp(ast: FireworkAst, _id: u64) -> (proc_macro2::TokenStream, Option<proc_macro2::TokenStream>) {
     // Компилятор должен в любом случае вернуть заглушки чтобы не было ошибок с тем
     // что функция экрана не найдена в обоасти видимости. prepare_tokens генерирует
     // эти заглушки на случай если компиляция упадёт
