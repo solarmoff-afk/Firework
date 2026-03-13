@@ -13,6 +13,9 @@ use crate::compiler::codegen::actions::{FireworkStatement, FireworkAction};
 pub struct ItemMetadata {
     pub sparks: HashSet<String>,
     pub variables: HashSet<String>,
+
+    // Атрибуты текущнго блока, например #[component]
+    pub attributes: HashSet<String>,
 }
 
 impl ItemMetadata {
@@ -20,12 +23,14 @@ impl ItemMetadata {
         Self {
             sparks: HashSet::new(),
             variables: HashSet::new(),
+            attributes: HashSet::new(),
         }
     }
 
     pub fn clear(&mut self) {
         self.sparks.clear();
         self.variables.clear();
+        self.attributes.clear();
     }
 }
 

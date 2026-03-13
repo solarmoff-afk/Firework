@@ -32,7 +32,8 @@ pub fn parse_expr(expression: syn::Expr, context: &mut CompilerContext) {
             context.depth -= 1;
         },
 
-        // Присваивание (a = compute())
+        // Присваивание (a = compute()). В расте нет множественного присваивания поэтому
+        // логика здесь правильная
         Expr::Assign(expression_assign) => {
             let left_name = expression_assign.left.to_token_stream().to_string();
             context.log("ASSIGN_START", &format!("Target: {}", left_name));

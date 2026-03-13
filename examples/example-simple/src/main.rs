@@ -1,4 +1,5 @@
 use firework::ui;
+// use firework::component;
 
 ui! {
     // static BAD_STATIC: u32 = spark!(200);

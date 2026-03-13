@@ -38,6 +38,13 @@ pub fn parse_items(item: syn::Item, context: &mut CompilerContext) -> proc_macro
                     context.is_special_var = false;
                 }
             }
+
+            for attr in &item_fn.attrs {
+                let name = attr.path().to_token_stream().to_string();
+
+                context.log("ATTR", &format!("Attribute: {}, function: {}", name, fn_name));
+                context.metadata.attributes.insert(name);
+            }
             
             context.depth += 1;
                 parse_stmts(item_fn.block.stmts.clone(), context);
