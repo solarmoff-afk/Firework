@@ -73,6 +73,9 @@ pub struct CompilerContext {
 
     // Переменная создана в аргументах функции или в if let
     pub is_special_var: bool,
+
+    // Явлется ли это выражение константой или статичеой переменной на уровне item
+    pub is_static: bool,
 }
 
 impl CompilerContext {
@@ -123,6 +126,7 @@ pub fn prepare_tokens(tokens: Vec<TokenTree>) -> (proc_macro2::TokenStream, Opti
 
         spark_mut_maybe: false,
         is_special_var: false,
+        is_static: false,
     };
 
     let token_stream: proc_macro2::TokenStream = tokens.clone().into_iter().collect();

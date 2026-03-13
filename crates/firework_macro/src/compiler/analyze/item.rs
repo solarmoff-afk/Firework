@@ -6,6 +6,7 @@ use quote::ToTokens;
 use crate::compiler::analyze::prepare::CompilerContext;
 use crate::compiler::analyze::statement::parse_stmts;
 use crate::compiler::analyze::pattern::parse_pat;
+use crate::compiler::analyze::expr::parse_expr;
 
 /// Парсит предметы. Предмет это верхушка пищевой цепи в Rust, это модули, функции,
 /// трейты, структуры и так далее
@@ -18,12 +19,13 @@ pub fn parse_items(item: syn::Item, context: &mut CompilerContext) -> proc_macro
             let fn_name = item_fn.sig.ident.to_string();
             context.log("fn_found", &format!("function: {}", fn_name));
 
+            // Для констант и статичных переменных
+            let saved_metadata = context.metadata.clone();
+
             // Если context.depth это ноль то мы находимся в корне ui! блока, а значит
             // заходим в функцию экрана. Архитектура фреймворка разрешает делать несколько
             // экранов (функций) в одном ui! блоке поэтому для каждого экрана должны
             // быть чистые метаданные, поэтому очищаем их
-            // TODO: Для констант и статики нужна чуть-чуть другая логика. Нужно не
-            // очищать переменные, а клонировать их и возвращать после выхода из блока
             context.metadata.clear();
 
             // Нужно учитывать аргументы функции как переменные тоже
@@ -47,6 +49,9 @@ pub fn parse_items(item: syn::Item, context: &mut CompilerContext) -> proc_macro
             fn_stub.block = syn::parse2(quote::quote! {
                 {}
             }).expect("Failed to parse item");
+
+            // Возврат метаданных до входа в эту область видимости
+            context.metadata = saved_metadata;
 
             output.extend(quote::quote! {
                 #fn_stub
@@ -82,16 +87,28 @@ pub fn parse_items(item: syn::Item, context: &mut CompilerContext) -> proc_macro
         
         syn::Item::Const(item_const) => {
             let const_name = item_const.ident.to_string();
-            context.log("CONST_PASSTHROUGH", &format!("Const: {}", const_name));
+            context.log("CONST", &format!("Constant: {}", const_name));
+    
+            context.metadata.variables.insert(const_name.clone());
             
+            context.is_static = true;
+                parse_expr(*item_const.expr.clone(), context);
+            context.is_static = false;
+    
             output.extend(quote::quote! {
                 #item
             });
         },
-        
+
         syn::Item::Static(item_static) => {
             let static_name = item_static.ident.to_string();
-            context.log("STATIC_PASSTHROUGH", &format!("Static: {}", static_name));
+            context.log("STATIC", &format!("Static {}", static_name));
+
+            context.metadata.variables.insert(static_name.clone());
+            
+            context.is_static = true;
+                parse_expr(*item_static.expr.clone(), context);
+            context.is_static = false;
             
             output.extend(quote::quote! {
                 #item

@@ -32,6 +32,14 @@ error[FE004]: spark variable requires a unique name
    = note: for more information, see: [WORK IN PROGRESS]
 ";
 
+pub const SPARK_GLOBAL_ERROR: &str = "\
+error[FE005]: spark cannot be used in global or static context
+   = note: spark!() is only allowed in local scope
+   = help: move spark!() inside a function body
+   = note: spark values are automatically globalized for screen transitions
+   = note: for more information, see: [WORK IN PROGRESS]
+";
+
 pub fn compile_error_spanned<T: quote::ToTokens>(tokens: T, msg: &str) -> Error {
     Error::new_spanned(tokens, msg)
 }

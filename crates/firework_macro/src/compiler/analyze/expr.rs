@@ -13,6 +13,7 @@ use crate::compiler::analyze::statement::parse_stmts;
 use crate::compiler::analyze::pattern::parse_pat;
 use crate::{
     compile_error_spanned, SPARK_USAGE_ERROR, SPARK_TYPE_ERROR, SPARK_UNIQUE_NAME_ERROR,
+    SPARK_GLOBAL_ERROR,
 };
 
 /// Парсит выражение. Выражение это почти всё что существует. Break, Continue,
@@ -317,6 +318,16 @@ pub fn parse_expr(expression: syn::Expr, context: &mut CompilerContext) {
             
             // Хардкод для теста
             if macro_name == "spark" {
+                // [FE005]
+                // Нельзя использовать спарк в статичной переменной или константе на
+                // уровне item
+                if context.is_static {
+                    context.compile_errors.push(compile_error_spanned(
+                        &expression_macro.mac,
+                        SPARK_GLOBAL_ERROR,
+                    ));
+                }
+
                 // [FE001]
                 // Если спарк создаётся не как правая часть создания переменной то ошибка 
                 // омпиляции, так нельзя
