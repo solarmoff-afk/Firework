@@ -56,6 +56,10 @@ pub fn parse_pat(pat: syn::Pat, current_type: Option<String>, context: &mut Comp
                 ));
             }
 
+            if context.is_special_var {
+                context.metadata.variables.insert(variable.name.clone());
+            }
+
             context.active_targets.push(variable); 
         },
 
@@ -102,7 +106,28 @@ pub fn parse_pat(pat: syn::Pat, current_type: Option<String>, context: &mut Comp
             }
         },
 
+        syn::Pat::Reference(pat_ref) => {
+            parse_pat(*pat_ref.pat, current_type, context);
+        },
+
+        syn::Pat::Paren(pat_paren) => {
+            parse_pat(*pat_paren.pat, current_type, context);
+        },
+
+        syn::Pat::TupleStruct(pat_tuple_struct) => {
+            for element in pat_tuple_struct.elems.iter() {
+                parse_pat(element.clone(), None, context);
+            }
+        },
+
+        syn::Pat::Path(pat_path) => {
+            // TODO: обработать path
+        },
+
+        syn::Pat::Macro(pat_macro) => {
+            // TODO: обработать макрос
+        },
+
         _ => {},
     };
 }
-

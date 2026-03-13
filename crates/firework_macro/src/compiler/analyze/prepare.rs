@@ -70,6 +70,9 @@ pub struct CompilerContext {
     // переменную нужно пропарсить expr и залезть в path, этот флаг нужен чтобы ветка
     // path поняла что сейчас ожидается спарк на изменение и запустила проверку
     pub spark_mut_maybe: bool,
+
+    // Переменная создана в аргументах функции или в if let
+    pub is_special_var: bool,
 }
 
 impl CompilerContext {
@@ -119,6 +122,7 @@ pub fn prepare_tokens(tokens: Vec<TokenTree>) -> (proc_macro2::TokenStream, Opti
         },
 
         spark_mut_maybe: false,
+        is_special_var: false,
     };
 
     let token_stream: proc_macro2::TokenStream = tokens.clone().into_iter().collect();

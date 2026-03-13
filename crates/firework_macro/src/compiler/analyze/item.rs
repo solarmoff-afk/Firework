@@ -1,8 +1,11 @@
 // Часть проекта Firework с открытым исходным кодом.
 // Лицензия EPL 2.0, подробнее в файле LICENSE. Copyright (c) 2026 Firework
 
+use quote::ToTokens;
+
 use crate::compiler::analyze::prepare::CompilerContext;
 use crate::compiler::analyze::statement::parse_stmts;
+use crate::compiler::analyze::pattern::parse_pat;
 
 /// Парсит предметы. Предмет это верхушка пищевой цепи в Rust, это модули, функции,
 /// трейты, структуры и так далее
@@ -19,7 +22,20 @@ pub fn parse_items(item: syn::Item, context: &mut CompilerContext) -> proc_macro
             // заходим в функцию экрана. Архитектура фреймворка разрешает делать несколько
             // экранов (функций) в одном ui! блоке поэтому для каждого экрана должны
             // быть чистые метаданные, поэтому очищаем их
+            // TODO: Для констант и статики нужна чуть-чуть другая логика. Нужно не
+            // очищать переменные, а клонировать их и возвращать после выхода из блока
             context.metadata.clear();
+
+            // Нужно учитывать аргументы функции как переменные тоже
+            for input in &item_fn.sig.inputs {
+                if let syn::FnArg::Typed(pat_type) = input {
+                    let arg_type = pat_type.ty.to_token_stream().to_string();
+
+                    context.is_special_var = true;
+                        parse_pat(*pat_type.pat.clone(), Some(arg_type), context);
+                    context.is_special_var = false;
+                }
+            }
             
             context.depth += 1;
                 parse_stmts(item_fn.block.stmts.clone(), context);

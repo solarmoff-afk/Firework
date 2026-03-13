@@ -10,6 +10,7 @@ use crate::compiler::analyze::prepare::CompilerContext;
 use crate::compiler::codegen::actions::FireworkAction;
 use crate::compiler::analyze::prepare::VariableDeclaration;
 use crate::compiler::analyze::statement::parse_stmts;
+use crate::compiler::analyze::pattern::parse_pat;
 use crate::{
     compile_error_spanned, SPARK_USAGE_ERROR, SPARK_TYPE_ERROR, SPARK_UNIQUE_NAME_ERROR,
 };
@@ -287,7 +288,11 @@ pub fn parse_expr(expression: syn::Expr, context: &mut CompilerContext) {
         Expr::Let(expression_let) => {
             let pattern = expression_let.pat.to_token_stream().to_string();
             context.log("LET_EXPR", &format!("Pattern: {}", pattern));
-            
+          
+            context.is_special_var = true;
+                parse_pat(*expression_let.pat, None, context);
+            context.is_special_var = false;
+
             parse_expr(*expression_let.expr, context);
         },
 
