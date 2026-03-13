@@ -247,7 +247,10 @@ pub fn parse_expr(expression: syn::Expr, context: &mut CompilerContext) {
             
             context.depth += 1;
                 parse_expr(*expression_for_loop.expr, context);
-                parse_stmts(expression_for_loop.body.stmts, context);
+                
+                let metadata = context.metadata.clone();
+                    parse_stmts(expression_for_loop.body.stmts, context);
+                context.metadata = metadata;
             context.depth -= 1;
         },
 
@@ -263,13 +266,18 @@ pub fn parse_expr(expression: syn::Expr, context: &mut CompilerContext) {
             context.depth += 1;
                 parse_expr(*expression_if.cond, context);
                 context.log("IF_THEN", "Then branch:");
-            
-                parse_stmts(expression_if.then_branch.stmts, context);
+           
+                let metadata = context.metadata.clone();
+                    parse_stmts(expression_if.then_branch.stmts, context);
+                context.metadata = metadata;
                
                 // Если есть else
                 if let Some((_else_token, else_expression)) = expression_if.else_branch {
                     context.log("IF_ELSE", "Else branch:");
-                    parse_expr(*else_expression, context);
+
+                    let metadata = context.metadata.clone();
+                        parse_expr(*else_expression, context);
+                    context.metadata = metadata;
                 }
             context.depth -= 1;
         },
@@ -307,9 +315,11 @@ pub fn parse_expr(expression: syn::Expr, context: &mut CompilerContext) {
         Expr::Loop(expression_loop) => {
             context.log("LOOP", "Entering infinite loop");
             
+            let metadata = context.metadata.clone();
             context.depth += 1;
                 parse_stmts(expression_loop.body.stmts, context);
             context.depth -= 1;
+            context.metadata = metadata;
         },
 
         // Вызов макроса в выражении, например format!("{}", q)
@@ -395,8 +405,10 @@ pub fn parse_expr(expression: syn::Expr, context: &mut CompilerContext) {
                         context.log("MATCH_GUARD", "Guard condition:");
                         parse_expr(*guard.1, context);
                     }
-                    
-                    parse_expr(*arm.body, context);
+                   
+                    let metadata = context.metadata.clone();
+                        parse_expr(*arm.body, context);
+                    context.metadata = metadata;
                 }
             context.depth -= 1;
         },
@@ -540,9 +552,11 @@ pub fn parse_expr(expression: syn::Expr, context: &mut CompilerContext) {
         Expr::Unsafe(expression_unsafe) => {
             context.log("UNSAFE_BLOCK", "Entering unsafe block");
             
+            let metadata = context.metadata.clone();
             context.depth += 1;
                 parse_stmts(expression_unsafe.block.stmts, context);
             context.depth -= 1;
+            context.metadata = metadata;
         },
 
         // Цикл while expr { ... }
@@ -553,7 +567,9 @@ pub fn parse_expr(expression: syn::Expr, context: &mut CompilerContext) {
                 parse_expr(*expression_while.cond, context);
                 context.log("WHILE_BODY", "Body:");
 
-                parse_stmts(expression_while.body.stmts, context);
+                let metadata = context.metadata.clone();
+                    parse_stmts(expression_while.body.stmts, context);
+                context.metadata = metadata;
             context.depth -= 1;
         },
 
