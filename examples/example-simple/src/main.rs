@@ -9,15 +9,22 @@ ui! {
             layout! {
                 field1: b,
                 field2: 20,
-            };
+            }
 
             stack! {
                 layout! {
                     field1: b,
                     field2: 20,
-                };
+                }
             }
-        };
+
+            stack! {
+                layout! {
+                    field1: b,
+                    field2: 20,
+                }
+            }
+        }
 
         b = 5;
         b += 1;

@@ -1,50 +1,61 @@
 // Часть проекта Firework с открытым исходным кодом.
 // Лицензия EPL 2.0, подробнее в файле LICENSE. Copyright (c) 2026 Firework
 
-#[derive(Debug, Clone, Copy)]
-pub enum WidgetType {
-    Rect,
-    Text,
-}
+use std::collections::HashMap;
 
 #[derive(Debug, Clone)]
 pub enum FireworkAction {
-    // Этот statement не нуждается в обработке
+    // Инициализация реактивной переменной (спарка) в области видимости. Первое значение
+    // это имя реактивной переменной, а второе это айдишник переменно, третье это
+    // тип
+    InitialSpark(String, usize, String),
+
+    // Реактивный блок типа условие. Первое значение это вектор с названиями реактивных
+    // переменных (спарков) которые используются в условии
+    ReactiveIf(Vec<String>),
+
+    // Реактивный блок типа матч, первое значение это вектор с названиями реактивных
+    // переменных (спарков), нужен для match ... { ... };
+    ReactiveMatch(Vec<String>),
+
+    // Реактивный цикл for
+    ReactiveFor(Vec<String>),
+
+    // Реактивный цикл while
+    ReactiveWhile(Vec<String>),
+
+    // Обновление значения спарка
+    UpdateSpark(String),
+
+    // Лайаут блок, первое значение это название лайаута, второе значение это нужен
+    // ли микрорантайм
+    LayoutBlock(String, bool),
+
+    // Блок декларативного описания виджета, явлется самым сложным действием
+    // Значения:
+    //  1 (String)  - Какой это виджет (text, rect, buttom и так далее)
+    //  2 (HashMap) - Соотвествие полей виджета и вектора спарков которые используются
+    //  3 (bool)    - Явлется ли это функциональным виджетом (Который не имеет визуального
+    //                представления)
+    //  4 (usize)   - Айди виджета
+    WidgetBlock(String, HashMap<String, Vec<String>>, bool, usize),
+
     DefaultCode,
-
-    // Создание виджета который подписан на спарк
-    CreateWidget(WidgetType),
-
-    // Создание виджета без спарка
-    CreateWidgetWithoutSpark(WidgetType),
-
-    // Создание динамического виджета который требует микрорантайм 
-    CreateDynamicWidget(WidgetType),
-
-    // Создание динамического виджета без спарка
-    CreateDynamicWidgetWithoutSpark(WidgetType),
-
-    // Цикл for который зависит от спарка
-    ForSpark,
-
-    // Цикл while который зависит от смарка
-    WhileSpark,
-
-    // Условие которое зависит от спарка 
-    IfSpark,
-
-    // Матч который зависит от спарка
-    MatchSpark,
-
-    // Инициализация спарка (String, String это имя, тип)
-    InitialSpark(String, String),
-
-    // Обновление спарка (spark1 = 5, spark1 += 1, spark1.push(...))
-    SparkUpdate(String),
 }
 
 #[derive(Debug, Clone)]
 pub struct FireworkStatement {
     pub action: FireworkAction,
+    pub is_reactive_block: bool,
     pub index: usize,
+}
+
+#[derive(Debug, Clone)]
+pub struct FireworkIR {
+    // Айди элемента в векторе это номер statement
+    pub statements: Vec<FireworkStatement>,
+
+    // Соотвествие экрана (название функции) и структуры экрана в формате вектора
+    // кортежей (Имя поля, тип) для структуры
+    pub screen_structs: HashMap<String, Vec<(String, String)>>,
 }

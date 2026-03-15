@@ -4,17 +4,18 @@
 mod spark;
 mod widget;
 
-use proc_macro2::{TokenTree, TokenStream};
+use proc_macro2::{TokenTree, TokenStream, Span};
 use syn::*;
+use syn::spanned::Spanned;
 use syn::visit::Visit;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use quote::ToTokens;
 
 use widget::{is_widget, is_layout, WidgetArgs};
 use spark::{SparkValidator, SparkFinder, get_root_variable_name};
 
 use crate::compiler::utils::is_mutable_method;
-use crate::compiler::codegen::actions::{FireworkStatement, FireworkAction};
+use crate::compiler::codegen::actions::{FireworkIR, FireworkStatement, FireworkAction};
 use crate::{
     compile_error_spanned, SPARK_MULTIPLE_ERROR, SPARK_SHADOWING_ERROR,
     SPARK_UNIQUE_NAME_ERROR, SPARK_TYPE_ERROR, WIDGET_PARSE_ERROR, LAYOUT_PARSE_ERROR,
@@ -102,8 +103,6 @@ pub struct Analyzer {
     // Firework Error и заканчиваются числом из трёх цифр, это номер ошибки. Пример:
     // FE001, FE004
     pub errors: Vec<Error>,
-
-    pub statements: Vec<FireworkStatement>,
     
     // Выходные токены
     pub output: TokenStream,
@@ -120,6 +119,11 @@ pub struct Analyzer {
     // лайаут блоке. Описывать лайаут можно только один раз в лайаут блоке
     pub descript_layout: bool,
 
+    // 
+    pub statement: FireworkStatement,
+    pub ir: FireworkIR,
+    pub function_name: Option<String>,
+
     // Буферы
     // Буфер который используется для хранения текущего типа в парсинге переменной,
     // если типа не указан то используется значения константы NO_TYPE
@@ -134,8 +138,12 @@ pub struct Analyzer {
     // используется спарк. Если None то команда не в реактивном блоке, если Some(usize)
     // то строка в реактивном блоке, а usize это начало блока. Вложенные конструкции и
     // вложенные реактивные блоки не меняют этот флаг, он всегда показывает на первый
-    // реактивный блок
-    reactive_block: Option<usize>,
+    // реактивный блок. Второе значение кортежа это цикл (нужен ли микрорантайм)
+    reactive_block: Option<(usize, bool)>,
+
+    // Счётчики чтобы генерировать названия полей глобальной структуры экрана
+    widget_counter: usize,
+    spark_counter: usize,
 }
 
 impl Analyzer {
@@ -144,7 +152,6 @@ impl Analyzer {
             // При старте нет ошибок
             errors: Vec::new(),
             
-            statements: Vec::new(),
             output: TokenStream::new(),
             scope: Scope::new(),
 
@@ -153,11 +160,28 @@ impl Analyzer {
 
             descript_layout: false,
 
+            statement: FireworkStatement {
+                action: FireworkAction::DefaultCode,
+                is_reactive_block: false,
+                index: 0,
+            },
+
+            ir: FireworkIR {
+                statements: Vec::new(),
+                screen_structs: HashMap::new(),
+            },
+
+            function_name: None,
+
             current_type: String::from(NO_TYPE),
             pending_vars: Vec::new(),
 
             // Изначально мы не в реактивном блоке
             reactive_block: None,
+
+            // Счётчики
+            widget_counter: 0,
+            spark_counter: 0,
         }
     }
 
@@ -180,6 +204,19 @@ impl Analyzer {
         
         !found.is_empty()
     }
+
+    pub fn get_sparks(&self, expr: &Expr) -> Vec<String> {
+        let mut found = Vec::new();
+
+        let mut finder = SparkFinder {
+            scope: &self.scope,
+            found: &mut found,
+        };
+
+        finder.visit_expr(&expr);
+        
+        found
+    }
 }
 
 impl<'ast> Visit<'ast> for Analyzer {
@@ -199,6 +236,8 @@ impl<'ast> Visit<'ast> for Analyzer {
         for input in &node.sig.inputs {
             self.visit_fn_arg(input);
         }
+
+        self.function_name = Some(node.sig.ident.to_string());
         
         syn::visit::visit_item_fn(self, node);
     }
@@ -271,11 +310,16 @@ impl<'ast> Visit<'ast> for Analyzer {
                             SPARK_TYPE_ERROR,
                         ));
                     }
+
+                    self.spark_counter += 1;
+                    self.statement.action = FireworkAction::InitialSpark(
+                        name.clone(), 0, var_data.clone().variable_type,
+                    );
                 }
 
                 // FE004, нельзя затенить спарк
                 if let Some(value) = self.scope.variables.get(&name) {
-                    if value.is_spark {
+                    if value.is_spark { 
                         self.errors.push(compile_error_spanned(
                             &i.pat,
                             SPARK_UNIQUE_NAME_ERROR,
@@ -363,6 +407,7 @@ impl<'ast> Visit<'ast> for Analyzer {
         // позволяет оставить DSL только на уровне виджетов, а весь остальной код
         // держать как чистый раст
         if is_layout(&name) {
+            println!("Layout!!!!!");
             let inner_tokens = &i.tokens;
 
             let parse_result: syn::Result<Block> = syn::parse2(quote::quote! {
@@ -377,6 +422,17 @@ impl<'ast> Visit<'ast> for Analyzer {
                 // внутри лайаут блока
                 self.descript_layout = false;
 
+                let mut has_microruntime = false;
+                if let Some((start, need_microruntime)) = self.reactive_block {
+                    has_microruntime = need_microruntime;
+                }
+
+                self.statement.action = FireworkAction::LayoutBlock(
+                    name.clone(), has_microruntime,
+                );
+                
+                self.ir.statements.push(self.statement.clone());
+                
                 for statement in block.stmts { 
                     // Парсинг всех команд внутри
                     self.visit_stmt(&statement);
@@ -391,16 +447,14 @@ impl<'ast> Visit<'ast> for Analyzer {
 
                 return;
             }
-        } 
-
-        // Виджет это строительный блок ui, имеет синтаксис widget_name!(field: 123);
-        // в отличии от лайаута там не валидный rust код, а специальный DSL который
-        // похож на конструкцию структур. Пример:
-        //
-        // rect! (
-        //  image: "test.png".to_string(),
-        // );
-        if is_widget(&name) {
+        } else if is_widget(&name) {
+            // Виджет это строительный блок ui, имеет синтаксис widget_name!(field: 123);
+            // в отличии от лайаута там не валидный rust код, а специальный DSL который
+            // похож на конструкцию структур. Пример:
+            //
+            // rect! (
+            //  image: "test.png".to_string(),
+            // ); 
             let args: WidgetArgs = match syn::parse2(i.tokens.clone()) {
                 Ok(args) => args,
                 Err(e) => {
@@ -420,6 +474,8 @@ impl<'ast> Visit<'ast> for Analyzer {
                 }
             };
 
+            let mut fields_map_spark: HashMap<String, Vec<String>> = HashMap::new();
+
             for prop in args.properties {
                 let prop_name = prop.name.to_string();
                 let mut sparks_in_this_field = Vec::new();
@@ -429,19 +485,29 @@ impl<'ast> Visit<'ast> for Analyzer {
                     found: &mut sparks_in_this_field,
                 };
 
-                finder.visit_expr(&prop.value);
+                finder.visit_expr(&prop.value); 
 
                 if sparks_in_this_field.is_empty() {
-                    println!("Widget: {}, field: {}, status: static", name, prop_name);
+                    fields_map_spark.insert(prop_name, Vec::new()); 
                 } else {
-                    println!(
-                        "Widget: {}, field: {}, status: reactive, sparks: {:?}",
-                        name, prop_name, sparks_in_this_field,
-                    )
+                    fields_map_spark.insert(prop_name, sparks_in_this_field); 
                 }
             }
+
+            // [REFACTORME]
+            // Убрать дубляж кода
+            let mut has_microruntime = false;
+            if let Some((start, need_microruntime)) = self.reactive_block {
+                has_microruntime = need_microruntime;
+            }
+
+            self.statement.action = FireworkAction::WidgetBlock(
+                name.clone(), fields_map_spark, has_microruntime, self.widget_counter,
+            );
+
+            self.widget_counter += 1; 
         }
- 
+
         visit::visit_macro(self, i);
     }
 
@@ -452,6 +518,7 @@ impl<'ast> Visit<'ast> for Analyzer {
             if let Some(variable) = self.scope.variables.get(&root_name) {
                 if variable.is_spark {
                     println!("SPARK ASSIGN!!!");
+                    self.statement.action = FireworkAction::UpdateSpark(root_name);
                 }
             }
         }
@@ -466,7 +533,7 @@ impl<'ast> Visit<'ast> for Analyzer {
             BinOp::AddAssign(_)   | BinOp::SubAssign(_)    | BinOp::MulAssign(_)    |
             BinOp::DivAssign(_)   | BinOp::RemAssign(_)    | BinOp::BitAndAssign(_) |
             BinOp::BitOrAssign(_) | BinOp::BitXorAssign(_) | BinOp::ShlAssign(_)    |
-            BinOp::ShrAssign(_) => true,
+            BinOp::ShrAssign(_)  => true,
 
             _ => false,
         };
@@ -476,6 +543,7 @@ impl<'ast> Visit<'ast> for Analyzer {
                 if let Some(variable) = self.scope.variables.get(&root_name) {
                     if variable.is_spark {
                         println!("SPARK ASSIGN!!!");
+                        self.statement.action = FireworkAction::UpdateSpark(root_name);
                     }
                 }
             }
@@ -495,31 +563,50 @@ impl<'ast> Visit<'ast> for Analyzer {
                     // все методы считаются мутабельными
                     if is_mutable_method(&variable.variable_type, &method_name) {
                         println!("SPARK ASSIGN!!!");
+                        self.statement.action = FireworkAction::UpdateSpark(root_name);
                     }
                 }
             }
         }
     }
 
-    fn visit_stmt(&mut self, i: &'ast Stmt) {
-        self.statement_index += 1;
-
+    fn visit_stmt(&mut self, i: &'ast Stmt) { 
         println!("STATEMENT: {}", self.statement_index);
         if let Some(root_id) = self.reactive_block {
-            println!("Statement {} is reactive, start: {}", self.statement_index, root_id);
+            println!("Statement {} is reactive, start: {}", self.statement_index, root_id.0);
+            self.statement.is_reactive_block = true;
         }
-
+        
         visit::visit_stmt(self, i); 
+        
+        self.statement_index += 1;
+
+        let should_push = if let Stmt::Macro(stmt_macro) = i {
+            !is_layout(&stmt_macro.mac.path.to_token_stream().to_string())
+        } else {
+            true
+        };
+        
+        if should_push {
+            self.ir.statements.push(self.statement.clone());
+        }
+        
+        self.statement.index = self.statement_index;
+        self.statement.action = FireworkAction::DefaultCode;
+        self.statement.is_reactive_block = false;
     }
 
     // Реактивные блоки
     fn visit_expr_if(&mut self, i: &'ast ExprIf) { 
-        let condition_has_spark = self.has_spark(&i.cond);
+        let sparks = self.get_sparks(&i.cond);
+        let condition_has_spark = !sparks.is_empty();
         let state = self.reactive_block;
 
         if condition_has_spark && self.reactive_block.is_none() {
-            self.reactive_block = Some(self.statement_index);
+            self.reactive_block = Some((self.statement_index, false));
             println!("Reactive block");
+
+            self.statement.action = FireworkAction::ReactiveIf(sparks);
 
             visit::visit_expr_if(self, i);
 
@@ -530,12 +617,15 @@ impl<'ast> Visit<'ast> for Analyzer {
     }
 
     fn visit_expr_while(&mut self, i: &'ast ExprWhile) {
-        let condition_has_spark = self.has_spark(&i.cond);
+        let sparks = self.get_sparks(&i.cond);
+        let condition_has_spark = !sparks.is_empty();
         let state = self.reactive_block;
 
         if condition_has_spark && self.reactive_block.is_none() {
-            self.reactive_block = Some(self.statement_index);
+            self.reactive_block = Some((self.statement_index, true));
             println!("Reactive block");
+
+            self.statement.action = FireworkAction::ReactiveWhile(sparks);
 
             visit::visit_expr_while(self, i);
 
@@ -546,12 +636,15 @@ impl<'ast> Visit<'ast> for Analyzer {
     }
 
     fn visit_expr_for_loop(&mut self, i: &'ast ExprForLoop) {
-        let condition_has_spark = self.has_spark(&i.expr);
+        let sparks = self.get_sparks(&i.expr);
+        let condition_has_spark = !sparks.is_empty();
         let state = self.reactive_block;
 
         if condition_has_spark && self.reactive_block.is_none() {
-            self.reactive_block = Some(self.statement_index);
+            self.reactive_block = Some((self.statement_index, true));
             println!("Reactive block");
+
+            self.statement.action = FireworkAction::ReactiveFor(sparks);
 
             visit::visit_expr_for_loop(self, i);
 
@@ -562,12 +655,15 @@ impl<'ast> Visit<'ast> for Analyzer {
     }
 
     fn visit_expr_match(&mut self, i: &'ast ExprMatch) {
-        let condition_has_spark = self.has_spark(&i.expr);
+        let sparks = self.get_sparks(&i.expr);
+        let condition_has_spark = !sparks.is_empty();
         let state = self.reactive_block;
 
         if condition_has_spark && self.reactive_block.is_none() {
-            self.reactive_block = Some(self.statement_index);
+            self.reactive_block = Some((self.statement_index, false));
             println!("Reactive block");
+
+            self.statement.action = FireworkAction::ReactiveMatch(sparks);
 
             visit::visit_expr_match(self, i);
 
@@ -627,7 +723,9 @@ pub fn prepare_tokens(tokens: Vec<TokenTree>) -> (proc_macro2::TokenStream, Opti
     };
     
     let mut analyzer = Analyzer::new();
-    analyzer.visit_file(&file); 
+    analyzer.visit_file(&file);
+
+    println!("IR len: {}, IR: {:#?}", analyzer.ir.statements.len(), analyzer.ir);
     
     if !analyzer.errors.is_empty() {
         let mut final_error = analyzer.errors[0].clone();
