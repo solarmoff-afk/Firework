@@ -40,6 +40,38 @@ error[FE005]: spark cannot be used in global or static context
    = note: for more information, see: [WORK IN PROGRESS]
 ";
 
+pub const SPARK_MULTIPLE_ERROR: &str = "\
+error[FE006]: multiple spark!() calls in the same expression are not allowed
+   = note: each expression can only contain one spark!() initializer
+   = help: split the expression into separate spark variable declarations
+   = help: example: `let a = spark!(1); let b = spark!(2); let c = a - b;`
+   = note: for more information, see: [WORK IN PROGRESS]
+";
+
+pub const WIDGET_PARSE_ERROR: &str = "\
+error[FE007]: failed to parse widget macro invocation
+   = note: expected syntax: `widget_name!(field: value, field: value);`
+   = help: check that all fields follow the `field: value` pattern
+   = help: fields must be separated by commas
+   = note: for more information, see: [WORK IN PROGRESS]
+";
+
+pub const LAYOUT_PARSE_ERROR: &str = "\
+error[FE008]: failed to parse layout macro invocation
+   = note: layout macros expect valid Rust code, custom syntax is only available in widgets
+   = help: use valid Rust expressions inside the layout block
+   = note: example: `vertical! { println!(\"Hi!\"); };`
+   = note: for more information, see: [WORK IN PROGRESS]
+";
+
+pub const LAYOUT_MULTIPLE_ERROR: &str = "\
+error[FE009]: layout!() widget can only be used once per layout block
+   = note: layout configuration has already been set in this block
+   = help: remove duplicate layout!() widget calls
+   = help: keep only one layout!() widget at the beginning of the block
+   = note: for more information, see: [WORK IN PROGRESS]
+";
+
 pub fn compile_error_spanned<T: quote::ToTokens>(tokens: T, msg: &str) -> Error {
     Error::new_spanned(tokens, msg)
 }

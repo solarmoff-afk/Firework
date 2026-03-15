@@ -2,20 +2,41 @@ use firework::ui;
 // use firework::component;
 
 ui! {
-    // static BAD_STATIC: u32 = spark!(200);
+    fn test_screen() {
+        let mut b: Vec<u32> = spark!(10);
+        
+        vertical! {
+            layout! {
+                field1: b,
+                field2: 20,
+            };
 
-    fn test_screen(test: u32) {
-        {
-            let mut spark1: u32 = spark!(0);
-            spark1.push(10);
+            stack! {
+                layout! {
+                    field1: b,
+                    field2: 20,
+                };
+            }
+        };
+
+        b = 5;
+        b += 1;
+        b.test.field = 1;
+        // b.len();
+
+        if b == 5 {
+            b.len();
+            a = b;
+
+            if b == 5 {
+                c = b;
+            }
         }
 
-        if a == b {
-            let mut spark1: u32 = spark!(0);
-        }
+        b = c;
     }
 }
 
 fn main() {
-    test_screen(0);
+    test_screen();
 }

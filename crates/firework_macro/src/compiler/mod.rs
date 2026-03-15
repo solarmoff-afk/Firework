@@ -1,13 +1,13 @@
 // Часть проекта Firework с открытым исходным кодом.
 // Лицензия EPL 2.0, подробнее в файле LICENSE. Copyright (c) 2026 Firework
 
-mod analyze;
+mod analyze2;
 mod widgets;
 mod utils;
 mod error;
 mod codegen;
 
-use analyze::prepare::prepare_tokens;
+use analyze2::prepare_tokens;
 use proc_macro2::TokenTree;
 use quote::quote;
 
