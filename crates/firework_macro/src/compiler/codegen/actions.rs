@@ -3,6 +3,8 @@
 
 use std::collections::HashMap;
 
+use crate::compiler::analyze2::Scope;
+
 #[derive(Debug, Clone)]
 pub enum FireworkAction {
     // Инициализация реактивной переменной (спарка) в области видимости. Первое значение
@@ -48,6 +50,10 @@ pub struct FireworkStatement {
     pub action: FireworkAction,
     pub is_reactive_block: bool,
     pub index: usize,
+
+    // TODO: Оптимизировать, так как клонировать Scope (HashSet + usize) для каждого
+    // statement может быть дорого
+    pub scope: Scope,
 }
 
 #[derive(Debug, Clone)]
@@ -57,5 +63,5 @@ pub struct FireworkIR {
 
     // Соотвествие экрана (название функции) и структуры экрана в формате вектора
     // кортежей (Имя поля, тип) для структуры
-    pub screen_structs: HashMap<String, Vec<(String, String)>>,
+    pub screen_structs: HashMap<String, Vec<(String, String)>>, 
 }

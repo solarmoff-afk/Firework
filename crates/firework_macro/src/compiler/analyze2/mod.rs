@@ -68,9 +68,10 @@ impl Variable {
 /// с { и при входе в эту область видимости экземпляр этой структуры будет скопирован
 /// чтобы когда произойдёт выход из неё все созданные в ней имена были заменены
 /// состояние слепок которого был сделан до входа в область видимости
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct Scope {
     pub variables: HashMap<String, Variable>,
+    pub screen_index: usize,
 }
 
 impl Scope {
@@ -78,6 +79,7 @@ impl Scope {
         Self {
             // Нет имён на старте
             variables: HashMap::new(),
+            screen_index: 0,
         }
     }
 
@@ -164,6 +166,7 @@ impl Analyzer {
                 action: FireworkAction::DefaultCode,
                 is_reactive_block: false,
                 index: 0,
+                scope: Scope::new(),
             },
 
             ir: FireworkIR {
@@ -223,6 +226,8 @@ impl<'ast> Visit<'ast> for Analyzer {
     // Генерирует заглушки для функций чтобы компилятор не выдал ошибку "функция отсуствует"
     // вероятно это временное решение
     fn visit_item_fn(&mut self, node: &'ast ItemFn) {
+        self.scope.screen_index += 1;
+
         let mut fn_stub = node.clone();
         fn_stub.block = syn::parse2(quote::quote! {
             {}
@@ -430,7 +435,8 @@ impl<'ast> Visit<'ast> for Analyzer {
                 self.statement.action = FireworkAction::LayoutBlock(
                     name.clone(), has_microruntime,
                 );
-                
+               
+                self.statement.scope = self.scope.clone();
                 self.ir.statements.push(self.statement.clone());
                 
                 for statement in block.stmts { 
@@ -588,6 +594,9 @@ impl<'ast> Visit<'ast> for Analyzer {
         };
         
         if should_push {
+            // Если это лайаут блок то клонирование области видимости и пуш уже
+            // были и клонировать второй раз нет смысла
+            self.statement.scope = self.scope.clone();
             self.ir.statements.push(self.statement.clone());
         }
         
@@ -714,12 +723,12 @@ impl<'ast> Visit<'ast> for Analyzer {
     }
 }
 
-pub fn prepare_tokens(tokens: Vec<TokenTree>) -> (proc_macro2::TokenStream, Option<proc_macro2::TokenStream>) {
+pub fn prepare_tokens(tokens: Vec<TokenTree>) -> (proc_macro2::TokenStream, Option<proc_macro2::TokenStream>, Option<FireworkIR>) {
     let token_stream: proc_macro2::TokenStream = tokens.into_iter().collect();
     
     let file = match syn::parse2::<File>(token_stream) {
         Ok(file) => file,
-        Err(e) => return (proc_macro2::TokenStream::new(), Some(e.to_compile_error())),
+        Err(e) => return (proc_macro2::TokenStream::new(), Some(e.to_compile_error()), None),
     };
     
     let mut analyzer = Analyzer::new();
@@ -734,8 +743,8 @@ pub fn prepare_tokens(tokens: Vec<TokenTree>) -> (proc_macro2::TokenStream, Opti
             final_error.combine(error.clone());
         }
 
-        (analyzer.output, Some(final_error.to_compile_error()))
+        (analyzer.output, Some(final_error.to_compile_error()), Some(analyzer.ir))
     } else {
-        (analyzer.output, None)
+        (analyzer.output, None, Some(analyzer.ir))
     }
 }

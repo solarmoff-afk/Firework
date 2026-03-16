@@ -8,6 +8,8 @@ mod error;
 mod codegen;
 
 use analyze2::prepare_tokens;
+use codegen::generator::CodeGen;
+
 use proc_macro2::TokenTree;
 use quote::quote;
 
@@ -44,5 +46,12 @@ pub fn run_firework_compiler_temp(ast: FireworkAst, _id: u64) -> (proc_macro2::T
     // эти заглушки на случай если компиляция упадёт
 
     let tokens: Vec<TokenTree> = ast.tokens.clone().into_iter().collect();
-    prepare_tokens(tokens) 
+    let output = prepare_tokens(tokens.clone());
+
+    if let Some(ir) = output.2 {
+        let mut codegen = CodeGen::new(ir);
+        codegen.run(tokens);
+    }
+
+    (output.0, output.1)
 }
