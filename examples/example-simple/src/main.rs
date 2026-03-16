@@ -2,6 +2,10 @@ use firework::ui;
 // use firework::component;
 
 ui! {
+    struct a {
+        b: u32,
+    }
+
     fn test_screen() {
         let mut b: Vec<u32> = spark!(10);
         

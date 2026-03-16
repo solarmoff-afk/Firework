@@ -173,6 +173,8 @@ impl Analyzer {
             ir: FireworkIR {
                 statements: Vec::new(),
                 screen_structs: HashMap::new(),
+                screens: Vec::new(),
+                items: Vec::new(),
             },
 
             function_name: None,
@@ -220,17 +222,13 @@ impl Analyzer {
         finder.visit_expr(&expr);
         
         found
-    }
-
-    
+    } 
 }
 
 impl<'ast> Visit<'ast> for Analyzer {
     // Генерирует заглушки для функций чтобы компилятор не выдал ошибку "функция отсуствует"
     // вероятно это временное решение
-    fn visit_item_fn(&mut self, node: &'ast ItemFn) {
-        self.scope.screen_index += 1;
-
+    fn visit_item_fn(&mut self, node: &'ast ItemFn) { 
         let mut fn_stub = node.clone();
         fn_stub.block = syn::parse2(quote::quote! {
             {}
@@ -245,9 +243,13 @@ impl<'ast> Visit<'ast> for Analyzer {
             self.visit_fn_arg(input);
         }
 
-        self.function_name = Some(node.sig.ident.to_string());
+        let function_name = node.sig.ident.to_string();
+        self.function_name = Some(function_name.clone());
+        self.ir.screens.push(function_name);
         
         syn::visit::visit_item_fn(self, node);
+
+        self.scope.screen_index += 1;
     }
 
     fn visit_fn_arg(&mut self, i: &'ast FnArg) {
@@ -576,7 +578,17 @@ impl<'ast> Visit<'ast> for Analyzer {
     }
 
     fn visit_stmt(&mut self, i: &'ast Stmt) {
-        self.statement.string = i.to_token_stream().to_string();
+        let should_push = if let Stmt::Macro(stmt_macro) = i {
+            !is_layout(&stmt_macro.mac.path.to_token_stream().to_string())
+        } else {
+            true
+        };
+
+        if should_push {
+            self.statement.string = i.to_token_stream().to_string();
+        } else {
+            self.statement.string = "".to_string();
+        }
 
         // println!("STATEMENT: {}", self.statement_index);
         if let Some(root_id) = self.reactive_block {
@@ -586,13 +598,7 @@ impl<'ast> Visit<'ast> for Analyzer {
         
         visit::visit_stmt(self, i); 
         
-        self.statement_index += 1;
-
-        let should_push = if let Stmt::Macro(stmt_macro) = i {
-            !is_layout(&stmt_macro.mac.path.to_token_stream().to_string())
-        } else {
-            true
-        };
+        self.statement_index += 1; 
         
         if should_push {
             // Если это лайаут блок то клонирование области видимости и пуш уже
@@ -680,44 +686,54 @@ impl<'ast> Visit<'ast> for Analyzer {
     }
 
     fn visit_item_struct(&mut self, node: &'ast ItemStruct) {
+        self.ir.items.push(node.to_token_stream().to_string());
         self.output.extend(node.to_token_stream());
     }
     
     fn visit_item_enum(&mut self, node: &'ast ItemEnum) {
+        self.ir.items.push(node.to_token_stream().to_string());
         self.output.extend(node.to_token_stream());
     }
     
     fn visit_item_type(&mut self, node: &'ast ItemType) {
+        self.ir.items.push(node.to_token_stream().to_string());
         self.output.extend(node.to_token_stream());
     }
     
     fn visit_item_trait(&mut self, node: &'ast ItemTrait) {
+        self.ir.items.push(node.to_token_stream().to_string());
         self.output.extend(node.to_token_stream());
     }
     
     fn visit_item_impl(&mut self, node: &'ast ItemImpl) {
+        self.ir.items.push(node.to_token_stream().to_string());
         self.output.extend(node.to_token_stream());
     }
     
     fn visit_item_mod(&mut self, node: &'ast ItemMod) {
+        self.ir.items.push(node.to_token_stream().to_string());
         self.output.extend(node.to_token_stream());
     }
     
     fn visit_item_use(&mut self, node: &'ast ItemUse) {
+        self.ir.items.push(node.to_token_stream().to_string());
         self.output.extend(node.to_token_stream());
     }
     
     fn visit_item_extern_crate(&mut self, node: &'ast ItemExternCrate) {
+        self.ir.items.push(node.to_token_stream().to_string());
         self.output.extend(node.to_token_stream());
     }
     
     fn visit_item_foreign_mod(&mut self, node: &'ast ItemForeignMod) {
+        self.ir.items.push(node.to_token_stream().to_string());
         self.output.extend(node.to_token_stream());
     }
     
     fn visit_item_macro(&mut self, node: &'ast ItemMacro) {
+        self.ir.items.push(node.to_token_stream().to_string());
         self.output.extend(node.to_token_stream());
-    } 
+    }
 }
 
 pub fn prepare_tokens(tokens: Vec<TokenTree>) -> (proc_macro2::TokenStream, Option<proc_macro2::TokenStream>, Option<FireworkIR>) {
@@ -731,7 +747,7 @@ pub fn prepare_tokens(tokens: Vec<TokenTree>) -> (proc_macro2::TokenStream, Opti
     let mut analyzer = Analyzer::new();
     analyzer.visit_file(&file);
 
-    // println!("IR len: {}, IR: {:#?}", analyzer.ir.statements.len(), analyzer.ir);
+    println!("IR len: {}, IR: {:#?}", analyzer.ir.statements.len(), analyzer.ir);
     
     if !analyzer.errors.is_empty() {
         let mut final_error = analyzer.errors[0].clone();

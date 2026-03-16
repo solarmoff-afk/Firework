@@ -64,5 +64,8 @@ pub struct FireworkIR {
 
     // Соотвествие экрана (название функции) и структуры экрана в формате вектора
     // кортежей (Имя поля, тип) для структуры
-    pub screen_structs: HashMap<String, Vec<(String, String)>>, 
+    pub screen_structs: HashMap<String, Vec<(String, String)>>,
+
+    pub screens: Vec<String>,
+    pub items: Vec<String>,
 }
