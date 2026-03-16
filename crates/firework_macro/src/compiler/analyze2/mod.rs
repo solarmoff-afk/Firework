@@ -167,6 +167,7 @@ impl Analyzer {
                 is_reactive_block: false,
                 index: 0,
                 scope: Scope::new(),
+                string: String::from(""),
             },
 
             ir: FireworkIR {
@@ -190,7 +191,7 @@ impl Analyzer {
 
     /// Метод для вывода всего что собранно в области видимости
     pub fn log_scope(&self) {
-        println!("{:#?}", self.scope.variables);
+        // println!("{:#?}", self.scope.variables);
     }
    
     /// Метод обёртка над SparkFinder чтобы быстро найти наличие спарка в выражении
@@ -220,6 +221,8 @@ impl Analyzer {
         
         found
     }
+
+    
 }
 
 impl<'ast> Visit<'ast> for Analyzer {
@@ -386,7 +389,7 @@ impl<'ast> Visit<'ast> for Analyzer {
         let name = i.path.to_token_stream().to_string();
 
         // Дебаг
-        println!("{}", name);
+        // println!("{}", name);
 
         // Проверка что лайаут конфигурируется только один раз в лайаут блоке
         if name == "layout" {
@@ -412,7 +415,6 @@ impl<'ast> Visit<'ast> for Analyzer {
         // позволяет оставить DSL только на уровне виджетов, а весь остальной код
         // держать как чистый раст
         if is_layout(&name) {
-            println!("Layout!!!!!");
             let inner_tokens = &i.tokens;
 
             let parse_result: syn::Result<Block> = syn::parse2(quote::quote! {
@@ -523,7 +525,6 @@ impl<'ast> Visit<'ast> for Analyzer {
         if let Some(root_name) = get_root_variable_name(&i.left) {
             if let Some(variable) = self.scope.variables.get(&root_name) {
                 if variable.is_spark {
-                    println!("SPARK ASSIGN!!!");
                     self.statement.action = FireworkAction::UpdateSpark(root_name);
                 }
             }
@@ -548,7 +549,6 @@ impl<'ast> Visit<'ast> for Analyzer {
             if let Some(root_name) = get_root_variable_name(&i.left) {
                 if let Some(variable) = self.scope.variables.get(&root_name) {
                     if variable.is_spark {
-                        println!("SPARK ASSIGN!!!");
                         self.statement.action = FireworkAction::UpdateSpark(root_name);
                     }
                 }
@@ -568,7 +568,6 @@ impl<'ast> Visit<'ast> for Analyzer {
                     // через хелпер, если это кастомный тип то используется хак и
                     // все методы считаются мутабельными
                     if is_mutable_method(&variable.variable_type, &method_name) {
-                        println!("SPARK ASSIGN!!!");
                         self.statement.action = FireworkAction::UpdateSpark(root_name);
                     }
                 }
@@ -576,10 +575,12 @@ impl<'ast> Visit<'ast> for Analyzer {
         }
     }
 
-    fn visit_stmt(&mut self, i: &'ast Stmt) { 
-        println!("STATEMENT: {}", self.statement_index);
+    fn visit_stmt(&mut self, i: &'ast Stmt) {
+        self.statement.string = i.to_token_stream().to_string();
+
+        // println!("STATEMENT: {}", self.statement_index);
         if let Some(root_id) = self.reactive_block {
-            println!("Statement {} is reactive, start: {}", self.statement_index, root_id.0);
+            // println!("Statement {} is reactive, start: {}", self.statement_index, root_id.0);
             self.statement.is_reactive_block = true;
         }
         
@@ -612,8 +613,7 @@ impl<'ast> Visit<'ast> for Analyzer {
         let state = self.reactive_block;
 
         if condition_has_spark && self.reactive_block.is_none() {
-            self.reactive_block = Some((self.statement_index, false));
-            println!("Reactive block");
+            self.reactive_block = Some((self.statement_index, false)); 
 
             self.statement.action = FireworkAction::ReactiveIf(sparks);
 
@@ -631,8 +631,7 @@ impl<'ast> Visit<'ast> for Analyzer {
         let state = self.reactive_block;
 
         if condition_has_spark && self.reactive_block.is_none() {
-            self.reactive_block = Some((self.statement_index, true));
-            println!("Reactive block");
+            self.reactive_block = Some((self.statement_index, true)); 
 
             self.statement.action = FireworkAction::ReactiveWhile(sparks);
 
@@ -651,7 +650,6 @@ impl<'ast> Visit<'ast> for Analyzer {
 
         if condition_has_spark && self.reactive_block.is_none() {
             self.reactive_block = Some((self.statement_index, true));
-            println!("Reactive block");
 
             self.statement.action = FireworkAction::ReactiveFor(sparks);
 
@@ -670,7 +668,6 @@ impl<'ast> Visit<'ast> for Analyzer {
 
         if condition_has_spark && self.reactive_block.is_none() {
             self.reactive_block = Some((self.statement_index, false));
-            println!("Reactive block");
 
             self.statement.action = FireworkAction::ReactiveMatch(sparks);
 
@@ -720,7 +717,7 @@ impl<'ast> Visit<'ast> for Analyzer {
     
     fn visit_item_macro(&mut self, node: &'ast ItemMacro) {
         self.output.extend(node.to_token_stream());
-    }
+    } 
 }
 
 pub fn prepare_tokens(tokens: Vec<TokenTree>) -> (proc_macro2::TokenStream, Option<proc_macro2::TokenStream>, Option<FireworkIR>) {
@@ -734,7 +731,7 @@ pub fn prepare_tokens(tokens: Vec<TokenTree>) -> (proc_macro2::TokenStream, Opti
     let mut analyzer = Analyzer::new();
     analyzer.visit_file(&file);
 
-    println!("IR len: {}, IR: {:#?}", analyzer.ir.statements.len(), analyzer.ir);
+    // println!("IR len: {}, IR: {:#?}", analyzer.ir.statements.len(), analyzer.ir);
     
     if !analyzer.errors.is_empty() {
         let mut final_error = analyzer.errors[0].clone();

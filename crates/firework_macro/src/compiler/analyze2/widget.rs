@@ -28,8 +28,14 @@ impl Parse for WidgetProperty {
         // разделяет левую и правую часть (a: b)
         let _: Token![:] = input.parse()?;
         
-        // Правая часть, выражение
-        let value: Expr = input.parse()?;
+        // Правая часть, выражение которое может быть замыканием с телом в фигурных скобках
+        let value: Expr = if input.peek(syn::token::Brace) {
+            // Возможно замыкание
+            let block: syn::ExprBlock = input.parse()?;
+            syn::Expr::Block(block)
+        } else {
+            input.parse()?
+        };
 
         Ok(WidgetProperty {
             name,

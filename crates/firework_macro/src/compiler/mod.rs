@@ -49,8 +49,8 @@ pub fn run_firework_compiler_temp(ast: FireworkAst, _id: u64) -> (proc_macro2::T
     let output = prepare_tokens(tokens.clone());
 
     if let Some(ir) = output.2 {
-        let mut codegen = CodeGen::new(ir);
-        codegen.run(tokens);
+        // let mut codegen = CodeGen::new(ir);
+        // codegen.run(tokens);
     }
 
     (output.0, output.1)
