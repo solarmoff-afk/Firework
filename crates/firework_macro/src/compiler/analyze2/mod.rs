@@ -11,7 +11,7 @@ use syn::visit::Visit;
 use std::collections::{HashMap, HashSet};
 use quote::ToTokens;
 
-use widget::{is_widget, is_layout, WidgetArgs};
+use widget::{is_widget, is_layout, map_skin, WidgetArgs};
 use spark::{SparkValidator, SparkFinder, get_root_variable_name};
 
 use crate::compiler::utils::is_mutable_method;
@@ -222,7 +222,19 @@ impl Analyzer {
         finder.visit_expr(&expr);
         
         found
-    } 
+    }
+
+    /// Добавляет поле в структуру экрана, если экран ещё не зарегистрирован в FireworkIR
+    /// то он создаётся там
+    pub fn add_field_to_struct(&mut self, field_name: String, field_type: String) {
+        if let Some(function_name) = &self.function_name {
+            // Добавляет значение в вектор (описание структуры экрана), если такого
+            // значения нет в хэш мапе то создаёт пустой вектор
+            self.ir.screen_structs.entry(function_name.to_string())
+                .or_insert_with(Vec::new)
+                .push((field_name, field_type));
+        }
+    }
 }
 
 impl<'ast> Visit<'ast> for Analyzer {
@@ -502,6 +514,13 @@ impl<'ast> Visit<'ast> for Analyzer {
                 } else {
                     fields_map_spark.insert(prop_name, sparks_in_this_field); 
                 }
+            } 
+
+            if let Some(skin) = map_skin(&name) {
+                self.add_field_to_struct(
+                    format!("widget_object_{}", self.widget_counter),
+                    skin,
+                );
             }
 
             // [REFACTORME]

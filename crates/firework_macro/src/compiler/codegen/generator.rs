@@ -16,39 +16,9 @@ impl CodeGen {
         }
     }
 
-    pub fn run(&self, tokens: Vec<TokenTree>) {
-        self.analyze(tokens, 0);
-    }
-
-    fn analyze(&self, tokens: Vec<TokenTree>, depth: usize) {
-        let indent = "  ".repeat(depth);
-        let mut i = 0;
-    
-        while i < tokens.len() {
-            match &tokens[i] {
-                TokenTree::Ident(ident) => {
-                    println!("{}IDENT: '{}'", indent, ident);
-                    i += 1;
-                },
-
-                TokenTree::Punct(punct) => {
-                    println!("{}PUNCT: '{}'", indent, punct.as_char());
-                    i += 1;
-                },
-
-                TokenTree::Literal(lit) => {
-                    println!("{}LITERAL: '{}'", indent, lit);
-                    i += 1;
-                },
-                
-                TokenTree::Group(group) => {
-                    println!("{}GROUP ({:?}) {{", indent, group.delimiter());
-                    let inner: Vec<TokenTree> = group.stream().into_iter().collect();
-                    self.analyze(inner, depth + 1);
-                    println!("{}}}", indent);
-                    i += 1;
-                },
-            }
+    pub fn run(&self) {
+        for statement in self.ir.statements.iter() {
+            println!("{:#?}", statement);
         }
-    }
+    } 
 }

@@ -92,3 +92,16 @@ pub fn is_layout(name: &str) -> bool {
     name == "stack"      ||
     name == "absoulute"
 }
+
+/// Принимает имя виджета, возвращает тип скина который использует этот виджет
+pub fn map_skin(widget_name: &str) -> Option<String> {
+    match widget_name {
+        "rect" => Some("firework::RectSkin".to_string()),
+        "text" => Some("firework::TextSkin".to_string()),
+        "button" => Some("firework::ButtonSkin".to_string()),
+        "app_bar" => Some("firework::AppBarSkin".to_string()),
+       
+        // Не имеет скина так как явлется функциональным виджетом
+        _ => None,
+    }
+}
