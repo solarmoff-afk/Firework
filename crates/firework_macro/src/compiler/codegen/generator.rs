@@ -115,10 +115,9 @@ impl CodeGen {
         }
     }
 
-    fn make_screens_body(&mut self, depth: usize) {
-        let depth = "\t".repeat(depth);
-
+    fn make_screens_body(&mut self, depth: usize) { 
         for statement in self.ir.statements.iter() {
+            let depth = "\t".repeat(depth + statement.scope.depth);
             if !self.screen_map.contains_key(&statement.screen_name) { 
                 self.screen_map.insert(statement.screen_name.clone(), String::from(""));
             }

@@ -72,6 +72,7 @@ impl Variable {
 pub struct Scope {
     pub variables: HashMap<String, Variable>,
     pub screen_index: usize,
+    pub depth: usize,
 }
 
 impl Scope {
@@ -80,6 +81,7 @@ impl Scope {
             // Нет имён на старте
             variables: HashMap::new(),
             screen_index: 0,
+            depth: 0,
         }
     }
 
@@ -239,6 +241,45 @@ impl Analyzer {
                 .or_insert_with(Vec::new)
                 .push((field_name, field_type));
         }
+    }
+
+    fn handle_reactive_block(
+        &mut self,
+        sparks: Vec<String>,
+        is_loop: bool,
+        open_code: String, 
+        action: FireworkAction,
+        visit_fn: impl FnOnce(&mut Self),
+    ) {
+        self.scope.depth += 1;
+
+        let state = self.reactive_block;
+        let condition_has_spark = !sparks.is_empty();
+        
+        let mut open_statement = self.statement.clone();
+        open_statement.string = open_code;
+        
+        if condition_has_spark && self.reactive_block.is_none() {
+            open_statement.action = action;
+            self.reactive_block = Some((self.statement_index, is_loop));
+        } else {
+            open_statement.action = FireworkAction::DefaultCode;
+        }
+        
+        self.ir.statements.push(open_statement);
+        self.statement_index += 1;
+        
+        let saved_action = self.statement.action.clone();
+        self.statement.action = FireworkAction::DefaultCode;
+        
+        visit_fn(self);
+        
+        self.statement.action = FireworkAction::DefaultCode;
+        self.statement.string = "}".to_string();
+        self.statement_index += 1; 
+        self.reactive_block = state;
+
+        self.scope.depth -= 1;
     }
 }
 
@@ -493,14 +534,20 @@ impl<'ast> Visit<'ast> for Analyzer {
                 self.statement.action = FireworkAction::LayoutBlock(
                     name.clone(), has_microruntime,
                 );
-               
-                self.statement.scope = self.scope.clone();
-                self.ir.statements.push(self.statement.clone());
                 
+                self.statement.scope = self.scope.clone(); 
+                self.ir.statements.push(self.statement.clone()); 
+
                 for statement in block.stmts { 
                     // Парсинг всех команд внутри
                     self.visit_stmt(&statement);
                 }
+                
+                self.statement.action = FireworkAction::DefaultCode;
+                self.statement.string = "}".to_string();
+                self.statement_index += 1;
+
+                self.ir.statements.push(self.statement.clone());
             } else {
                 // FE008, невалидный синтаксис в лайауте. Как уже было сказанно ранее,
                 // лайаут требует полностью валидный раст синтаксис
@@ -639,8 +686,10 @@ impl<'ast> Visit<'ast> for Analyzer {
     }
 
     fn visit_stmt(&mut self, i: &'ast Stmt) {
+        let mut layout_name = "".to_string();
         let should_push = if let Stmt::Macro(stmt_macro) = i {
-            !is_layout(&stmt_macro.mac.path.to_token_stream().to_string())
+            layout_name = stmt_macro.mac.path.to_token_stream().to_string();
+            !is_layout(&layout_name)
         } else {
             true
         };
@@ -648,7 +697,7 @@ impl<'ast> Visit<'ast> for Analyzer {
         if should_push {
             self.statement.string = i.to_token_stream().to_string();
         } else {
-            self.statement.string = "".to_string();
+            self.statement.string = format!("{} {{", layout_name);
         }
 
         // println!("STATEMENT: {}", self.statement_index);
@@ -673,77 +722,67 @@ impl<'ast> Visit<'ast> for Analyzer {
         self.statement.is_reactive_block = false;
     }
 
-    // Реактивные блоки
-    fn visit_expr_if(&mut self, i: &'ast ExprIf) { 
+    fn visit_expr_if(&mut self, i: &'ast ExprIf) {
         let sparks = self.get_sparks(&i.cond);
-        let condition_has_spark = !sparks.is_empty();
-        let state = self.reactive_block;
-
-        if condition_has_spark && self.reactive_block.is_none() {
-            self.reactive_block = Some((self.statement_index, false)); 
-
-            self.statement.action = FireworkAction::ReactiveIf(sparks);
-
-            visit::visit_expr_if(self, i);
-
-            self.reactive_block = state;
-        } else {
-            visit::visit_expr_if(self, i);
-        }
+        let condition_code = i.cond.to_token_stream().to_string();
+        
+        self.handle_reactive_block(
+            sparks.clone(),
+            false,
+            format!("if {} {{", condition_code),
+            FireworkAction::ReactiveIf(sparks),
+            |this| visit::visit_expr_if(this, i),
+        );
     }
 
     fn visit_expr_while(&mut self, i: &'ast ExprWhile) {
         let sparks = self.get_sparks(&i.cond);
-        let condition_has_spark = !sparks.is_empty();
-        let state = self.reactive_block;
-
-        if condition_has_spark && self.reactive_block.is_none() {
-            self.reactive_block = Some((self.statement_index, true)); 
-
-            self.statement.action = FireworkAction::ReactiveWhile(sparks);
-
-            visit::visit_expr_while(self, i);
-
-            self.reactive_block = state;
-        } else {
-            visit::visit_expr_while(self, i);
-        }
+        let condition_code = i.cond.to_token_stream().to_string();
+        
+        self.handle_reactive_block(
+            sparks.clone(),
+            true,
+            format!("while {} {{", condition_code),
+            FireworkAction::ReactiveWhile(sparks.clone()),
+            |this| visit::visit_expr_while(this, i),
+        );
     }
-
+    
     fn visit_expr_for_loop(&mut self, i: &'ast ExprForLoop) {
         let sparks = self.get_sparks(&i.expr);
-        let condition_has_spark = !sparks.is_empty();
-        let state = self.reactive_block;
-
-        if condition_has_spark && self.reactive_block.is_none() {
-            self.reactive_block = Some((self.statement_index, true));
-
-            self.statement.action = FireworkAction::ReactiveFor(sparks);
-
-            visit::visit_expr_for_loop(self, i);
-
-            self.reactive_block = state;
-        } else {
-            visit::visit_expr_for_loop(self, i);
-        }
+        let pattern_code = i.pat.to_token_stream().to_string();
+        let expr_code = i.expr.to_token_stream().to_string();
+        
+        self.handle_reactive_block(
+            sparks.clone(),
+            true,
+            format!("for {} in {} {{", pattern_code, expr_code),
+            FireworkAction::ReactiveFor(sparks.clone()),
+            |this| visit::visit_expr_for_loop(this, i),
+        );
     }
-
+    
     fn visit_expr_match(&mut self, i: &'ast ExprMatch) {
         let sparks = self.get_sparks(&i.expr);
-        let condition_has_spark = !sparks.is_empty();
-        let state = self.reactive_block;
+        let expr_code = i.expr.to_token_stream().to_string();
+        
+        self.handle_reactive_block(
+            sparks.clone(),
+            false,
+            format!("match {} {{", expr_code),
+            FireworkAction::ReactiveMatch(sparks.clone()),
+            |this| visit::visit_expr_match(this, i),
+        );
+    }
 
-        if condition_has_spark && self.reactive_block.is_none() {
-            self.reactive_block = Some((self.statement_index, false));
-
-            self.statement.action = FireworkAction::ReactiveMatch(sparks);
-
-            visit::visit_expr_match(self, i);
-
-            self.reactive_block = state;
-        } else {
-            visit::visit_expr_match(self, i);
-        }
+    fn visit_expr_loop(&mut self, i: &'ast ExprLoop) {
+        self.handle_reactive_block(
+            Vec::new(),
+            true,
+            "loop {".to_string(),
+            FireworkAction::DefaultCode,
+            |this| visit::visit_expr_loop(this, i),
+        );
     }
 
     fn visit_item_struct(&mut self, node: &'ast ItemStruct) {
