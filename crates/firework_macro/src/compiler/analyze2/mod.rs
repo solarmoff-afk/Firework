@@ -244,11 +244,33 @@ impl Analyzer {
 impl<'ast> Visit<'ast> for Analyzer {
     // Генерирует заглушки для функций чтобы компилятор не выдал ошибку "функция отсуствует"
     // вероятно это временное решение
-    fn visit_item_fn(&mut self, node: &'ast ItemFn) { 
+    fn visit_item_fn(&mut self, node: &'ast ItemFn) {
+        let mut function_head = String::from("");
+        for attr in &node.attrs {
+            function_head.push_str(format!("{}\n", quote::quote! { #attr }).as_str()); 
+        }
+        
+        let vis = &node.vis;
+        let constness = &node.sig.constness;
+        let asyncness = &node.sig.asyncness;
+        let unsafety = &node.sig.unsafety;
+        let abi = &node.sig.abi;
+        let fn_token = &node.sig.fn_token;
+        let ident = &node.sig.ident;
+        let generics = &node.sig.generics;
+        let inputs = &node.sig.inputs;
+        let output = &node.sig.output;
+        
+        let signature = quote::quote! {
+            #vis #constness #asyncness #unsafety #abi #fn_token #ident #generics (#inputs) #output
+        };
+
+        function_head.push_str(format!("{}", signature).as_str());
+
         let mut fn_stub = node.clone();
         fn_stub.block = syn::parse2(quote::quote! {
             {}
-        }).expect("Failed to parse item");
+        }).expect("Failed to parse item"); 
         
         self.output.extend(quote::quote! {
             #fn_stub
@@ -261,7 +283,7 @@ impl<'ast> Visit<'ast> for Analyzer {
 
         let function_name = node.sig.ident.to_string();
         self.function_name = Some(function_name.clone());
-        self.ir.screens.push(function_name);
+        self.ir.screens.push((function_name, function_head, self.scope.screen_index));
         
         syn::visit::visit_item_fn(self, node);
 

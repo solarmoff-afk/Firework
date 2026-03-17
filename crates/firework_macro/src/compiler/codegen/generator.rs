@@ -19,6 +19,7 @@ impl CodeGen {
     pub fn run(&self) {
         let mut output = String::from("");
 
+        self.inline_items(&mut output);
         self.inline_block_struct(&mut output);
 
         for statement in self.ir.statements.iter() {
@@ -83,5 +84,14 @@ impl CodeGen {
                 ).as_str());
             }
         }
+    }
+
+    fn inline_items(&self, output: &mut String) {
+        for item in self.ir.items.iter() {
+            output.push_str(item);
+            output.push('\n');
+        }
+
+        output.push('\n');
     }
 }
