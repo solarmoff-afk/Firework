@@ -17,8 +17,33 @@ impl CodeGen {
     }
 
     pub fn run(&self) {
+        let mut output = String::from("");
+
+        self.inline_block_struct(&mut output);
+
         for statement in self.ir.statements.iter() {
-            println!("{:#?}", statement);
+            // println!("{:#?}", statement);
         }
-    } 
+
+        println!("Output:\n{}", output);
+    }
+
+    /// Эта функция берёт информацию из IR и создаёт верхушку результата кодогенерации
+    /// где структура ui блока, пример
+    ///
+    /// struct ApplicationUiBlockStruct1 {
+	  ///     spark_0: Vec < u32 >,
+    ///	    widget_object_3: firework::RectSkin,
+    /// }
+    fn inline_block_struct(&self, output: &mut String) {
+        for (block_struct, fields) in &self.ir.screen_structs {
+            output.push_str(format!("struct {} {{\n", block_struct).as_str());
+
+            for (field_name, field_type) in fields {
+                output.push_str(format!("\t{}: {},\n", field_name, field_type).as_str());
+            }
+
+            output.push_str("}\n\n");
+        }
+    }
 }

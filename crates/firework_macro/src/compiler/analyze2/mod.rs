@@ -146,6 +146,8 @@ pub struct Analyzer {
     // Счётчики чтобы генерировать названия полей глобальной структуры экрана
     widget_counter: usize,
     spark_counter: usize,
+
+    pub block_id: u64,
 }
 
 impl Analyzer {
@@ -188,6 +190,8 @@ impl Analyzer {
             // Счётчики
             widget_counter: 0,
             spark_counter: 0,
+
+            block_id: 0,
         }
     }
 
@@ -230,7 +234,7 @@ impl Analyzer {
         if let Some(function_name) = &self.function_name {
             // Добавляет значение в вектор (описание структуры экрана), если такого
             // значения нет в хэш мапе то создаёт пустой вектор
-            self.ir.screen_structs.entry(function_name.to_string())
+            self.ir.screen_structs.entry(format!("ApplicationUiBlockStruct{}", self.block_id.to_string()))
                 .or_insert_with(Vec::new)
                 .push((field_name, field_type));
         }
@@ -312,10 +316,20 @@ impl<'ast> Visit<'ast> for Analyzer {
                 found_spark = true;
             }
 
+            // Временный вектор чтобы сложить туда поля, так как пушить нельзя из-за
+            // мутабельной ссылки от drain
+            let mut temp_fields_to_struct: Vec<(String, String)> = Vec::new();
             for (name, mut var_data) in self.pending_vars.drain(..) {
                 var_data.is_spark = found_spark;
  
                 if found_spark {
+                    temp_fields_to_struct.push((
+                        format!("spark_{}", self.spark_counter),
+                        var_data.clone().variable_type,
+                    ));
+
+                    self.spark_counter += 1;
+
                     // FE002, нельзя затенять существующую переменную спарком
                     if self.scope.variables.contains_key(&name) {
                         self.errors.push(compile_error_spanned(
@@ -350,6 +364,10 @@ impl<'ast> Visit<'ast> for Analyzer {
                 }
 
                 self.scope.variables.insert(name, var_data);
+            }
+
+            for (field_name, field_type) in temp_fields_to_struct.iter() {
+                self.add_field_to_struct(field_name.to_string(), field_type.to_string())
             }
         }
 
@@ -755,7 +773,7 @@ impl<'ast> Visit<'ast> for Analyzer {
     }
 }
 
-pub fn prepare_tokens(tokens: Vec<TokenTree>) -> (proc_macro2::TokenStream, Option<proc_macro2::TokenStream>, Option<FireworkIR>) {
+pub fn prepare_tokens(tokens: Vec<TokenTree>, id: u64) -> (proc_macro2::TokenStream, Option<proc_macro2::TokenStream>, Option<FireworkIR>) {
     let token_stream: proc_macro2::TokenStream = tokens.into_iter().collect();
     
     let file = match syn::parse2::<File>(token_stream) {
@@ -764,7 +782,8 @@ pub fn prepare_tokens(tokens: Vec<TokenTree>) -> (proc_macro2::TokenStream, Opti
     };
     
     let mut analyzer = Analyzer::new();
-    analyzer.visit_file(&file);
+    analyzer.block_id = id;
+    analyzer.visit_file(&file); 
 
     println!("IR len: {}, IR: {:#?}", analyzer.ir.statements.len(), analyzer.ir);
     

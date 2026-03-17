@@ -15,11 +15,9 @@ use compiler::*;
 // TODO:
 //  - Начать писать генератор FIREWORK-IR в prepare 
 
-// Система id нужна для того чтобы во время выполнения опредить был ли переход на
-// этот экран до этого или перехода не было и его нужно построить. Это нужно
-// чтобы не хранить состояние глобально, а просто реализовать фокус экрана когда
-// фреймворк держит конкретный экран в фокусе и вызывает только его замыкания
-static COMPONENT_COUNTER: AtomicU64 = AtomicU64::new(1);
+// Система id нужна для того чтобы построить уникальную структуру в статической памяти
+// и её экземпляр
+static BLOCK_COUNTER: AtomicU64 = AtomicU64::new(1);
 
 /// Структура абстрактного синтаксического дерева. Здесь хранятся токены после
 /// парсинга кода макроса для анализа
@@ -39,7 +37,7 @@ impl Parse for FireworkAst {
 
 #[proc_macro]
 pub fn ui(input: TokenStream) -> TokenStream {
-    let id = COMPONENT_COUNTER.fetch_add(1, Ordering::Relaxed);
+    let id = BLOCK_COUNTER.fetch_add(1, Ordering::Relaxed);
 
     // Парсинг кода макроса в абстрактно синтаксическое дерево
     let ast = parse_macro_input!(input as FireworkAst);
