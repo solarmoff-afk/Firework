@@ -51,7 +51,7 @@ ui! {
         println!("{}", a);
 
         b = c;
-    }
+    } 
 }
 
 fn main() {

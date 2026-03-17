@@ -37,13 +37,15 @@ impl CodeGen {
     /// }
     fn inline_block_struct(&self, output: &mut String) {
         for (block_struct, fields) in &self.ir.screen_structs {
-            output.push_str(format!("struct {} {{\n", block_struct).as_str());
-
-            for (field_name, field_type) in fields {
-                output.push_str(format!("\t{}: {},\n", field_name, field_type).as_str());
+            if fields.len() > 0 {
+                output.push_str(format!("struct {} {{\n", block_struct).as_str());
+                
+                for (field_name, field_type) in fields {
+                    output.push_str(format!("\t{}: {},\n", field_name, field_type).as_str());
+                }
+                
+                output.push_str("}\n\n");
             }
-
-            output.push_str("}\n\n");
         }
     }
 }
