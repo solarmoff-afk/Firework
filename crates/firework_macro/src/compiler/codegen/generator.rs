@@ -45,6 +45,8 @@ impl CodeGen {
                 }
                 
                 output.push_str("}\n\n");
+            } else {
+                output.push_str(format!("struct {};\n", block_struct).as_str());
             }
         }
     }
