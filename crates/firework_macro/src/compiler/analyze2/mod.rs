@@ -168,6 +168,7 @@ impl Analyzer {
                 action: FireworkAction::DefaultCode,
                 is_reactive_block: false,
                 index: 0,
+                screen_name: String::from(""),
                 scope: Scope::new(),
                 string: String::from(""),
             },
@@ -283,8 +284,9 @@ impl<'ast> Visit<'ast> for Analyzer {
 
         let function_name = node.sig.ident.to_string();
         self.function_name = Some(function_name.clone());
-        self.ir.screens.push((function_name, function_head, self.scope.screen_index));
-        
+        self.ir.screens.push((function_name.clone(), function_head, self.scope.screen_index));
+        self.statement.screen_name = function_name;
+
         syn::visit::visit_item_fn(self, node);
 
         self.scope.screen_index += 1;

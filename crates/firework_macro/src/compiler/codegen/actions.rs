@@ -50,6 +50,7 @@ pub struct FireworkStatement {
     pub action: FireworkAction,
     pub is_reactive_block: bool,
     pub index: usize,
+    pub screen_name: String,
     pub string: String,
 
     // TODO: Оптимизировать, так как клонировать Scope (HashSet + usize) для каждого

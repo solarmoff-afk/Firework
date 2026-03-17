@@ -1,26 +1,33 @@
 // Часть проекта Firework с открытым исходным кодом.
 // Лицензия EPL 2.0, подробнее в файле LICENSE. Copyright (c) 2026 Firework
 
+use std::collections::HashMap;
 use proc_macro2::TokenTree;
 
 use super::actions::{FireworkIR, FireworkStatement, FireworkAction};
 
 pub struct CodeGen {
     pub ir: FireworkIR,
+
+    // Хэш мап для хранения результатов кодогенерации для каждого экрана
+    screen_map: HashMap<String, String>,
 }
 
 impl CodeGen {
     pub fn new(ir: FireworkIR) -> Self {
         Self {
             ir,
+            screen_map: HashMap::new(),
         }
     }
 
-    pub fn run(&self) {
+    pub fn run(&mut self) {
         let mut output = String::from("");
 
         self.inline_items(&mut output);
         self.inline_block_struct(&mut output);
+
+        self.make_screens_body(1);
         self.inline_screens(&mut output);
 
         for statement in self.ir.statements.iter() {
@@ -100,7 +107,25 @@ impl CodeGen {
         for (screen_name, screen_signature, screen_index) in self.ir.screens.iter() {
             output.push_str(format!("{} {{\n", screen_signature).as_str());
 
-            output.push_str("}\n\n"); 
+            if let Some(screen_code) = self.screen_map.get(screen_name) {
+                output.push_str(screen_code);
+            }
+
+            output.push_str("}\n\n");
+        }
+    }
+
+    fn make_screens_body(&mut self, depth: usize) {
+        let depth = "\t".repeat(depth);
+
+        for statement in self.ir.statements.iter() {
+            if !self.screen_map.contains_key(&statement.screen_name) { 
+                self.screen_map.insert(statement.screen_name.clone(), String::from(""));
+            }
+
+            if let Some(screen_code) = self.screen_map.get_mut(&statement.screen_name) {
+                screen_code.push_str(format!("{}{}\n", depth, statement.string).as_str());
+            }
         }
     }
 }
