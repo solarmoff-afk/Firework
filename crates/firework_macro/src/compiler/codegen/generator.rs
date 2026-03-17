@@ -32,8 +32,17 @@ impl CodeGen {
     /// где структура ui блока, пример
     ///
     /// struct ApplicationUiBlockStruct1 {
-	  ///     spark_0: Vec < u32 >,
-    ///	    widget_object_3: firework::RectSkin,
+	  ///     spark_0: Option<Vec < u32 >>,
+    ///	    widget_object_3: Option<firework::RectSkin>,
+    /// }
+    ///
+    /// Используется Option так как на этапе создания статического экземпляра значения
+    /// полей могут быть зависимы от внешних данных, поэтому используется None. Пример
+    /// статического экземпляра:
+    ///
+    /// static mut APPLICATIONUIBLOCKSTRUCT1_INSTANCE: ApplicationUiBlockStruct1 = ApplicationUiBlockStruct1 {
+    ///     spark_0: None,
+	  ///     widget_object_3: None,
     /// }
     fn inline_block_struct(&self, output: &mut String) {
         for (block_struct, fields) in &self.ir.screen_structs {
@@ -41,12 +50,37 @@ impl CodeGen {
                 output.push_str(format!("struct {} {{\n", block_struct).as_str());
                 
                 for (field_name, field_type) in fields {
-                    output.push_str(format!("\t{}: {},\n", field_name, field_type).as_str());
+                    output.push_str(format!("\t{}: Option<{}>,\n", field_name, field_type).as_str());
+                }
+                
+                output.push_str("}\n\n"); 
+            } else {
+                output.push_str(format!("struct {};\n\n", block_struct).as_str());
+            }
+        }
+
+        // Статический экземпляр (для доступа нужен unsafe, это нормально так как ui всегда
+        // однопоточный), а RefCell добавляет оверхед и раздувает результат кодогенерации
+      
+        for (block_struct, fields) in &self.ir.screen_structs {
+            let instance_name = block_struct.to_uppercase();
+
+            if fields.len() > 0 {
+                output.push_str(format!(
+                    "static mut {}_INSTANCE: {} = {} {{\n",
+                    instance_name, block_struct, block_struct,
+                ).as_str());
+                
+                for (field_name, _) in fields {
+                    output.push_str(format!("\t{}: None,\n", field_name).as_str());
                 }
                 
                 output.push_str("}\n\n");
             } else {
-                output.push_str(format!("struct {};\n", block_struct).as_str());
+                output.push_str(format!(
+                    "static mut {}_INSTANCE: {} = {};\n",
+                    instance_name, block_struct, block_struct,
+                ).as_str());
             }
         }
     }
