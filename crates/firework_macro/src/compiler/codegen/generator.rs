@@ -21,6 +21,7 @@ impl CodeGen {
 
         self.inline_items(&mut output);
         self.inline_block_struct(&mut output);
+        self.inline_screens(&mut output);
 
         for statement in self.ir.statements.iter() {
             // println!("{:#?}", statement);
@@ -93,5 +94,13 @@ impl CodeGen {
         }
 
         output.push('\n');
+    }
+
+    fn inline_screens(&self, output: &mut String) {
+        for (screen_name, screen_signature, screen_index) in self.ir.screens.iter() {
+            output.push_str(format!("{} {{\n", screen_signature).as_str());
+
+            output.push_str("}\n\n"); 
+        }
     }
 }
