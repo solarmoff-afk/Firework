@@ -538,11 +538,16 @@ impl<'ast> Visit<'ast> for Analyzer {
                 self.statement.scope = self.scope.clone(); 
                 self.ir.statements.push(self.statement.clone()); 
 
+                self.scope.depth += 1;
+                self.statement.scope.depth += 1;
+
                 for statement in block.stmts { 
                     // Парсинг всех команд внутри
                     self.visit_stmt(&statement);
                 }
-                
+               
+                self.scope.depth -= 1;
+                self.statement.scope.depth -= 1;
                 self.statement.action = FireworkAction::DefaultCode;
                 self.statement.string = "}".to_string();
                 self.statement_index += 1;
