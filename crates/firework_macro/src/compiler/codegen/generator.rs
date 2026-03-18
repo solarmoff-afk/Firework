@@ -3,14 +3,16 @@
 
 use std::collections::HashMap;
 use proc_macro2::TokenTree;
+use rand::Rng;
 
 use super::actions::{FireworkIR, FireworkStatement, FireworkAction};
+use super::consts::SCREEN_HEADER;
 
 pub struct CodeGen {
     pub ir: FireworkIR,
 
     // Хэш мап для хранения результатов кодогенерации для каждого экрана
-    screen_map: HashMap<String, String>,
+    screen_map: HashMap<String, (String, u16)>,
 }
 
 impl CodeGen {
@@ -105,25 +107,36 @@ impl CodeGen {
 
     fn inline_screens(&self, output: &mut String) {
         for (screen_name, screen_signature, screen_index) in self.ir.screens.iter() {
+            output.push_str(format!(
+                "fn _fwc_{}_caller() {{\n\t{}();\n}}\n\n", screen_name, screen_name).as_str()
+            );
+
             output.push_str(format!("{} {{\n", screen_signature).as_str());
 
             if let Some(screen_code) = self.screen_map.get(screen_name) {
-                output.push_str(screen_code);
+                output.push_str(&screen_code.0);
             }
 
             output.push_str("}\n\n");
         }
     }
 
-    fn make_screens_body(&mut self, depth: usize) { 
+    fn make_screens_body(&mut self, depth: usize) {
         for statement in self.ir.statements.iter() {
             let depth = "\t".repeat(depth + statement.scope.depth);
-            if !self.screen_map.contains_key(&statement.screen_name) { 
-                self.screen_map.insert(statement.screen_name.clone(), String::from(""));
+            if !self.screen_map.contains_key(&statement.screen_name) {
+                let id: u16 = rand::thread_rng().gen_range(0..=u16::MAX);
+                
+                let to_inline = format!(
+                    "{}let _FWC_SCREEN_ID: u32 = {};\n{}",
+                    depth, id, SCREEN_HEADER
+                );
+
+                self.screen_map.insert(statement.screen_name.clone(), (String::from(to_inline), id));
             }
 
             if let Some(screen_code) = self.screen_map.get_mut(&statement.screen_name) {
-                screen_code.push_str(format!("{}{}\n", depth, statement.string).as_str());
+                screen_code.0.push_str(format!("{}{}\n", depth, statement.string).as_str());
             }
         }
     }
