@@ -19,7 +19,7 @@ use crate::compiler::codegen::actions::{FireworkIR, FireworkStatement, FireworkA
 use crate::{
     compile_error_spanned, SPARK_MULTIPLE_ERROR, SPARK_SHADOWING_ERROR,
     SPARK_UNIQUE_NAME_ERROR, SPARK_TYPE_ERROR, WIDGET_PARSE_ERROR, LAYOUT_PARSE_ERROR,
-    LAYOUT_MULTIPLE_ERROR,
+    LAYOUT_MULTIPLE_ERROR, MACRO_BRACE_ERROR,
 };
 
 /// Нельзя хранить String поэтому используется &str, при использовании нужно использовать
@@ -173,6 +173,7 @@ impl Analyzer {
                 screen_name: String::from(""),
                 scope: Scope::new(),
                 string: String::from(""),
+                parent_widget_id: None,
             },
 
             ir: FireworkIR {
@@ -504,6 +505,15 @@ impl<'ast> Visit<'ast> for Analyzer {
 
             self.descript_layout = true;
         }
+
+        if (is_layout(&name) || is_widget(&name)) && !matches!(i.delimiter, MacroDelimiter::Brace(_)) {
+            self.errors.push(compile_error_spanned(
+                i,
+                MACRO_BRACE_ERROR
+            ));
+            
+            return;
+        }
        
         // Лайаут это конструкция layout_name! { // Обычный раст код }; все токены
         // внутри нужно распарсить как обычный раст код через block (Не file и не expr)
@@ -536,7 +546,7 @@ impl<'ast> Visit<'ast> for Analyzer {
                 );
                 
                 self.statement.scope = self.scope.clone(); 
-                self.ir.statements.push(self.statement.clone()); 
+                self.ir.statements.push(self.statement.clone());
 
                 self.scope.depth += 1;
                 self.statement.scope.depth += 1;
@@ -601,13 +611,18 @@ impl<'ast> Visit<'ast> for Analyzer {
                     found: &mut sparks_in_this_field,
                 };
 
-                finder.visit_expr(&prop.value); 
+                finder.visit_expr(&prop.value);
 
-                if sparks_in_this_field.is_empty() {
-                    fields_map_spark.insert(prop_name, Vec::new()); 
-                } else {
-                    fields_map_spark.insert(prop_name, sparks_in_this_field); 
+                if let Expr::Closure(closure) = &prop.value { 
+                    let saved_parent = self.statement.parent_widget_id;
+                    
+                    self.statement.parent_widget_id = Some(self.widget_counter);
+                    self.visit_expr(&closure.body);
+                    
+                    self.statement.parent_widget_id = saved_parent;
                 }
+
+                fields_map_spark.insert(prop_name, sparks_in_this_field); 
             } 
 
             if let Some(skin) = map_skin(&name) {
@@ -624,11 +639,17 @@ impl<'ast> Visit<'ast> for Analyzer {
                 has_microruntime = need_microruntime;
             }
 
+            self.statement.string = i.to_token_stream().to_string();
             self.statement.action = FireworkAction::WidgetBlock(
-                name.clone(), fields_map_spark, has_microruntime, self.widget_counter,
+                name.clone(),
+                fields_map_spark,
+                has_microruntime,
+                self.widget_counter,
             );
+            self.ir.statements.push(self.statement.clone());
+            self.statement_index += 1;
 
-            self.widget_counter += 1; 
+            self.widget_counter += 1;
         }
 
         visit::visit_macro(self, i);
@@ -694,7 +715,7 @@ impl<'ast> Visit<'ast> for Analyzer {
         let mut layout_name = "".to_string();
         let should_push = if let Stmt::Macro(stmt_macro) = i {
             layout_name = stmt_macro.mac.path.to_token_stream().to_string();
-            !is_layout(&layout_name)
+            !is_layout(&layout_name) && !is_widget(&layout_name)
         } else {
             true
         };

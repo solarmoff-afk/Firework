@@ -52,6 +52,7 @@ pub struct FireworkStatement {
     pub index: usize,
     pub screen_name: String,
     pub string: String,
+    pub parent_widget_id: Option<usize>,
 
     // TODO: Оптимизировать, так как клонировать Scope (HashSet + usize) для каждого
     // statement может быть дорого

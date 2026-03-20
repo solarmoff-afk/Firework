@@ -72,6 +72,13 @@ error[FE009]: layout!() widget can only be used once per layout block
    = note: for more information, see: [WORK IN PROGRESS]
 ";
 
+pub const MACRO_BRACE_ERROR: &str = "\
+error[FE010]: widget and layout macros only accept `{}` braces
+   = note: using `()` or `[]` is not supported
+   = help: change to curly braces: `widget_name! { ... }` or `layout_name! { ... }`
+   = note: for more information, see: [WORK IN PROGRESS]
+";
+
 pub fn compile_error_spanned<T: quote::ToTokens>(tokens: T, msg: &str) -> Error {
     Error::new_spanned(tokens, msg)
 }

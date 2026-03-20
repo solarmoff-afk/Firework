@@ -8,49 +8,13 @@ ui! {
 
     fn test_screen() {
         let mut b: Vec<u32> = spark!(10);
-        
-        vertical! {
-            layout! {
-                field1: b,
-                field2: 20,
-            }
 
-            stack! {
-                layout! {
-                    field1: b,
-                    field2: 20,
-                }
-            }
-
-            stack! {
-                layout! {
-                    field1: b,
-                    field2: 20,
-                }
-            }
-
-            rect!(
-                field: 1,
-            );
+        rect!{
+            on_click: || {
+                b += 1;
+                println!("Hi");
+            },
         }
-
-        b = 5;
-        b += 1;
-        b.test.field = 1;
-        // b.len();
-
-        if b == 5 {
-            b.len();
-            a = b;
-
-            if b == 5 {
-                c = b;
-            }
-        }
-
-        println!("{}", a);
-
-        b = c;
     } 
 }
 
