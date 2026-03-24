@@ -123,7 +123,6 @@ pub struct Analyzer {
     // лайаут блоке. Описывать лайаут можно только один раз в лайаут блоке
     pub descript_layout: bool,
 
-    // 
     pub statement: FireworkStatement,
     pub ir: FireworkIR,
     pub function_name: Option<String>,
@@ -148,8 +147,6 @@ pub struct Analyzer {
     // Счётчики чтобы генерировать названия полей глобальной структуры экрана
     widget_counter: usize,
     spark_counter: usize,
-
-    pub block_id: u64,
 }
 
 impl Analyzer {
@@ -194,8 +191,6 @@ impl Analyzer {
             // Счётчики
             widget_counter: 0,
             spark_counter: 0,
-
-            block_id: 0,
         }
     }
 
@@ -238,7 +233,7 @@ impl Analyzer {
         if let Some(function_name) = &self.function_name {
             // Добавляет значение в вектор (описание структуры экрана), если такого
             // значения нет в хэш мапе то создаёт пустой вектор
-            self.ir.screen_structs.entry(format!("ApplicationUiBlockStruct{}", self.block_id.to_string()))
+            self.ir.screen_structs.entry(format!("ApplicationUiBlockStruct{}", self.scope.screen_index.to_string()))
                 .or_insert_with(Vec::new)
                 .push((field_name, field_type));
         }
@@ -862,7 +857,7 @@ impl<'ast> Visit<'ast> for Analyzer {
     }
 }
 
-pub fn prepare_tokens(tokens: Vec<TokenTree>, id: u64) -> (proc_macro2::TokenStream, Option<proc_macro2::TokenStream>, Option<FireworkIR>) {
+pub fn prepare_tokens(tokens: Vec<TokenTree>, _id: u64) -> (proc_macro2::TokenStream, Option<proc_macro2::TokenStream>, Option<FireworkIR>) {
     let token_stream: proc_macro2::TokenStream = tokens.into_iter().collect();
     
     let file = match syn::parse2::<File>(token_stream) {
@@ -871,7 +866,6 @@ pub fn prepare_tokens(tokens: Vec<TokenTree>, id: u64) -> (proc_macro2::TokenStr
     };
     
     let mut analyzer = Analyzer::new();
-    analyzer.block_id = id;
     analyzer.visit_file(&file); 
 
     println!("IR len: {}, IR: {:#?}", analyzer.ir.statements.len(), analyzer.ir);

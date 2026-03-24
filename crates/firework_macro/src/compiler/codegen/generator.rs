@@ -12,7 +12,7 @@ pub struct CodeGen {
     pub ir: FireworkIR,
 
     // Хэш мап для хранения результатов кодогенерации для каждого экрана
-    screen_map: HashMap<String, (String, u16)>,
+    screen_map: HashMap<String, (String, u64)>,
 }
 
 impl CodeGen {
@@ -63,7 +63,9 @@ impl CodeGen {
                 for (field_name, field_type) in fields {
                     output.push_str(format!("\t{}: Option<{}>,\n", field_name, field_type).as_str());
                 }
-                
+              
+                // Специальное поле чтобы хранить индекс указателя на функцию экрана в фреймворке 
+                output.push_str("\t_fwc_screen_id: Option<usize>,\n");
                 output.push_str("}\n\n"); 
             } else {
                 output.push_str(format!("struct {};\n\n", block_struct).as_str());
@@ -78,19 +80,8 @@ impl CodeGen {
 
             if fields.len() > 0 {
                 output.push_str(format!(
-                    "static mut {}_INSTANCE: {} = {} {{\n",
-                    instance_name, block_struct, block_struct,
-                ).as_str());
-                
-                for (field_name, _) in fields {
-                    output.push_str(format!("\t{}: None,\n", field_name).as_str());
-                }
-                
-                output.push_str("}\n\n");
-            } else {
-                output.push_str(format!(
-                    "static mut {}_INSTANCE: {} = {};\n",
-                    instance_name, block_struct, block_struct,
+                    "static {}_INSTANCE: firework::OnceCell<{}> = firework::OnceCell::new();\n\n",
+                    instance_name, block_struct,
                 ).as_str());
             }
         }
@@ -105,18 +96,38 @@ impl CodeGen {
         output.push('\n');
     }
 
-    fn inline_screens(&self, output: &mut String) {
-        for (screen_name, screen_signature, screen_index) in self.ir.screens.iter() {
+    fn inline_screens(&mut self, output: &mut String) {
+        for (screen_name, screen_signature, screen_id) in self.ir.screens.iter() { 
+            output.push_str(format!("{} {{\n", screen_signature).as_str());
+            
+            let struct_name = format!("ApplicationUiBlockStruct{}", screen_id);
+            let instance_name = struct_name.to_uppercase();
+            
             output.push_str(format!(
-                "fn _fwc_{}_caller() {{\n\t{}();\n}}\n\n", screen_name, screen_name).as_str()
+                "\tlet is_first_call = {}_INSTANCE.get().is_none();\n",
+                instance_name
+            ).as_str());
+            
+            output.push_str("\tlet block = {}_INSTANCE.get_or_init(|| {\n");
+            output.push_str(format!("\t\t{} {{\n", struct_name).as_str());
+            
+            if let Some(fields) = self.ir.screen_structs.get(&struct_name) {
+                for (field_name, _) in fields {
+                    output.push_str(format!("\t\t\t{}: None,\n", field_name).as_str());
+                }
+            }
+
+            output.push_str(
+                format!("\t\t\t_fwc_screen_id: Some(firework::register({})),\n", screen_name).as_str()
             );
 
-            output.push_str(format!("{} {{\n", screen_signature).as_str());
-
+            output.push_str("\t\t}\n");
+            output.push_str("\t});\n\n"); 
+        
             if let Some(screen_code) = self.screen_map.get(screen_name) {
                 output.push_str(&screen_code.0);
             }
-
+            
             output.push_str("}\n\n");
         }
     }
@@ -125,14 +136,9 @@ impl CodeGen {
         for statement in self.ir.statements.iter() {
             let depth = "\t".repeat(depth + statement.scope.depth);
             if !self.screen_map.contains_key(&statement.screen_name) {
-                let id: u16 = rand::thread_rng().gen_range(0..=u16::MAX);
-                
-                let to_inline = format!(
-                    "{}let _FWC_SCREEN_ID: u32 = {};\n{}",
-                    depth, id, SCREEN_HEADER
-                );
+                let id: u64 = rand::thread_rng().gen_range(0..=u64::MAX); 
 
-                self.screen_map.insert(statement.screen_name.clone(), (String::from(to_inline), id));
+                self.screen_map.insert(statement.screen_name.clone(), (String::from(SCREEN_HEADER), id));
             }
 
             if let Some(screen_code) = self.screen_map.get_mut(&statement.screen_name) {

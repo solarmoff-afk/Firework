@@ -15,7 +15,18 @@ ui! {
                 println!("Hi");
             },
         }
-    } 
+    }
+
+    fn test_screen2() {
+        let mut b: Vec<u32> = spark!(10);
+
+        rect!{
+            on_click: || {
+                b += 1;
+                println!("Hi");
+            },
+        }
+    }
 }
 
 fn main() {

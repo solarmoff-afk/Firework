@@ -8,3 +8,4 @@ proc-macro = false
 
 [dependencies]
 firework_macro = { path = "../crates/firework_macro" }
+once_cell = { version = "1.19", default-features = false, features = ["critical-section", "race"] }
