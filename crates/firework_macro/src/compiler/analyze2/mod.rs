@@ -288,71 +288,14 @@ impl Analyzer {
 }
 
 impl<'ast> Visit<'ast> for Analyzer {
-    // Генерирует заглушки для функций чтобы компилятор не выдал ошибку "функция отсуствует"
-    // вероятно это временное решение
-    fn visit_item_fn(&mut self, node: &'ast ItemFn) {
-        let mut function_head = String::from("");
-        for attr in &node.attrs {
-            function_head.push_str(format!("{}\n", quote::quote! { #attr }).as_str()); 
-        }
-        
-        let vis = &node.vis;
-        let constness = &node.sig.constness;
-        let asyncness = &node.sig.asyncness;
-        let unsafety = &node.sig.unsafety;
-        let abi = &node.sig.abi;
-        let fn_token = &node.sig.fn_token;
-        let ident = &node.sig.ident;
-        let generics = &node.sig.generics;
-        let inputs = &node.sig.inputs;
-        let output = &node.sig.output;
-        
-        let signature = quote::quote! {
-            #vis #constness #asyncness #unsafety #abi #fn_token #ident #generics (#inputs) #output
-        };
-
-        function_head.push_str(format!("{}", signature).as_str());
-
-        let mut fn_stub = node.clone();
-        fn_stub.block = syn::parse2(quote::quote! {
-            {}
-        }).expect("Failed to parse item"); 
-        
-        self.output.extend(quote::quote! {
-            #fn_stub
-        });
-
-        // Добавление всех аргументов в область видимости как переменных
-        for input in &node.sig.inputs {
-            self.visit_fn_arg(input);
-        }
-
-        let function_name = node.sig.ident.to_string();
-        self.function_name = Some(function_name.clone());
-        self.ir.screens.push((function_name.clone(), function_head, self.scope.screen_index));
-        self.statement.screen_name = function_name;
-
-        syn::visit::visit_item_fn(self, node);
-
-        self.scope.screen_index_generate();
+    /// Генерирует заглушки для функций чтобы компилятор не выдал ошибку "функция отсуствует"
+    /// вероятно это временное решение. Также собирает сигнатуру функции для кодогенератора
+    fn visit_item_fn(&mut self, i: &'ast ItemFn) {
+        self.analyze_item_fn(i);
     }
 
     fn visit_fn_arg(&mut self, i: &'ast FnArg) {
-        if let FnArg::Typed(pat_type) = i {
-            self.current_type = pat_type.ty.to_token_stream().to_string();
-        
-            // Переменные будут добавляться в pending_vars
-            self.visit_pat(&pat_type.pat);
-        
-            for (name, mut var_data) in self.pending_vars.drain(..) {
-                // Аргумент функции не может быть спарком
-                var_data.is_spark = false;
-
-                self.scope.variables.insert(name, var_data);
-            }
-
-            self.current_type = String::from(NO_TYPE);
-        }
+        self.analyze_fn_arg(i);
     }
 
     fn visit_local(&mut self, i: &'ast Local) {
@@ -394,94 +337,21 @@ impl<'ast> Visit<'ast> for Analyzer {
     /// Присваивание значения к переменной которая инициализирована как спарк считаетсч
     /// обновлением состояния и требует обновления UI
     fn visit_expr_assign(&mut self, i: &'ast ExprAssign) {
-        if let Some(root_name) = get_root_variable_name(&i.left) {
-            if let Some(variable) = self.scope.variables.get(&root_name) {
-                if variable.is_spark {
-                    self.statement.action = FireworkAction::UpdateSpark(root_name);
-                }
-            }
-        }
-
-        visit::visit_expr_assign(self, i);
+        self.analyze_expr_assign(i);
     }
 
     /// Кейс обновления состояния для бинарных операций, например spark += 1 или
     /// spark %= 2, также требует обновления ui
     fn visit_expr_binary(&mut self, i: &'ast ExprBinary) {
-        let is_mutation = match i.op {
-            BinOp::AddAssign(_)   | BinOp::SubAssign(_)    | BinOp::MulAssign(_)    |
-            BinOp::DivAssign(_)   | BinOp::RemAssign(_)    | BinOp::BitAndAssign(_) |
-            BinOp::BitOrAssign(_) | BinOp::BitXorAssign(_) | BinOp::ShlAssign(_)    |
-            BinOp::ShrAssign(_)  => true,
-
-            _ => false,
-        };
-
-        if is_mutation {
-            if let Some(root_name) = get_root_variable_name(&i.left) {
-                if let Some(variable) = self.scope.variables.get(&root_name) {
-                    if variable.is_spark {
-                        self.statement.action = FireworkAction::UpdateSpark(root_name);
-                    }
-                }
-            }
-        }
-
-        visit::visit_expr_binary(self, i);
+        self.analyze_expr_binary(i);
     }
 
     fn visit_expr_method_call(&mut self, i: &'ast syn::ExprMethodCall) {
-        if let Some(root_name) = get_root_variable_name(&i.receiver) {
-            if let Some(variable) = self.scope.variables.get(&root_name) {
-                if variable.is_spark {
-                    let method_name = i.method.to_string();
-
-                    // Только мутабельные методы, узнать это можно по типу спарка
-                    // через хелпер, если это кастомный тип то используется хак и
-                    // все методы считаются мутабельными
-                    if is_mutable_method(&variable.variable_type, &method_name) {
-                        self.statement.action = FireworkAction::UpdateSpark(root_name);
-                    }
-                }
-            }
-        }
+        self.analyze_expr_method_call(i);
     }
 
     fn visit_stmt(&mut self, i: &'ast Stmt) {
-        let mut layout_name = "".to_string();
-        let should_push = if let Stmt::Macro(stmt_macro) = i {
-            layout_name = stmt_macro.mac.path.to_token_stream().to_string();
-            !is_layout(&layout_name) && !is_widget(&layout_name)
-        } else {
-            true
-        };
-
-        if should_push {
-            self.statement.string = i.to_token_stream().to_string();
-        } else {
-            self.statement.string = format!("{} {{", layout_name);
-        }
-
-        // println!("STATEMENT: {}", self.statement_index);
-        if let Some(root_id) = self.reactive_block {
-            // println!("Statement {} is reactive, start: {}", self.statement_index, root_id.0);
-            self.statement.is_reactive_block = true;
-        }
-        
-        visit::visit_stmt(self, i); 
-        
-        self.statement_index += 1; 
-        
-        if should_push {
-            // Если это лайаут блок то клонирование области видимости и пуш уже
-            // были и клонировать второй раз нет смысла
-            self.statement.scope = self.scope.clone();
-            self.ir.statements.push(self.statement.clone());
-        }
-        
-        self.statement.index = self.statement_index;
-        self.statement.action = FireworkAction::DefaultCode;
-        self.statement.is_reactive_block = false;
+        self.analyze_stmt(i);
     }
 
     fn visit_expr_if(&mut self, i: &'ast ExprIf) {

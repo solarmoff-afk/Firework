@@ -4,3 +4,5 @@
 pub mod element;
 pub mod block;
 pub mod variable;
+pub mod function;
+pub mod statement;
