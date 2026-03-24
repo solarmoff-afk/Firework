@@ -48,9 +48,8 @@ impl<'ast> Analyzer {
         self.ir.screens.push((function_name.clone(), function_head, self.scope.screen_index));
         self.statement.screen_name = function_name;
 
-        syn::visit::visit_item_fn(self, node);
-
         self.scope.screen_index_generate();
+        syn::visit::visit_item_fn(self, node); 
     }
 
     pub fn analyze_fn_arg(&mut self, i: &'ast FnArg) {
