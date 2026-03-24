@@ -10,6 +10,7 @@ use syn::spanned::Spanned;
 use syn::visit::Visit;
 use std::collections::{HashMap, HashSet};
 use quote::ToTokens;
+use rand::Rng;
 
 use widget::{is_widget, is_layout, map_skin, WidgetArgs};
 use spark::{SparkValidator, SparkFinder, get_root_variable_name};
@@ -94,6 +95,12 @@ impl Scope {
 
         // Если такой переменной вообще нет то это тоже означает false
         false
+    }
+
+    /// Генерирует рандомный айди экрана
+    pub fn screen_index_generate(&mut self) {
+        let mut range = rand::thread_rng();
+        self.screen_index = range.gen_range(0..=usize::MAX);
     }
 }
 
@@ -326,7 +333,7 @@ impl<'ast> Visit<'ast> for Analyzer {
 
         syn::visit::visit_item_fn(self, node);
 
-        self.scope.screen_index += 1;
+        self.scope.screen_index_generate();
     }
 
     fn visit_fn_arg(&mut self, i: &'ast FnArg) {
@@ -866,6 +873,7 @@ pub fn prepare_tokens(tokens: Vec<TokenTree>, _id: u64) -> (proc_macro2::TokenSt
     };
     
     let mut analyzer = Analyzer::new();
+    analyzer.scope.screen_index_generate();
     analyzer.visit_file(&file); 
 
     println!("IR len: {}, IR: {:#?}", analyzer.ir.statements.len(), analyzer.ir);
