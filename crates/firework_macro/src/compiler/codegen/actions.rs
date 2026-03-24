@@ -40,7 +40,7 @@ pub enum FireworkAction {
     //  3 (bool)    - Явлется ли это функциональным виджетом (Который не имеет визуального
     //                представления)
     //  4 (usize)   - Айди виджета
-    WidgetBlock(String, HashMap<String, Vec<String>>, bool, usize),
+    WidgetBlock(String, HashMap<String, FireworkWidgetField>, bool, usize),
 
     DefaultCode,
 }
@@ -70,4 +70,10 @@ pub struct FireworkIR {
 
     pub screens: Vec<(String, String, usize)>,
     pub items: Vec<String>,
+}
+
+#[derive(Debug, Clone)]
+pub struct FireworkWidgetField {
+    pub sparks: Vec<String>,
+    pub string: String,
 }

@@ -97,18 +97,18 @@ impl<'ast> Analyzer {
             // в отличии от лайаута там не валидный rust код, а специальный DSL который
             // похож на конструкцию структур. Пример:
             //
-            // rect! (
+            // rect! {
             //  image: "test.png".to_string(),
-            // ); 
+            // }
             let args: WidgetArgs = match syn::parse2(i.tokens.clone()) {
                 Ok(args) => args,
                 Err(e) => {
                     // Ошибка FE007, нарушение синтаксиса DSL виджета. Синтаксис только
                     //
-                    // widget_name!(
+                    // widget_name@ {
                     //   field1: 10,
                     //   field2: 20,
-                    // );
+                    // }
                     self.errors.push(compile_error_spanned(
                         i.tokens.clone(),
                         WIDGET_PARSE_ERROR, 
@@ -119,15 +119,18 @@ impl<'ast> Analyzer {
                 }
             };
 
-            let mut fields_map_spark: HashMap<String, Vec<String>> = HashMap::new();
+            let mut fields_map: HashMap<String, FireworkWidgetField> = HashMap::new();
 
             for prop in args.properties {
                 let prop_name = prop.name.to_string();
-                let mut sparks_in_this_field = Vec::new();
+                let mut this_field = FireworkWidgetField {
+                    sparks: Vec::new(),
+                    string: prop.value.to_token_stream().to_string(),
+                };
                 
                 let mut finder = SparkFinder {
                     scope: &self.scope,
-                    found: &mut sparks_in_this_field,
+                    found: &mut this_field.sparks,
                 };
 
                 finder.visit_expr(&prop.value);
@@ -141,8 +144,8 @@ impl<'ast> Analyzer {
                     self.statement.parent_widget_id = saved_parent;
                 }
 
-                fields_map_spark.insert(prop_name, sparks_in_this_field); 
-            } 
+                fields_map.insert(prop_name, this_field);
+            }
 
             if let Some(skin) = map_skin(&name) {
                 self.add_field_to_struct(
@@ -161,7 +164,7 @@ impl<'ast> Analyzer {
             self.statement.string = i.to_token_stream().to_string();
             self.statement.action = FireworkAction::WidgetBlock(
                 name.clone(),
-                fields_map_spark,
+                fields_map,
                 has_microruntime,
                 self.widget_counter,
             );

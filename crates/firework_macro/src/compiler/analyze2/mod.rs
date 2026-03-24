@@ -17,7 +17,7 @@ use widget::{is_widget, is_layout, map_skin, WidgetArgs};
 use spark::{SparkValidator, SparkFinder, get_root_variable_name};
 
 use crate::compiler::utils::is_mutable_method;
-use crate::compiler::codegen::actions::{FireworkIR, FireworkStatement, FireworkAction};
+use crate::compiler::codegen::actions::{FireworkIR, FireworkStatement, FireworkAction, FireworkWidgetField};
 use crate::{
     compile_error_spanned, SPARK_MULTIPLE_ERROR, SPARK_SHADOWING_ERROR,
     SPARK_UNIQUE_NAME_ERROR, SPARK_TYPE_ERROR, WIDGET_PARSE_ERROR, LAYOUT_PARSE_ERROR,
