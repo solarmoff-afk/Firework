@@ -2,7 +2,7 @@ use firework::ui;
 // use firework::component;
 
 ui! {
-    struct a {
+    struct A {
         b: u32,
     }
 

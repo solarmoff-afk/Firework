@@ -6,7 +6,7 @@ pub use super::super::*;
 impl<'ast> Analyzer {
     /// Генерирует заглушки для функций чтобы компилятор не выдал ошибку "функция отсуствует"
     /// вероятно это временное решение. Также собирает сигнатуру функции для кодогенератора
-    pub fn analyze_item_fn(&mut self, node: &'ast ItemFn) {
+    pub(crate) fn analyze_item_fn(&mut self, node: &'ast ItemFn) {
         let mut function_head = String::from("");
         for attr in &node.attrs {
             function_head.push_str(format!("{}\n", quote::quote! { #attr }).as_str()); 
@@ -52,7 +52,7 @@ impl<'ast> Analyzer {
         syn::visit::visit_item_fn(self, node); 
     }
 
-    pub fn analyze_fn_arg(&mut self, i: &'ast FnArg) {
+    pub(crate) fn analyze_fn_arg(&mut self, i: &'ast FnArg) {
         if let FnArg::Typed(pat_type) = i {
             self.current_type = pat_type.ty.to_token_stream().to_string();
         

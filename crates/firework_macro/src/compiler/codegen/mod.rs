@@ -4,3 +4,6 @@
 pub mod actions;
 pub mod generator;
 mod consts;
+mod base;
+
+pub use generator::CodeGen;

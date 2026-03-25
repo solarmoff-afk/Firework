@@ -4,7 +4,7 @@
 pub use super::super::*;
 
 impl<'ast> Analyzer {
-    pub fn analyze_stmt(&mut self, i: &'ast Stmt) {
+    pub(crate) fn analyze_stmt(&mut self, i: &'ast Stmt) {
         let mut layout_name = "".to_string();
         let should_push = if let Stmt::Macro(stmt_macro) = i {
             layout_name = stmt_macro.mac.path.to_token_stream().to_string();

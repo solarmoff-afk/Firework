@@ -125,20 +125,20 @@ pub struct Analyzer {
     // Statement это блок кода от начала до ; фигурных скобок или в некоторых случаях
     // запятой. Нужно точно знать на каком statement мы сейчас. На старте это 1, поэтому
     // итерацию нужно начать с единицы
-    pub statement_index: usize,
+    statement_index: usize,
 
     // Флаг который означает был ли использован функциональный виджет layout! в текущем
     // лайаут блоке. Описывать лайаут можно только один раз в лайаут блоке
-    pub descript_layout: bool,
+    descript_layout: bool,
 
-    pub statement: FireworkStatement,
     pub ir: FireworkIR,
-    pub function_name: Option<String>,
+    statement: FireworkStatement, 
+    function_name: Option<String>,
 
     // Буферы
     // Буфер который используется для хранения текущего типа в парсинге переменной,
     // если типа не указан то используется значения константы NO_TYPE
-    pub current_type: String,
+    current_type: String,
 
     // Временный вектор имён переменных которые были найдены в текущем let, но ещё
     // не добавленных в scope.variables

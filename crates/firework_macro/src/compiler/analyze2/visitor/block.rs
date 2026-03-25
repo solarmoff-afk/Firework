@@ -5,7 +5,7 @@ pub use super::super::*;
 
 impl<'ast> Analyzer {
     /// Вход в новую область видимости
-    pub fn analyze_block(&mut self, i: &'ast syn::Block) {
+    pub(crate) fn analyze_block(&mut self, i: &'ast syn::Block) {
         // Сначала клонируем всё состояние текущей области видимости, когда эта область
         // видимости закончится (та, что сейчас открывается) все переменные и не только
         // созданные внутри неё будут дропнуты и мы не можем их использовать. После
@@ -25,7 +25,7 @@ impl<'ast> Analyzer {
     }
 
     /// Условие
-    pub fn analyze_expr_if(&mut self, i: &'ast ExprIf) {
+    pub(crate) fn analyze_expr_if(&mut self, i: &'ast ExprIf) {
         let sparks = self.get_sparks(&i.cond);
         let condition_code = i.cond.to_token_stream().to_string();
         
@@ -39,7 +39,7 @@ impl<'ast> Analyzer {
     }
 
     /// Цикл while
-    pub fn analyze_expr_while(&mut self, i: &'ast ExprWhile) {
+    pub(crate) fn analyze_expr_while(&mut self, i: &'ast ExprWhile) {
         let sparks = self.get_sparks(&i.cond);
         let condition_code = i.cond.to_token_stream().to_string();
         
@@ -53,7 +53,7 @@ impl<'ast> Analyzer {
     }
     
     /// Цикл for
-    pub fn analyze_expr_for_loop(&mut self, i: &'ast ExprForLoop) {
+    pub(crate) fn analyze_expr_for_loop(&mut self, i: &'ast ExprForLoop) {
         let sparks = self.get_sparks(&i.expr);
         let pattern_code = i.pat.to_token_stream().to_string();
         let expr_code = i.expr.to_token_stream().to_string();
@@ -68,7 +68,7 @@ impl<'ast> Analyzer {
     }
     
     /// Match
-    pub fn analyze_expr_match(&mut self, i: &'ast ExprMatch) {
+    pub(crate) fn analyze_expr_match(&mut self, i: &'ast ExprMatch) {
         let sparks = self.get_sparks(&i.expr);
         let expr_code = i.expr.to_token_stream().to_string();
         
@@ -81,8 +81,8 @@ impl<'ast> Analyzer {
         );
     }
 
-    /// Loop
-    pub fn analyze_expr_loop(&mut self, i: &'ast ExprLoop) {
+    /// Loop { ... }
+    pub(crate) fn analyze_expr_loop(&mut self, i: &'ast ExprLoop) {
         self.handle_reactive_block(
             Vec::new(),
             true,

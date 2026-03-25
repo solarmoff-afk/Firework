@@ -4,7 +4,7 @@
 pub use super::super::*;
 
 impl<'ast> Analyzer {
-    pub fn analyze_local(&mut self, i: &'ast Local) {
+    pub(crate) fn analyze_local(&mut self, i: &'ast Local) {
         // Очистка данных из старого let
         self.pending_vars.clear();
         visit::visit_pat(self, &i.pat);
@@ -98,7 +98,7 @@ impl<'ast> Analyzer {
 
     /// Присваивание значения к переменной которая инициализирована как спарк считаетсч
     /// обновлением состояния и требует обновления UI
-    pub fn analyze_expr_assign(&mut self, i: &'ast ExprAssign) {
+    pub(crate) fn analyze_expr_assign(&mut self, i: &'ast ExprAssign) {
         if let Some(root_name) = get_root_variable_name(&i.left) {
             if let Some(variable) = self.scope.variables.get(&root_name) {
                 if variable.is_spark {
@@ -112,7 +112,7 @@ impl<'ast> Analyzer {
 
     /// Кейс обновления состояния для бинарных операций, например spark += 1 или
     /// spark %= 2, также требует обновления ui
-    pub fn analyze_expr_binary(&mut self, i: &'ast ExprBinary) {
+    pub(crate) fn analyze_expr_binary(&mut self, i: &'ast ExprBinary) {
         // Является ли бинарная операция мутацией
         let is_mutation = match i.op {
             BinOp::AddAssign(_)   | BinOp::SubAssign(_)    | BinOp::MulAssign(_)    |
@@ -136,7 +136,7 @@ impl<'ast> Analyzer {
         visit::visit_expr_binary(self, i);
     }
 
-    pub fn analyze_expr_method_call(&mut self, i: &'ast syn::ExprMethodCall) {
+    pub(crate) fn analyze_expr_method_call(&mut self, i: &'ast syn::ExprMethodCall) {
         if let Some(root_name) = get_root_variable_name(&i.receiver) {
             if let Some(variable) = self.scope.variables.get(&root_name) {
                 if variable.is_spark {

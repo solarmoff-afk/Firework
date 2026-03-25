@@ -5,7 +5,7 @@ pub use super::super::*;
 
 impl<'ast> Analyzer {
     /// Макрос который используются не в выражении, а как отдельный statement (команда)
-    pub fn analyze_macro(&mut self, i: &'ast Macro) {
+    pub(crate) fn analyze_macro(&mut self, i: &'ast Macro) {
         let name = i.path.to_token_stream().to_string(); 
 
         // Проверка что лайаут конфигурируется только один раз в лайаут блоке

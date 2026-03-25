@@ -38,92 +38,44 @@ impl CodeGen {
 
         println!("Output:\n{}", output);
     }
-
-    /// Эта функция берёт информацию из IR и создаёт верхушку результата кодогенерации
-    /// где структура ui блока, пример
-    ///
-    /// struct ApplicationUiBlockStruct1 {
-	  ///     spark_0: Option<Vec < u32 >>,
-    ///	    widget_object_3: Option<firework::RectSkin>,
-    /// }
-    ///
-    /// Используется Option так как на этапе создания статического экземпляра значения
-    /// полей могут быть зависимы от внешних данных, поэтому используется None. Пример
-    /// статического экземпляра:
-    ///
-    /// static mut APPLICATIONUIBLOCKSTRUCT1_INSTANCE: ApplicationUiBlockStruct1 = ApplicationUiBlockStruct1 {
-    ///     spark_0: None,
-	  ///     widget_object_3: None,
-    /// }
-    fn inline_block_struct(&self, output: &mut String) {
-        for (block_struct, fields) in &self.ir.screen_structs {
-            if fields.len() > 0 {
-                output.push_str(format!("struct {} {{\n", block_struct).as_str());
-                
-                for (field_name, field_type) in fields {
-                    output.push_str(format!("\t{}: Option<{}>,\n", field_name, field_type).as_str());
-                }
-              
-                // Специальное поле чтобы хранить индекс указателя на функцию экрана в фреймворке 
-                output.push_str("\t_fwc_screen_id: Option<usize>,\n");
-                output.push_str("}\n\n"); 
-            } else {
-                output.push_str(format!("struct {};\n\n", block_struct).as_str());
-            }
-        }
-
-        // Статический экземпляр (для доступа нужен unsafe, это нормально так как ui всегда
-        // однопоточный), а RefCell добавляет оверхед и раздувает результат кодогенерации
-      
-        for (block_struct, fields) in &self.ir.screen_structs {
-            let instance_name = block_struct.to_uppercase();
-
-            if fields.len() > 0 {
-                output.push_str(format!(
-                    "static {}_INSTANCE: firework::OnceCell<{}> = firework::OnceCell::new();\n\n",
-                    instance_name, block_struct,
-                ).as_str());
-            }
-        }
-    }
-
-    fn inline_items(&self, output: &mut String) {
-        for item in self.ir.items.iter() {
-            output.push_str(item);
-            output.push('\n');
-        }
-
-        output.push('\n');
-    }
-
+ 
     fn inline_screens(&mut self, output: &mut String) {
         for (screen_name, screen_signature, screen_id) in self.ir.screens.iter() { 
             output.push_str(format!("{} {{\n", screen_signature).as_str());
             
             let struct_name = format!("ApplicationUiBlockStruct{}", screen_id);
             let instance_name = struct_name.to_uppercase();
-            
+           
+            // Проверка является ли это первым вызовом функции, так как на каждый экран
+            // (функцию) идёт свой экземпляр то можно проверять по нему
             output.push_str(format!(
                 "\tlet is_first_call = {}_INSTANCE.get().is_none();\n",
                 instance_name
             ).as_str());
-            
-            output.push_str("\tlet block = {}_INSTANCE.get_or_init(|| {\n");
+           
+            // Инициализация если экземпляр ещё не инициализирован
+            output.push_str(format!("\tlet block = {}_INSTANCE.get_or_init(|| {{\n", struct_name).as_str());
             output.push_str(format!("\t\t{} {{\n", struct_name).as_str());
-            
+           
+            // При инициализации каждое поле которое собрал analyze устанавливается как None 
+            // так как значение будут готово только ниже
             if let Some(fields) = self.ir.screen_structs.get(&struct_name) {
                 for (field_name, _) in fields {
                     output.push_str(format!("\t\t\t{}: None,\n", field_name).as_str());
                 }
             }
 
+            // Добавление инициализации поля которое не собирает analyze, оно означает индекс
+            // в диспетчере экранов который занял экран, он выдаётся при регистрации указателя
+            // на функцию экрана
             output.push_str(
                 format!("\t\t\t_fwc_screen_id: Some(firework::register({})),\n", screen_name).as_str()
             );
 
             output.push_str("\t\t}\n");
             output.push_str("\t});\n\n"); 
-        
+       
+            // Добавляем код экрана
             if let Some(screen_code) = self.screen_map.get(screen_name) {
                 output.push_str(&screen_code.0);
             }
@@ -142,6 +94,12 @@ impl CodeGen {
             }
 
             if let Some(screen_code) = self.screen_map.get_mut(&statement.screen_name) {
+                // Виджеты не нужно добавлять в вывод
+                if matches!(statement.action, FireworkAction::WidgetBlock(..)) {
+                    screen_code.0.push_str(format!("{}// Widget\n", depth).as_str());
+                    continue;
+                }
+
                 screen_code.0.push_str(format!("{}{}\n", depth, statement.string).as_str());
             }
         }
