@@ -4,6 +4,7 @@
 use syn::*;
 use syn::visit::Visit;
 use quote::ToTokens;
+use proc_macro2::TokenStream;
 
 use super::Scope;
 
@@ -13,6 +14,9 @@ pub struct SparkValidator {
     // избежать выражений spark!() + spark!() которые нельзя нормально разместить
     // в статическом графе зависимостей
     pub spark_count: usize,
+
+    // Хранит в себе токены последнего спарка который был найден
+    pub spark_tokens: Option<TokenStream>,
 }
 
 impl<'ast> Visit<'ast> for SparkValidator {
@@ -20,6 +24,7 @@ impl<'ast> Visit<'ast> for SparkValidator {
         // Проверка что вызов действительно spark!
         if i.mac.path.is_ident("spark") {
             // Добавление единицы к значению всех вызовов spark в выражении 
+            self.spark_tokens = Some(i.mac.tokens.clone());
             self.spark_count += 1;
         }
 

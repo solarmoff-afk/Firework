@@ -16,6 +16,7 @@ impl<'ast> Analyzer {
             // Валидатор сам сделает подсчёт спарков в выражении
             let mut validator = SparkValidator {
                 spark_count: 0,
+                spark_tokens: None,
             };
 
             // Вызов из валидатора
@@ -31,16 +32,26 @@ impl<'ast> Analyzer {
 
             // SparkValidator нашёл один спарк в выражении
             if validator.spark_count == 1 {
-                found_spark = true;
+                found_spark = true; 
             }
 
             // Временный вектор чтобы сложить туда поля, так как пушить нельзя из-за
             // мутабельной ссылки от drain
             let mut temp_fields_to_struct: Vec<(String, String)> = Vec::new();
+            let mut spark_content = "".to_string();
+
             for (name, mut var_data) in self.pending_vars.drain(..) {
                 var_data.is_spark = found_spark;
  
                 if found_spark {
+                    // SAFETY: Unwrap не вызовет паники так как мы находимся в блоке
+                    // found_spark, а found_spark это истина только когда количество
+                    // спарков в выражении это 1 (не 0 и не 2), валидатор добавляет
+                    // единицу к этомк полю только когда находит spark! и в том же
+                    // блоке заполняет spark_tokens как Some, а если он Some то паники
+                    // быть не может при использовании unwrap
+                    spark_content = validator.spark_tokens.as_ref().unwrap().to_string();
+                    
                     temp_fields_to_struct.push((
                         format!("spark_{}", self.spark_counter),
                         var_data.clone().variable_type,
@@ -67,7 +78,7 @@ impl<'ast> Analyzer {
 
                     self.spark_counter += 1;
                     self.statement.action = FireworkAction::InitialSpark(
-                        name.clone(), 0, var_data.clone().variable_type,
+                        name.clone(), 0, var_data.clone().variable_type, spark_content,
                     );
                 }
 
@@ -85,7 +96,7 @@ impl<'ast> Analyzer {
             }
 
             for (field_name, field_type) in temp_fields_to_struct.iter() {
-                self.add_field_to_struct(field_name.to_string(), field_type.to_string())
+                self.add_field_to_struct(field_name.to_string(), field_type.to_string());
             }
         }
     }

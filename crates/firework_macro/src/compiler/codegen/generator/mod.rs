@@ -55,8 +55,11 @@ impl CodeGen {
             output.push_str(static_gen::is_first_call(&instance_name).as_str());
            
             // Инициализация если экземпляр ещё не инициализирован
-            output.push_str(static_gen::init_instance(&instance_name, screen_name).as_str()); 
-       
+            output.push_str(static_gen::init_instance(&instance_name, screen_name).as_str());
+
+            // Определение 
+            // output.push_str();
+
             // Добавляем код экрана
             if let Some(screen_code) = self.screen_map.get(screen_name) {
                 output.push_str(&screen_code.0);

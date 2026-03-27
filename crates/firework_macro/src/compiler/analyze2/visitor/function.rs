@@ -9,7 +9,7 @@ impl<'ast> Analyzer {
     pub(crate) fn analyze_item_fn(&mut self, node: &'ast ItemFn) {
         let mut function_head = String::from("");
         for attr in &node.attrs {
-            function_head.push_str(format!("{}\n", quote::quote! { #attr }).as_str()); 
+            function_head.push_str(format!("{}\n", quote::quote! { #attr }).as_str());
         }
         
         let vis = &node.vis;
@@ -50,6 +50,8 @@ impl<'ast> Analyzer {
 
         syn::visit::visit_item_fn(self, node);
 
+        // Нужно сгенерировать индекс после анализации функции чтобы id экземпляра
+        // был синхронизирован внутри блоков ir для одного экрана
         self.scope.screen_index_generate();
     }
 
