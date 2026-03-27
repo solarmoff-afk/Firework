@@ -1,6 +1,9 @@
 // Часть проекта Firework с открытым исходным кодом.
 // Лицензия EPL 2.0, подробнее в файле LICENSE. Copyright (c) 2026 Firework
 
+mod base;
+mod static_gen;
+
 use std::collections::HashMap;
 use proc_macro2::TokenTree;
 use rand::Rng;
@@ -8,6 +11,7 @@ use rand::Rng;
 use super::actions::{FireworkIR, FireworkStatement, FireworkAction};
 use super::consts::SCREEN_HEADER;
 
+// NOTE: Дополнительные методы реализованы в base.rs
 pub struct CodeGen {
     pub ir: FireworkIR,
 
@@ -47,33 +51,11 @@ impl CodeGen {
             let instance_name = struct_name.to_uppercase();
            
             // Проверка является ли это первым вызовом функции, так как на каждый экран
-            // (функцию) идёт свой экземпляр то можно проверять по нему
-            output.push_str(format!(
-                "\tlet is_first_call = {}_INSTANCE.get().is_none();\n",
-                instance_name
-            ).as_str());
+            // (функцию) идёт свой экземпляр то можно проверять по нему 
+            output.push_str(static_gen::is_first_call(&instance_name).as_str());
            
             // Инициализация если экземпляр ещё не инициализирован
-            output.push_str(format!("\tlet block = {}_INSTANCE.get_or_init(|| {{\n", struct_name).as_str());
-            output.push_str(format!("\t\t{} {{\n", struct_name).as_str());
-           
-            // При инициализации каждое поле которое собрал analyze устанавливается как None 
-            // так как значение будут готово только ниже
-            if let Some(fields) = self.ir.screen_structs.get(&struct_name) {
-                for (field_name, _) in fields {
-                    output.push_str(format!("\t\t\t{}: None,\n", field_name).as_str());
-                }
-            }
-
-            // Добавление инициализации поля которое не собирает analyze, оно означает индекс
-            // в диспетчере экранов который занял экран, он выдаётся при регистрации указателя
-            // на функцию экрана
-            output.push_str(
-                format!("\t\t\t_fwc_screen_id: Some(firework::register({})),\n", screen_name).as_str()
-            );
-
-            output.push_str("\t\t}\n");
-            output.push_str("\t});\n\n"); 
+            output.push_str(static_gen::init_instance(&instance_name, screen_name).as_str()); 
        
             // Добавляем код экрана
             if let Some(screen_code) = self.screen_map.get(screen_name) {

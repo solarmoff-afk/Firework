@@ -60,9 +60,16 @@ impl CodeGen {
 
             if fields.len() > 0 {
                 output.push_str(format!(
-                    "static {}_INSTANCE: firework::OnceCell<{}> = firework::OnceCell::new();\n\n",
-                    instance_name, block_struct,
+                    "static mut {}_INSTANCE: {} = {} {{\n",
+                    instance_name, block_struct, block_struct,
                 ).as_str());
+                
+                for (field_name, _) in fields {
+                    output.push_str(format!("\t{}: None,\n", field_name).as_str());
+                }
+                
+                output.push_str("\t_fwc_screen_id: None,\n");
+                output.push_str("};\n\n");
             }
         }
     }
