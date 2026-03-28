@@ -77,9 +77,12 @@ impl<'ast> Analyzer {
                     }
 
                     self.spark_counter += 1;
-                    self.statement.action = FireworkAction::InitialSpark(
-                        name.clone(), 0, var_data.clone().variable_type, spark_content,
-                    );
+                    self.statement.action = FireworkAction::InitialSpark {
+                        name: name.clone(),
+                        id: 0,
+                        spark_type: var_data.clone().variable_type,
+                        expr_body: spark_content,
+                    };
                 }
 
                 // FE004, нельзя затенить спарк

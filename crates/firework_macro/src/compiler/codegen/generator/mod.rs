@@ -57,9 +57,6 @@ impl CodeGen {
             // Инициализация если экземпляр ещё не инициализирован
             output.push_str(static_gen::init_instance(&instance_name, screen_name).as_str());
 
-            // Определение 
-            // output.push_str();
-
             // Добавляем код экрана
             if let Some(screen_code) = self.screen_map.get(screen_name) {
                 output.push_str(&screen_code.0);
@@ -78,12 +75,22 @@ impl CodeGen {
                 self.screen_map.insert(statement.screen_name.clone(), (String::from(SCREEN_HEADER), id));
             }
 
-            if let Some(screen_code) = self.screen_map.get_mut(&statement.screen_name) {
-                // Виджеты не нужно добавлять в вывод
-                if matches!(statement.action, FireworkAction::WidgetBlock(..)) {
-                    screen_code.0.push_str(format!("{}// Widget\n", depth).as_str());
-                    continue;
-                }
+            let struct_name = format!("ApplicationUiBlockStruct{}", statement.scope.screen_index);
+            if let Some(screen_code) = self.screen_map.get_mut(&statement.screen_name) { 
+
+                match statement.action {
+                    FireworkAction::InitialSpark { id, axpr_body, .. } => {
+                        let field_name = format!("spark_{}", id);
+                        
+                        screen_code.0.push_str(&static_gen::set_field(
+                            &struct_name,
+                            &field_name,
+                            axpr_body,
+                        ));
+                    },
+
+                    _ => {},
+                };
 
                 screen_code.0.push_str(format!("{}{}\n", depth, statement.string).as_str());
             }
