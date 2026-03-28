@@ -78,14 +78,14 @@ impl CodeGen {
             let struct_name = format!("ApplicationUiBlockStruct{}", statement.scope.screen_index);
             if let Some(screen_code) = self.screen_map.get_mut(&statement.screen_name) { 
 
-                match statement.action {
-                    FireworkAction::InitialSpark { id, axpr_body, .. } => {
+                match &statement.action {
+                    FireworkAction::InitialSpark { id, expr_body, .. } => {
                         let field_name = format!("spark_{}", id);
                         
                         screen_code.0.push_str(&static_gen::set_field(
                             &struct_name,
                             &field_name,
-                            axpr_body,
+                            &expr_body,
                         ));
                     },
 
