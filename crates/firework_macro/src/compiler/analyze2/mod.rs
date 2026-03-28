@@ -1,6 +1,7 @@
 // Часть проекта Firework с открытым исходным кодом.
 // Лицензия EPL 2.0, подробнее в файле LICENSE. Copyright (c) 2026 Firework
 
+mod marks;
 mod spark;
 mod widget;
 mod visitor;
@@ -12,6 +13,7 @@ use std::collections::HashMap;
 use quote::ToTokens;
 use rand::Rng;
 
+use marks::*;
 use widget::{is_widget, is_layout, map_skin, WidgetArgs};
 use spark::{SparkValidator, SparkFinder, get_root_variable_name};
 
