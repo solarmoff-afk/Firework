@@ -64,6 +64,7 @@ impl<'ast> Visit<'ast> for SparkFinder<'_> {
 ///   field1 - Поле
 ///   subfield - Поле
 ///
+/// Также поддерживается обнаружение корня при индексации, работе с ссылкой и так далее
 /// Зная это выражение нам нужно получить имя корня и вернуть его
 pub fn get_root_variable_name(expr: &Expr) -> Option<String> {
     match expr {
@@ -85,6 +86,12 @@ pub fn get_root_variable_name(expr: &Expr) -> Option<String> {
         Expr::Index(index_expr) => {
             get_root_variable_name(&index_expr.expr)
         },
+
+        Expr::Path(path) => Some(path.to_token_stream().to_string()),
+        Expr::Paren(paren) => get_root_variable_name(&paren.expr),
+
+        // Ссылки
+        Expr::Reference(reference) => get_root_variable_name(&reference.expr),
 
         // Корень не найден
         _ => None
