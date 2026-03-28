@@ -9,7 +9,7 @@ use proc_macro2::TokenTree;
 use rand::Rng;
 
 use super::actions::{FireworkIR, FireworkStatement, FireworkAction};
-use super::consts::SCREEN_HEADER;
+use super::consts::*;
 
 // NOTE: Дополнительные методы реализованы в base.rs
 pub struct CodeGen {
@@ -49,14 +49,24 @@ impl CodeGen {
             
             let struct_name = format!("ApplicationUiBlockStruct{}", screen_id);
             let instance_name = struct_name.to_uppercase();
+            
+            output.push_str("\t// Phase 1: Init\n\n");
            
             // Проверка является ли это первым вызовом функции, так как на каждый экран
             // (функцию) идёт свой экземпляр то можно проверять по нему 
             output.push_str(static_gen::is_first_call(&instance_name).as_str());
+            output.push_str("\tlet mut _fwc_build = false;\n");
            
             // Инициализация если экземпляр ещё не инициализирован
             output.push_str(static_gen::init_instance(&instance_name, screen_name).as_str());
 
+            output.push_str(format!("{}",CHECK_EVENT).as_str());
+            
+            // Устанавливает фокус на этот экран
+            output.push_str(format!("{}", SET_FOCUS).as_str());
+            
+            output.push_str("\n\t// Phase 3: Navigate/Build code\n");
+            
             // Добавляем код экрана
             if let Some(screen_code) = self.screen_map.get(screen_name) {
                 output.push_str(&screen_code.0);
@@ -76,8 +86,7 @@ impl CodeGen {
             }
 
             let struct_name = format!("ApplicationUiBlockStruct{}", statement.scope.screen_index);
-            if let Some(screen_code) = self.screen_map.get_mut(&statement.screen_name) { 
-
+            if let Some(screen_code) = self.screen_map.get_mut(&statement.screen_name) {
                 match &statement.action {
                     FireworkAction::InitialSpark { id, expr_body, .. } => {
                         let field_name = format!("spark_{}", id);
@@ -89,10 +98,12 @@ impl CodeGen {
                         ));
                     },
 
-                    _ => {},
+                    _ => {
+                        // Делаем инлайн изначальной строки только если у нас нет специальной логики для
+                        // этого действия из FireworkAction
+                        screen_code.0.push_str(format!("{}{}\n", depth, statement.string).as_str());
+                    },
                 };
-
-                screen_code.0.push_str(format!("{}{}\n", depth, statement.string).as_str());
             }
         }
     }

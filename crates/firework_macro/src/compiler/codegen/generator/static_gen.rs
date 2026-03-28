@@ -40,7 +40,7 @@ pub(crate) fn is_first_call(instance_name: &str) -> String {
 /// хелпера screen_id перед вызовом себя для валидности итогового кода
 pub(crate) fn init_instance(instance_name: &str, screen_name: &str) -> String {
     format!(
-        "\tif _fwc_id == usize::MAX {{\n\t\t_fwc_id = firework::register({});\n\t\tunsafe {{\n\t\t\t{}_INSTANCE._fwc_screen_id = Some(_fwc_id);\n\t\t}}\n\t}}\n\n",
+        "\tif _fwc_id == usize::MAX {{\n\t\t_fwc_build = true;\n\t\t_fwc_id = firework::register({});\n\t\tunsafe {{\n\t\t\t{}_INSTANCE._fwc_screen_id = Some(_fwc_id);\n\t\t}}\n\t}}\n\n",
         screen_name, instance_name,
     )
 }
@@ -50,10 +50,12 @@ pub(crate) fn block_ref(instance_name: &str) -> String {
     format!("\tlet _fwc_block = unsafe {{ &{}_INSTANCE }};\n\n", instance_name)
 }
 
-/// Хелпер который позволяет установить значение поля экземпляра экрана (слайда)
+/// Хелпер который позволяет установить значение поля экземпляра экрана (слайда). Важно, метод
+/// считает что все поля в экземпляре это Option поэтому автоматически задае́т
+/// им значение как Some( ... ) где "..." это ввод
 pub(crate) fn set_field(instance_name: &str, field_name: &str, value: &str) -> String {
     format!(
-        "\tunsafe {{ {}_INSTANCE.{} = {} }};\n",
+        "\tunsafe {{ {}_INSTANCE.{} = Some({}) }};\n",
         instance_name, field_name, value,
     )
 }
