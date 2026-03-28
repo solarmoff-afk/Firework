@@ -87,8 +87,12 @@ impl CodeGen {
             let struct_name = format!("ApplicationUiBlockStruct{}", statement.scope.screen_index);
             if let Some(screen_code) = self.screen_map.get_mut(&statement.screen_name) {
                 match &statement.action {
-                    FireworkAction::InitialSpark { id, expr_body, .. } => {
+                    FireworkAction::InitialSpark { id, expr_body, name, .. } => {
                         let field_name = format!("spark_{}", id);
+                        
+                        screen_code.0.push_str(format!(
+                            "{}if matches!(_fwc_event, firework::LifeCycle::Build) {{\n", depth,
+                        ).as_str());
                         
                         screen_code.0.push_str(&static_gen::set_field(
                             &struct_name,
@@ -96,8 +100,14 @@ impl CodeGen {
                             &expr_body,
                         ));
                         
+                        screen_code.0.push_str(format!("{}}}\n", depth).as_str());
+                        
                         // Флаг для того чтобы в 4 фазе найти грязные спарки
                         screen_code.0.push_str(format!("{}let mut _fwc_{}_dirty = false;\n", depth, field_name).as_str());
+                        
+                        // Снятие владения из структуры
+                        let getter = format!("{}_INSTANCE.{}", struct_name, field_name);
+                        screen_code.0.push_str(format!("{}let mut {} = unsafe {{ {}.take().unwrap(); }}\n", depth, name, getter).as_str());
                     },
 
                     _ => {
