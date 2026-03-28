@@ -38,7 +38,7 @@ impl<'ast> Analyzer {
             // Временный вектор чтобы сложить туда поля, так как пушить нельзя из-за
             // мутабельной ссылки от drain
             let mut temp_fields_to_struct: Vec<(String, String)> = Vec::new();
-            let mut spark_content = "".to_string();
+            let mut _spark_content = "".to_string();
 
             for (name, mut var_data) in self.pending_vars.drain(..) {
                 var_data.is_spark = found_spark;
@@ -50,7 +50,7 @@ impl<'ast> Analyzer {
                     // единицу к этомк полю только когда находит spark! и в том же
                     // блоке заполняет spark_tokens как Some, а если он Some то паники
                     // быть не может при использовании unwrap
-                    spark_content = validator.spark_tokens.as_ref().unwrap().to_string();
+                    _spark_content = validator.spark_tokens.as_ref().unwrap().to_string();
                     
                     temp_fields_to_struct.push((
                         format!("spark_{}", self.spark_counter),
@@ -81,7 +81,7 @@ impl<'ast> Analyzer {
                         name: name.clone(),
                         id: 0,
                         spark_type: var_data.clone().variable_type,
-                        expr_body: spark_content,
+                        expr_body: _spark_content,
                     };
                 }
 
@@ -116,6 +116,13 @@ impl<'ast> Analyzer {
         if let Some(root_name) = get_root_variable_name(&i.left) {
             if let Some(variable) = self.scope.variables.get(&root_name) {
                 if variable.is_spark {
+                    if !variable.is_mut {
+                        self.errors.push(compile_error_spanned(
+                            &i,
+                            SPARK_MUT_REQUIRED_ERROR,
+                        ));
+                    }
+                    
                     self.statement.action = FireworkAction::UpdateSpark(root_name);
                 }
             }
@@ -141,6 +148,13 @@ impl<'ast> Analyzer {
             if let Some(root_name) = get_root_variable_name(&i.left) {
                 if let Some(variable) = self.scope.variables.get(&root_name) {
                     if variable.is_spark {
+                        if !variable.is_mut {
+                            self.errors.push(compile_error_spanned(
+                                &i,
+                                SPARK_MUT_REQUIRED_ERROR,
+                            ));
+                        }
+                        
                         self.statement.action = FireworkAction::UpdateSpark(root_name);
                     }
                 }
@@ -155,6 +169,13 @@ impl<'ast> Analyzer {
             if let Some(variable) = self.scope.variables.get(&root_name) {
                 if variable.is_spark {
                     let method_name = i.method.to_string();
+                    
+                    if !variable.is_mut {
+                        self.errors.push(compile_error_spanned(
+                            &i,
+                            SPARK_MUT_REQUIRED_ERROR,
+                        ));
+                    }
 
                     // Только мутабельные методы, узнать это можно по типу спарка
                     // через хелпер, если это кастомный тип то используется хак и

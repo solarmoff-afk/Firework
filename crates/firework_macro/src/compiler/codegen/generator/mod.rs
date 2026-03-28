@@ -5,10 +5,9 @@ mod base;
 mod static_gen;
 
 use std::collections::HashMap;
-use proc_macro2::TokenTree;
 use rand::Rng;
 
-use super::actions::{FireworkIR, FireworkStatement, FireworkAction};
+use super::actions::{FireworkIR, FireworkAction};
 use super::consts::*;
 
 // NOTE: Дополнительные методы реализованы в base.rs
@@ -36,8 +35,8 @@ impl CodeGen {
         self.make_screens_body(1);
         self.inline_screens(&mut output);
 
-        for statement in self.ir.statements.iter() {
-            // println!("{:#?}", statement);
+        for _statement in self.ir.statements.iter() {
+            // println!("{:#?}", _statement);
         }
 
         println!("Output:\n{}", output);
@@ -65,7 +64,7 @@ impl CodeGen {
             // Устанавливает фокус на этот экран
             output.push_str(format!("{}", SET_FOCUS).as_str());
             
-            output.push_str("\n\t// Phase 3: Navigate/Build code\n");
+            output.push_str("\n\t// Phase 2: Navigate/Build code\n");
             
             // Добавляем код экрана
             if let Some(screen_code) = self.screen_map.get(screen_name) {
@@ -96,6 +95,9 @@ impl CodeGen {
                             &field_name,
                             &expr_body,
                         ));
+                        
+                        // Флаг для того чтобы в 4 фазе найти грязные спарки
+                        screen_code.0.push_str(format!("{}let mut _fwc_{}_dirty = false;\n", depth, field_name).as_str());
                     },
 
                     _ => {

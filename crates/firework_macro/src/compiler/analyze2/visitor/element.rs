@@ -56,7 +56,7 @@ impl<'ast> Analyzer {
                 self.descript_layout = false;
 
                 let mut has_microruntime = false;
-                if let Some((start, need_microruntime)) = self.reactive_block {
+                if let Some((_start, need_microruntime)) = self.reactive_block {
                     has_microruntime = need_microruntime;
                 }
 
@@ -102,7 +102,7 @@ impl<'ast> Analyzer {
             // }
             let args: WidgetArgs = match syn::parse2(i.tokens.clone()) {
                 Ok(args) => args,
-                Err(e) => {
+                Err(_e) => {
                     // Ошибка FE007, нарушение синтаксиса DSL виджета. Синтаксис только
                     //
                     // widget_name@ {
@@ -157,7 +157,7 @@ impl<'ast> Analyzer {
             // [REFACTORME]
             // Убрать дубляж кода
             let mut has_microruntime = false;
-            if let Some((start, need_microruntime)) = self.reactive_block {
+            if let Some((_start, need_microruntime)) = self.reactive_block {
                 has_microruntime = need_microruntime;
             }
 

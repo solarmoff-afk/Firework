@@ -45,7 +45,13 @@ impl<'ast> Analyzer {
 
         let function_name = node.sig.ident.to_string();
         self.function_name = Some(function_name.clone());
-        self.ir.screens.push((function_name.clone(), function_head, self.scope.screen_index));
+        self.ir.screens.push(
+            (
+                function_name.clone(),
+                function_head,
+                self.scope.screen_index
+            )
+        );
         self.statement.screen_name = function_name;
 
         syn::visit::visit_item_fn(self, node);

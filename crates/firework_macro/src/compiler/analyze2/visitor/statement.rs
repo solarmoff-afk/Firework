@@ -20,7 +20,7 @@ impl<'ast> Analyzer {
         }
 
         // println!("STATEMENT: {}", self.statement_index);
-        if let Some(root_id) = self.reactive_block {
+        if let Some(_root_id) = self.reactive_block {
             // println!("Statement {} is reactive, start: {}", self.statement_index, root_id.0);
             self.statement.is_reactive_block = true;
         }

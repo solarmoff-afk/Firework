@@ -5,11 +5,10 @@ mod spark;
 mod widget;
 mod visitor;
 
-use proc_macro2::{TokenTree, TokenStream, Span};
+use proc_macro2::{TokenTree, TokenStream};
 use syn::*;
-use syn::spanned::Spanned;
 use syn::visit::Visit;
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 use quote::ToTokens;
 use rand::Rng;
 
@@ -18,11 +17,7 @@ use spark::{SparkValidator, SparkFinder, get_root_variable_name};
 
 use crate::compiler::utils::is_mutable_method;
 use crate::compiler::codegen::actions::{FireworkIR, FireworkStatement, FireworkAction, FireworkWidgetField};
-use crate::{
-    compile_error_spanned, SPARK_MULTIPLE_ERROR, SPARK_SHADOWING_ERROR,
-    SPARK_UNIQUE_NAME_ERROR, SPARK_TYPE_ERROR, WIDGET_PARSE_ERROR, LAYOUT_PARSE_ERROR,
-    LAYOUT_MULTIPLE_ERROR, MACRO_BRACE_ERROR,
-};
+use crate::compiler::error::*;
 
 /// Нельзя хранить String поэтому используется &str, при использовании нужно использовать
 /// String::from, но это позволяет не тянуть lazy_static или другой крейт
@@ -50,22 +45,6 @@ pub struct Variable {
     pub is_mut: bool,
 }
 
-impl Variable {
-    pub fn new() -> Self {
-        Self {
-            // NO_TYPE как константа отсуствия типа
-            variable_type: NO_TYPE.to_string(),
-
-            // Заглушки, во время парсинга станет точно ясна явлется ли переменная
-            // реактивной/мутабельной
-            is_spark: false,
-
-            // Немутабельна по дефолту
-            is_mut: false,
-        }
-    }
-}
-
 /// Текущая область видимости, хранить всю таблицу символов для этой области. Начинается
 /// с { и при входе в эту область видимости экземпляр этой структуры будет скопирован
 /// чтобы когда произойдёт выход из неё все созданные в ней имена были заменены
@@ -85,17 +64,6 @@ impl Scope {
             screen_index: 0,
             depth: 0,
         }
-    }
-
-    /// Метод для проверки есть ли в хэш мапе имён области видимости переменная с
-    /// таким именем и is_spark = true
-    pub fn is_spark(&self, name: &str) -> bool {
-        if let Some(variable) = self.variables.get(name) {
-            return variable.is_spark;
-        }
-
-        // Если такой переменной вообще нет то это тоже означает false
-        false
     }
 
     /// Генерирует рандомный айди экрана
@@ -208,20 +176,8 @@ impl Analyzer {
     }
    
     /// Метод обёртка над SparkFinder чтобы быстро найти наличие спарка в выражении
-    /// используется в коде чтобы проверить явлется ли блок реактивным
-    pub fn has_spark(&self, expr: &Expr) -> bool {
-        let mut found = Vec::new();
-
-        let mut finder = SparkFinder {
-            scope: &self.scope,
-            found: &mut found,
-        };
-
-        finder.visit_expr(&expr);
-        
-        !found.is_empty()
-    }
-
+    /// используется в коде чтобы проверить явлется ли блок реактивным и получить вектор
+    /// спарков
     pub fn get_sparks(&self, expr: &Expr) -> Vec<String> {
         let mut found = Vec::new();
 
@@ -238,7 +194,7 @@ impl Analyzer {
     /// Добавляет поле в структуру экрана, если экран ещё не зарегистрирован в FireworkIR
     /// то он создаётся там
     pub fn add_field_to_struct(&mut self, field_name: String, field_type: String) {
-        if let Some(function_name) = &self.function_name {
+        if let Some(_function_name) = &self.function_name {
             // Добавляет значение в вектор (описание структуры экрана), если такого
             // значения нет в хэш мапе то создаёт пустой вектор
             self.ir.screen_structs.entry(format!("ApplicationUiBlockStruct{}", self.scope.screen_index.to_string()))
@@ -273,7 +229,7 @@ impl Analyzer {
         self.ir.statements.push(open_statement);
         self.statement_index += 1;
         
-        let saved_action = self.statement.action.clone();
+        // let _saved_action = self.statement.action.clone();
         self.statement.action = FireworkAction::DefaultCode;
         
         visit_fn(self);

@@ -79,6 +79,13 @@ error[FE010]: widget and layout macros only accept `{}` braces
    = note: for more information, see: [WORK IN PROGRESS]
 ";
 
+pub const SPARK_MUT_REQUIRED_ERROR: &str = "\
+error[FE011]: cannot assign to reactive variable without `mut`
+   = note: `spark!()` creates a reactive value that may be mutated
+   = help: consider changing this binding to `mut`: `let mut name: Type = spark!(value);`
+   = note: for more information, see: [WORK IN PROGRESS]
+";
+
 pub fn compile_error_spanned<T: quote::ToTokens>(tokens: T, msg: &str) -> Error {
     Error::new_spanned(tokens, msg)
 }
