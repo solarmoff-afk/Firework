@@ -54,16 +54,31 @@ pub enum FireworkAction {
     //  4 (usize)   - Айди виджета
     WidgetBlock(String, HashMap<String, FireworkWidgetField>, bool, usize),
 
+    // Просто код для инлайна
     DefaultCode,
 }
 
+/// Раст команда (statement) записанная анализатором
 #[derive(Debug, Clone)]
 pub struct FireworkStatement {
+    // Семантическая метка которая кратко говорит что делает эта строка, создаёт спарк,
+    // обновляет спарк, дропает спарк и так далее
     pub action: FireworkAction,
+    
+    // Явлется ли это реактивным блоком
     pub is_reactive_block: bool,
+
+    // Текущий индекс (Может быть полезен для дебага, работает через счётчик)
     pub index: usize,
+
+    // Имя экрана к которому относится стейтемент
     pub screen_name: String,
+
+    // Строковое представления собранное из токенов, нужно для инлайна
     pub string: String,
+
+    // К какому виджету принадлежит, это нужно для содержимого замыканий в виджетах чтобы
+    // определить какой именно блок кода дёргать зная айди виджета
     pub parent_widget_id: Option<usize>,
 
     // TODO: Оптимизировать, так как клонировать Scope (HashSet + usize) для каждого
@@ -85,12 +100,24 @@ pub struct FireworkIR {
         String,
         usize, // Id экрана
     )>,
-    
+   
+    // Структуры, трейты и так далее которые определены на верхнем уровне вызова
+    // процедурного макроса, нужны для вставки в кодогенерации
     pub items: Vec<String>,
 }
 
+/// Поле виджета в Widget DSL, полем считается отдельная часть общей настройки
+/// widget_name! {
+///  field: 123, // Поле
+/// }
+///
+/// Необходимо для кодогенерации, так как виджеты это чистая compile-time сущность,
+/// в реалтайме есть только скины
 #[derive(Debug, Clone)]
 pub struct FireworkWidgetField {
+    // Какие спарки используются в поле
     pub sparks: Vec<String>,
+    
+    // Полная строка поля
     pub string: String,
 }

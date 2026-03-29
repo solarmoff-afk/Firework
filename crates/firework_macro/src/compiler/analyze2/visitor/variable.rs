@@ -4,6 +4,7 @@
 pub use super::super::*;
 
 impl<'ast> Analyzer {
+    /// Анализация создания локальной переменной через let
     pub(crate) fn analyze_local(&mut self, i: &'ast Local) {
         // Очистка данных из старого let
         self.pending_vars.clear();

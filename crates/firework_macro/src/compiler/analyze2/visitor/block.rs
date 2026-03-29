@@ -98,7 +98,12 @@ impl<'ast> Analyzer {
         );
     }
 
+    /// Выход из цикла (break), пример:
+    /// for i in 1..5 {
+    ///  break;
+    /// }
     pub(crate) fn analyze_expr_break(&mut self, i: &'ast ExprBreak) {
+        // Получение последней области видимости в стэке
         let target_scope = self.old_scope.iter()
             .rev()
             .find(|s| s.is_cycle)
@@ -110,6 +115,7 @@ impl<'ast> Analyzer {
         visit::visit_expr_break(self, i);
     }
 
+    /// Шаг цикла (continue)
     pub(crate) fn analyze_expr_continue(&mut self, i: &'ast ExprContinue) {
         let target_scope = self.old_scope.iter()
             .rev()
@@ -121,7 +127,13 @@ impl<'ast> Analyzer {
         visit::visit_expr_continue(self, i);
     }
 
+    /// Возврат значения (return)
     pub(crate) fn analyze_expr_return(&mut self, i: &'ast ExprReturn) {
+        // При входе в функцию было сохранение области видимости в item_scope,
+        // когда идёт выход из функции нужно сгенерировать возврат владения
+        // для всех спарков которые были арендованы (take) от BSS экземпляра,
+        // для этого подойдёт update_scope, в качестве второй точки для диффинга
+        // используется item_scope
         let target_scope = self.item_scope.clone();
         
         self.update_scope(target_scope, false);

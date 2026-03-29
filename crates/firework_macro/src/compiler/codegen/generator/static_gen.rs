@@ -7,7 +7,9 @@
 /// до инициализации
 pub(crate) fn static_declaration(instance_name: &str, struct_name: &str, fields: &[(String, String)]) -> String {
     let mut output = String::new();
-    
+   
+    // Нужно генерировать код только если у структуры есть поля, их отсуствие невозможно,
+    // но для надёжности это имеет смысл
     if fields.len() > 0 {
         output.push_str(format!(
             "static mut {}_INSTANCE: {} = {} {{\n",

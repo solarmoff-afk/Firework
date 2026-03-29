@@ -26,6 +26,7 @@ impl CodeGen {
         }
     }
 
+    /// Запустить кодогенерацию
     pub fn run(&mut self) {
         let mut output = String::from("");
 
@@ -41,7 +42,8 @@ impl CodeGen {
 
         println!("Output:\n{}", output);
     }
- 
+
+    /// Полный инлайн функции экрана
     fn inline_screens(&mut self, output: &mut String) {
         for (screen_name, screen_signature, screen_id) in self.ir.screens.iter() { 
             output.push_str(format!("{} {{\n", screen_signature).as_str());
@@ -75,6 +77,11 @@ impl CodeGen {
         }
     }
 
+    /// Сборка содержимого функции экрана из её тела, то есть
+    ///
+    /// fn screen_func {
+    ///  // Тело
+    /// }
     fn make_screens_body(&mut self, depth: usize) {
         for statement in self.ir.statements.iter() {
             let depth = "\t".repeat(depth + statement.scope.depth);

@@ -1,11 +1,13 @@
 // Часть проекта Firework с открытым исходным кодом.
 // Лицензия EPL 2.0, подробнее в файле LICENSE. Copyright (c) 2026 Firework
 
+// TODO: Добавить какую-то логику
 #[allow(unused)]
 pub const SCREEN_HEADER: &str = "
 
 ";
 
+/// Константа для определения ивента
 pub const CHECK_EVENT: &str = "
 \tlet mut _fwc_event = firework::LifeCycle::Zero;
 \tif _fwc_id == firework::get_focus() {
@@ -21,6 +23,9 @@ pub const CHECK_EVENT: &str = "
 \t}
 ";
 
+/// Константа для того чтобы установить фокус на экран, использует его айди, необходимо
+/// завести _fwc_id и дать правильное значение из firework::register для правильной
+/// работы
 pub const SET_FOCUS: &str = "
 \tfirework::set_focus(_fwc_id);
 ";

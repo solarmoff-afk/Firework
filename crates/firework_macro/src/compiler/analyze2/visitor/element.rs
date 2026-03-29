@@ -15,10 +15,10 @@ impl<'ast> Analyzer {
                 self.errors.push(compile_error_spanned(
                     // Весь макрос
                     i,
-
                     LAYOUT_MULTIPLE_ERROR,
                 ));
 
+                // Если это функциональный виджет layout то нужно выйти 
                 return;
             }
 
@@ -153,9 +153,10 @@ impl<'ast> Analyzer {
                     skin,
                 );
             }
-
-            // [REFACTORME]
-            // Убрать дубляж кода
+            
+            // Микрорантайм это контейнер который может хранится на куче (Vec или Smallvec)
+            // и нужен в динамических списках чтобы разместить хэндлы рендер движка для
+            // примитивных объектов созданных из виджетов внутри цикла 
             let mut has_microruntime = false;
             if let Some((_start, need_microruntime)) = self.reactive_block {
                 has_microruntime = need_microruntime;

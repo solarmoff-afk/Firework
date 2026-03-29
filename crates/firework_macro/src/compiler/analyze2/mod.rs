@@ -289,7 +289,7 @@ impl Analyzer {
     ///    видимости
     pub fn update_scope(&mut self, scope: Scope, set_scope: bool) {
         for (name, value) in &self.scope.variables {
-            if !scope.variables.contains_key(name) {
+            if !scope.variables.contains_key(name) && value.is_spark {
                 let mut statement = self.statement.clone();
 
                 statement.string = "".to_string();

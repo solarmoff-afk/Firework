@@ -4,6 +4,7 @@
 pub use super::super::*;
 
 impl Analyzer {
+    /// Маркер spark!()
     pub(crate) fn spark_marker<'ast>(&mut self, i: &'ast Local) {
         // Найден ли спарк в правой части
         let mut found_spark = false;
