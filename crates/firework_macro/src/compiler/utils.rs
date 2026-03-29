@@ -1,6 +1,9 @@
 // Часть проекта Firework с открытым исходным кодом.
 // Лицензия EPL 2.0, подробнее в файле LICENSE. Copyright (c) 2026 Firework
 
+/// Метод для проверки явлется ли метод конкретного типа мутабельным для проверки
+/// нужно ли пометить этот стейтемент семантической меткой UpdateSpark (изменение
+/// реактивной переменной)
 pub fn is_mutable_method(type_name: &str, method: &str) -> bool {
     let type_name = type_name.trim();
     let method = method.trim();
@@ -78,6 +81,7 @@ fn check_type_mutable(type_name: &str, method: &str) -> bool {
             mutable_methods.contains(&method)
         },
 
+        // Строка
         "String" => {
             let mutable_methods = [
                 "push", "push_str", "insert", "insert_str", "pop", "truncate", 
@@ -88,6 +92,7 @@ fn check_type_mutable(type_name: &str, method: &str) -> bool {
             mutable_methods.contains(&method)
         },
         
+        // Вектор
         "Vec" => {
             let mutable_methods = [
                 "push", "pop", "insert", "remove", "swap_remove", "truncate", 
@@ -100,7 +105,8 @@ fn check_type_mutable(type_name: &str, method: &str) -> bool {
 
             mutable_methods.contains(&method)
         },
-        
+
+        // Хэшмап
         "HashMap" => {
             let mutable_methods = [
                 "insert", "remove", "remove_entry", "clear", "retain", "drain",
@@ -110,6 +116,7 @@ fn check_type_mutable(type_name: &str, method: &str) -> bool {
             mutable_methods.contains(&method)
         },
         
+        // Ъэшсэт
         "HashSet" => {
             let mutable_methods = [
                 "insert", "remove", "clear", "retain", "drain", "extend",
@@ -167,6 +174,7 @@ fn check_type_mutable(type_name: &str, method: &str) -> bool {
             mutable_methods.contains(&method)
         },
         
+        // Option
         "Option" => {
             let mutable_methods = [
                 "take", "replace"
@@ -175,14 +183,16 @@ fn check_type_mutable(type_name: &str, method: &str) -> bool {
             mutable_methods.contains(&method)
         },
         
+        // Result
         "Result" => {
             let mutable_methods: [&str; 0] = [];
             mutable_methods.contains(&method)
         },
 
+        // Умный указатель бокс для данных на куче
         "Box" => {
             let box_mutable_methods = [
-                // Пустота
+                // Пустота, у бокса нет мутабельных методов
             ];
             
             if box_mutable_methods.contains(&method) {
@@ -196,6 +206,8 @@ fn check_type_mutable(type_name: &str, method: &str) -> bool {
             }
         },
         
+        // Уиные указали (кроме Box)
+
         "Rc" => { 
             let rc_mutable_methods: [&str; 0] = [];
             
