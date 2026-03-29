@@ -72,9 +72,10 @@ impl Analyzer {
                         ));
                     }
                     
+                    var_data.spark_id = self.spark_counter;
                     self.statement.action = FireworkAction::InitialSpark {
                         name: name.clone(),
-                        id: 0,
+                        id: self.spark_counter,
                         spark_type: var_data.clone().variable_type,
                         expr_body: _spark_content,
                     };

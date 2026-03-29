@@ -3,7 +3,8 @@ use firework::ui;
 
 ui! {
     fn test_screen() {
-        let mut b: Vec<u32> = spark!(10);
+        let mut a: Vec<u32> = spark!(Vec::new());
+        let mut b: Vec<u32> = spark!(Vec::new());
         (b).push(10);
     }
 }

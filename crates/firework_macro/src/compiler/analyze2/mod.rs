@@ -45,6 +45,8 @@ pub struct Variable {
 
     // Явлется ли эта переменная мутабельной
     pub is_mut: bool,
+
+    pub spark_id: usize,
 }
 
 /// Текущая область видимости, хранить всю таблицу символов для этой области. Начинается
@@ -243,6 +245,22 @@ impl Analyzer {
 
         self.scope.depth -= 1;
     }
+
+    pub fn update_scope(&mut self, scope: Scope) {
+        for (name, value) in &self.scope.variables {
+            if !scope.variables.contains_key(name) {
+                self.statement.string = "".to_string();
+                self.statement.action = FireworkAction::DropSpark {
+                    name: name.to_string(),
+                    id: value.spark_id,
+                };
+                self.ir.statements.push(self.statement.clone());
+                self.statement_index += 1;
+            }
+        }
+
+        self.scope = scope;
+    }
 }
 
 impl<'ast> Visit<'ast> for Analyzer {
@@ -276,6 +294,7 @@ impl<'ast> Visit<'ast> for Analyzer {
             variable_type: self.current_type.clone(),
             is_mut: i.mutability.is_some(),
             is_spark: false,
+            spark_id: 0, // HARDCODE
         }));
 
         // На всякий случай

@@ -21,7 +21,7 @@ impl<'ast> Analyzer {
         self.log_scope();
 
         // Область видимости закончилась, нужно восстановить состояние используя клон
-        self.scope = scope;
+        self.update_scope(scope);
     }
 
     /// Условие

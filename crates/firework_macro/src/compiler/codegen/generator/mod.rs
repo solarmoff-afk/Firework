@@ -100,14 +100,24 @@ impl CodeGen {
                             &expr_body,
                         ));
                         
-                        screen_code.0.push_str(format!("{}}}\n", depth).as_str());
+                        screen_code.0.push_str(format!("{}}}\n\n", depth).as_str());
                         
                         // Флаг для того чтобы в 4 фазе найти грязные спарки
-                        screen_code.0.push_str(format!("{}let mut _fwc_{}_dirty = false;\n", depth, field_name).as_str());
+                        screen_code.0.push_str(format!("{}let mut _fwc_{}_dirty = false;\n\n", depth, field_name).as_str());
                         
                         // Снятие владения из структуры
                         let getter = format!("{}_INSTANCE.{}", struct_name, field_name);
                         screen_code.0.push_str(format!("{}let mut {} = unsafe {{ {}.take().unwrap(); }}\n", depth, name, getter).as_str());
+                    },
+
+                    FireworkAction::DropSpark { name, id } => {
+                        let field_name = format!("spark_{}", id);
+
+                        screen_code.0.push_str(&static_gen::set_field(
+                            &struct_name,
+                            &field_name,
+                            &name,
+                        ));
                     },
 
                     _ => {
