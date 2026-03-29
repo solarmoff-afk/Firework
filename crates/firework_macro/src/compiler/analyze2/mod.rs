@@ -58,6 +58,7 @@ pub struct Scope {
     pub variables: HashMap<String, Variable>,
     pub screen_index: usize,
     pub depth: usize,
+    pub is_cycle: bool,
 }
 
 impl Scope {
@@ -67,6 +68,7 @@ impl Scope {
             variables: HashMap::new(),
             screen_index: 0,
             depth: 0,
+            is_cycle: false,
         }
     }
 
@@ -95,9 +97,10 @@ pub struct Analyzer {
     // Текущая область видимости куда добавляются локальные переменные
     pub scope: Scope,
 
-    // Дамп области видимости который был сделан до входа в новую. Нужен для обработки
-    // break и continue
-    pub old_scope: Scope,
+    // Стэк областей видимости, при вхходе в область видимости делается пуш, при
+    // выходе из области видимости pop. Используется для break и continue в менеджере
+    // лайфтаймов
+    pub old_scope: Vec<Scope>,
 
     // Дамп область видимости до входа в функцию, нужна для обработки дропа спарков
     // при return
@@ -153,7 +156,7 @@ impl Analyzer {
             
             // Три области видимости для лайфтайм менеджера
             scope: Scope::new(),
-            old_scope: Scope::new(),
+            old_scope: Vec::new(),
             item_scope: Scope::new(),
 
             // Нулевая команда
@@ -238,6 +241,7 @@ impl Analyzer {
         action: FireworkAction,
         visit_fn: impl FnOnce(&mut Self),
     ) {
+        println!("Call");
         self.scope.depth += 1;
 
         let state = self.reactive_block;
@@ -266,7 +270,7 @@ impl Analyzer {
         self.statement_index += 1; 
         self.reactive_block = state;
 
-        self.scope.depth -= 1;
+        // self.scope.depth -= 1;
     }
 
     /// Систсема для обработки выхода из области видимости, принимает старую область
@@ -401,6 +405,10 @@ impl<'ast> Visit<'ast> for Analyzer {
 
     fn visit_expr_continue(&mut self, i: &'ast ExprContinue) {
         self.analyze_expr_continue(i);
+    }
+
+    fn visit_expr_return(&mut self, i: &'ast ExprReturn) {
+        self.analyze_expr_return(i);
     }
 
     fn visit_item_struct(&mut self, node: &'ast ItemStruct) {

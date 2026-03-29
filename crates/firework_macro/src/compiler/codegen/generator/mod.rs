@@ -107,7 +107,7 @@ impl CodeGen {
                         
                         // Снятие владения из структуры
                         let getter = format!("{}_INSTANCE.{}", struct_name, field_name);
-                        screen_code.0.push_str(format!("{}let mut {} = unsafe {{ {}.take().unwrap(); }}\n", depth, name, getter).as_str());
+                        screen_code.0.push_str(format!("{}let mut {} = unsafe {{ {}.take().unwrap() }};\n", depth, name, getter).as_str());
                     },
 
                     FireworkAction::DropSpark { name, id } => {

@@ -7,6 +7,8 @@ impl<'ast> Analyzer {
     /// Генерирует заглушки для функций чтобы компилятор не выдал ошибку "функция отсуствует"
     /// вероятно это временное решение. Также собирает сигнатуру функции для кодогенератора
     pub(crate) fn analyze_item_fn(&mut self, node: &'ast ItemFn) {
+        self.item_scope = self.scope.clone();
+
         let mut function_head = String::from("");
         for attr in &node.attrs {
             function_head.push_str(format!("{}\n", quote::quote! { #attr }).as_str());

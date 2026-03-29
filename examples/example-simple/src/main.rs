@@ -2,19 +2,28 @@ use firework::ui;
 // use firework::component;
 
 ui! {
-    fn test_screen() {
-        
-        for i in 0..5 {
-            let mut b: Vec<u32> = spark!(Vec::new());
-            (b).push(10);
-        
-            break;
+    fn test_screen() { 
+        for i in 1..5 {
+            // Лафтайм A
+            let mut a: u32 = spark!(0);
 
-            println!("123";)
+            if 1 == 1 {
+                // Лайфтайм Б
+                let mut b: u32 = spark!(0);
 
+                if i == 1 {
+                    // Лайфтайм А и лайфтайм Б заканчиваются
+                    println!("Before");
+                    break;
+                    println!("After");
+                }
+
+                // Лайфтайм Б заканчивается 
+            }
+
+            // Лайфтайм А заканчивается 
         }
-        println!("123")
-    }
+    } 
 }
 
 fn main() {
