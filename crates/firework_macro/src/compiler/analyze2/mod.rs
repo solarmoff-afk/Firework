@@ -91,8 +91,17 @@ pub struct Analyzer {
     // Выходные токены
     pub output: TokenStream,
     
-    // Область видимости
+    // Три области видимости которые нужны для реализации лайфтайм детектора
+    // Текущая область видимости куда добавляются локальные переменные
     pub scope: Scope,
+
+    // Дамп области видимости который был сделан до входа в новую. Нужен для обработки
+    // break и continue
+    pub old_scope: Scope,
+
+    // Дамп область видимости до входа в функцию, нужна для обработки дропа спарков
+    // при return
+    pub item_scope: Scope,
 
     // Statement это блок кода от начала до ; фигурных скобок или в некоторых случаях
     // запятой. Нужно точно знать на каком statement мы сейчас. На старте это 1, поэтому
@@ -103,8 +112,13 @@ pub struct Analyzer {
     // лайаут блоке. Описывать лайаут можно только один раз в лайаут блоке
     descript_layout: bool,
 
+    // Промежуточное представление, строки кода с добавлением семантической метки
     pub ir: FireworkIR,
-    statement: FireworkStatement, 
+
+    // Текущий стейтемент который будет использоваться для пуша в ir
+    statement: FireworkStatement,
+
+    // Текущее имя функции, если мы вне функции то None
     function_name: Option<String>,
 
     // Буферы
@@ -136,7 +150,11 @@ impl Analyzer {
             errors: Vec::new(),
             
             output: TokenStream::new(),
+            
+            // Три области видимости для лайфтайм менеджера
             scope: Scope::new(),
+            old_scope: Scope::new(),
+            item_scope: Scope::new(),
 
             // Нулевая команда
             statement_index: 0,
@@ -207,6 +225,11 @@ impl Analyzer {
         }
     }
 
+    /// Функция хэлпер для регистрации реактивного блока в IR. Реактивный блок это блок
+    /// (условие, цикл, match) которые содержит реактивную переменную (спарк) в своём
+    /// условии. Он забирает всё содержимое тело поэтому реактивный блок в реактином блоке
+    /// не считается отдельным реактивным блоком. Также он вызывает visit метод через
+    /// замыкание (visit_fn). Добавляет закрывающий блок (}) в конце блока
     fn handle_reactive_block(
         &mut self,
         sparks: Vec<String>,
@@ -246,20 +269,41 @@ impl Analyzer {
         self.scope.depth -= 1;
     }
 
-    pub fn update_scope(&mut self, scope: Scope) {
+    /// Систсема для обработки выхода из области видимости, принимает старую область
+    /// видимости (scope) после чего делает сравнение с текущей областью видимости,
+    /// локальные переменных которые были созданы в этой области видимости нет в старой
+    /// области видимости, алгоритм сравнения найдёт отсуствие переменной и сгенерирует
+    /// семантическую метку для IR DropSpark, оно означает что нужно вернуть владение
+    /// обратно в BSS так как локальная переменная которая арендовала значение из BSS
+    /// мертва и чтобы не было UB нужно вернуть значение обратно в BSS память со стэка.
+    /// Так как мы делаем push в IR до обработки следующего statement то в IR сначала
+    /// будет возврат в этой же области видимости
+    ///
+    /// Семантика:
+    ///  - self.scope это текущая область видимости
+    ///  - scope это старая область видимости которая была до входа в текущую область
+    ///    видимости
+    pub fn update_scope(&mut self, scope: Scope, set_scope: bool) {
         for (name, value) in &self.scope.variables {
             if !scope.variables.contains_key(name) {
-                self.statement.string = "".to_string();
-                self.statement.action = FireworkAction::DropSpark {
+                let mut statement = self.statement.clone();
+
+                statement.string = "".to_string();
+                statement.action = FireworkAction::DropSpark {
                     name: name.to_string(),
+
+                    // Айди для определения статического поля экземпляра структуры в
+                    // проходе кодогенерации
                     id: value.spark_id,
                 };
-                self.ir.statements.push(self.statement.clone());
+                self.ir.statements.push(statement);
                 self.statement_index += 1;
             }
         }
 
-        self.scope = scope;
+        if set_scope {
+            self.scope = scope;
+        }
     }
 }
 
@@ -349,6 +393,14 @@ impl<'ast> Visit<'ast> for Analyzer {
 
     fn visit_expr_loop(&mut self, i: &'ast ExprLoop) {
         self.analyze_expr_loop(i);
+    }
+
+    fn visit_expr_break(&mut self, i: &'ast ExprBreak) {
+        self.analyze_expr_break(i);
+    }
+
+    fn visit_expr_continue(&mut self, i: &'ast ExprContinue) {
+        self.analyze_expr_continue(i);
     }
 
     fn visit_item_struct(&mut self, node: &'ast ItemStruct) {

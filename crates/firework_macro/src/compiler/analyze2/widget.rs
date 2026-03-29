@@ -74,6 +74,9 @@ pub fn is_widget(name: &str) -> bool {
     name == "text"      ||
     name == "button"    ||
     name == "app_bar"   ||
+    
+    // Функциональные виджеты, они не имеют набора рендер примитивов (скина) и
+    // нужны для выполнения логики с синтаксисом DSL виджет
     name == "component" ||
     name == "layout"
 }
@@ -93,7 +96,9 @@ pub fn is_layout(name: &str) -> bool {
     name == "absoulute"
 }
 
-/// Принимает имя виджета, возвращает тип скина который использует этот виджет
+/// Принимает имя виджета, возвращает тип скина который использует этот виджет. Это структура
+/// которую нужно положить в структуру экрана или компонента которая содержит хэндлы рендер
+/// примитивов
 pub fn map_skin(widget_name: &str) -> Option<String> {
     match widget_name {
         "rect" => Some("firework::RectSkin".to_string()),

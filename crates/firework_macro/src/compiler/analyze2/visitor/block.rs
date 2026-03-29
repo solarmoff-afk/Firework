@@ -11,7 +11,7 @@ impl<'ast> Analyzer {
         // созданные внутри неё будут дропнуты и мы не можем их использовать. После
         // завершения блока нам нужно вернуть ранее сохранённое состояние, а для этого
         // мы будем использовать клон который создаётся здесь
-        let scope = self.scope.clone();
+        self.old_scope = self.scope.clone();
 
         // Парсинг области видимости, переменные созданные в этой области видимости будут
         // в self.scrope.variables
@@ -21,7 +21,7 @@ impl<'ast> Analyzer {
         self.log_scope();
 
         // Область видимости закончилась, нужно восстановить состояние используя клон
-        self.update_scope(scope);
+        self.update_scope(self.old_scope.clone(), true);
     }
 
     /// Условие
@@ -90,5 +90,15 @@ impl<'ast> Analyzer {
             FireworkAction::DefaultCode,
             |this| visit::visit_expr_loop(this, i),
         );
+    }
+
+    pub(crate) fn analyze_expr_break(&mut self, i: &'ast ExprBreak) {
+        self.update_scope(self.old_scope.clone(), false);
+        visit::visit_expr_break(self, i);
+    }
+
+    pub(crate) fn analyze_expr_continue(&mut self, i: &'ast ExprContunue) {
+        self.update_scope(self.old_scope.clone(), false);
+        visit::visit_expr_continue(self, i);
     }
 }
