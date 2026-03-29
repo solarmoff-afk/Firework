@@ -5,7 +5,7 @@ ui! {
     fn test_screen() { 
         for i in 1..5 {
             // Лафтайм A
-            let mut a: u32 = spark!(0);
+            let mut a = spark!(0);
 
             if 1 == 1 {
                 // Лайфтайм Б

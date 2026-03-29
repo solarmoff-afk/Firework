@@ -19,6 +19,9 @@ pub struct SparkValidator {
 
     // Хранит в себе токены последнего спарка который был найден
     pub spark_tokens: Option<TokenStream>,
+
+    // Выражение внутри spark!()
+    pub spark_expr: Option<Expr>,
 }
 
 impl<'ast> Visit<'ast> for SparkValidator {
@@ -27,6 +30,12 @@ impl<'ast> Visit<'ast> for SparkValidator {
         if i.mac.path.is_ident("spark") {
             // Добавление единицы к значению всех вызовов spark в выражении 
             self.spark_tokens = Some(i.mac.tokens.clone());
+
+            // Попытка парсинга как выражение
+            if let Ok(expr) = syn::parse2::<Expr>(i.mac.tokens.clone()) {
+                self.spark_expr = Some(expr);
+            }
+
             self.spark_count += 1;
         }
 

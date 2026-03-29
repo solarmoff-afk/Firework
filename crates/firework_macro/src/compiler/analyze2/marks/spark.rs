@@ -3,6 +3,8 @@
 
 pub use super::super::*;
 
+use super::super::type_checker::guess_type_from_expr;
+
 impl Analyzer {
     /// Маркер spark!()
     pub(crate) fn spark_marker<'ast>(&mut self, i: &'ast Local) {
@@ -14,6 +16,7 @@ impl Analyzer {
             let mut validator = SparkValidator {
                 spark_count: 0,
                 spark_tokens: None,
+                spark_expr: None,
             };
             
             // Вызов из валидатора
@@ -29,7 +32,7 @@ impl Analyzer {
             
             // SparkValidator нашёл один спарк в выражении
             if validator.spark_count == 1 {
-                found_spark = true; 
+                found_spark = true;
             }
             
             // Временный вектор чтобы сложить туда поля, так как пушить нельзя из-за
@@ -49,12 +52,7 @@ impl Analyzer {
                         // быть не может при использовании unwrap
                         _spark_content = validator.spark_tokens.as_ref().unwrap().to_string();
                         
-                        temp_fields_to_struct.push((
-                            format!("spark_{}", self.spark_counter),
-                            var_data.clone().variable_type,
-                        ));
-                        
-                        self.spark_counter += 1;
+                        self.spark_counter += 1; 
                         
                         // FE002, нельзя затенять существующую переменную спарком
                         if self.scope.variables.contains_key(&name) {
@@ -64,14 +62,40 @@ impl Analyzer {
                         ));
                     }
                     
-                    // FE003, у спарка должен быть тип данных, например u32
-                    // let mut spark1: u32 = spark!(10); 
+                    let mut spark_type = var_data.variable_type.clone();
                     if var_data.variable_type == NO_TYPE.to_string() {
-                        self.errors.push(compile_error_spanned(
-                            &i.pat,
-                            SPARK_TYPE_ERROR,
-                        ));
+                        let mut guessed_type = None;
+                        
+                        // Если содержимое маркера удалось распарсить как выражение то
+                        // нужно запустить тайп чекер для базовой проверки типа
+                        if let Some(expr) = &validator.spark_expr {
+                            guessed_type = guess_type_from_expr(expr);
+
+                            // Если сработала ветка variable_type == NO_TYPE и мы не можем
+                            // угадать тип то этап анализации завершится с ошибкой и мы
+                            // не попадём в кодогенерацию (второй этап) поэтому можно
+                            // задать любое значение в качестве типа, даже пустое
+                            spark_type = guessed_type.clone().unwrap_or("".to_string());
+                        }
+
+                        // Если получилось угадать тип
+                        if let Some(ty) = guessed_type {
+                            println!("TYPE: {}", ty);
+                            var_data.variable_type = ty; 
+                        } else {
+                            // FE003, у спарка должен быть тип данных, например u32:
+                            // let mut spark1: u32 = spark!(10); 
+                            self.errors.push(compile_error_spanned(
+                                &i.pat,
+                                SPARK_TYPE_ERROR,
+                            ));
+                        }
                     }
+
+                    temp_fields_to_struct.push((
+                        format!("spark_{}", self.spark_counter),
+                        spark_type,
+                    ));
                     
                     var_data.spark_id = self.spark_counter;
                     self.statement.action = FireworkAction::InitialSpark {

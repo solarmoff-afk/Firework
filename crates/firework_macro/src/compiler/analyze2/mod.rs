@@ -5,6 +5,7 @@ mod marks;
 mod spark;
 mod widget;
 mod visitor;
+mod type_checker;
 
 use proc_macro2::{TokenTree, TokenStream};
 use syn::*;
@@ -241,7 +242,6 @@ impl Analyzer {
         action: FireworkAction,
         visit_fn: impl FnOnce(&mut Self),
     ) {
-        println!("Call");
         self.scope.depth += 1;
 
         let state = self.reactive_block;
