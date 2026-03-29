@@ -32,7 +32,9 @@ impl<'ast> Analyzer {
                         ));
                     }
                     
-                    self.statement.action = FireworkAction::UpdateSpark(root_name);
+                    self.statement.action = FireworkAction::UpdateSpark(
+                        root_name, variable.spark_id,
+                    );
                 }
             }
         }
@@ -64,7 +66,9 @@ impl<'ast> Analyzer {
                             ));
                         }
                         
-                        self.statement.action = FireworkAction::UpdateSpark(root_name);
+                        self.statement.action = FireworkAction::UpdateSpark(
+                            root_name, variable.spark_id,
+                        );
                     }
                 }
             }
@@ -90,7 +94,9 @@ impl<'ast> Analyzer {
                     // через хелпер, если это кастомный тип то используется хак и
                     // все методы считаются мутабельными
                     if is_mutable_method(&variable.variable_type, &method_name) {
-                        self.statement.action = FireworkAction::UpdateSpark(root_name);
+                        self.statement.action = FireworkAction::UpdateSpark(
+                            root_name, variable.spark_id,
+                        );
                     }
                 }
             }

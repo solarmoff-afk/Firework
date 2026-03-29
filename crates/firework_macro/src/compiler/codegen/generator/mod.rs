@@ -94,6 +94,7 @@ impl CodeGen {
             let struct_name = format!("ApplicationUiBlockStruct{}", statement.scope.screen_index);
             if let Some(screen_code) = self.screen_map.get_mut(&statement.screen_name) {
                 match &statement.action {
+                    // Создание реактивной переменной
                     FireworkAction::InitialSpark { id, expr_body, name, .. } => {
                         let field_name = format!("spark_{}", id);
                         
@@ -116,7 +117,16 @@ impl CodeGen {
                         let getter = format!("{}_INSTANCE.{}", struct_name, field_name);
                         screen_code.0.push_str(format!("{}let mut {} = unsafe {{ {}.take().unwrap() }};\n", depth, name, getter).as_str());
                     },
+                    
+                    // Обновление реактивной переменной
+                    FireworkAction::UpdateSpark(_, id) => {
+                        screen_code.0.push_str(format!("{}_fwc_spark_{}_dirty = true;\n", depth, id).as_str());
+                        
+                        // Всё равно нужно проинлайнить код самого присваивания
+                        screen_code.0.push_str(format!("{}{}\n", depth, statement.string).as_str());
+                    },
 
+                    // Возврат реактивной переменной со стэка обратно в статическую память
                     FireworkAction::DropSpark { name, id } => {
                         let field_name = format!("spark_{}", id);
 

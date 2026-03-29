@@ -39,7 +39,7 @@ pub enum FireworkAction {
     ReactiveWhile(Vec<String>),
 
     // Обновление значения спарка
-    UpdateSpark(String),
+    UpdateSpark(String, usize),
 
     // Лайаут блок, первое значение это название лайаута, второе значение это нужен
     // ли микрорантайм

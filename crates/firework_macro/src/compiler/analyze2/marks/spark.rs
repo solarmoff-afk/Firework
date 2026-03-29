@@ -80,7 +80,6 @@ impl Analyzer {
 
                         // Если получилось угадать тип
                         if let Some(ty) = guessed_type {
-                            println!("TYPE: {}", ty);
                             var_data.variable_type = ty; 
                         } else {
                             // FE003, у спарка должен быть тип данных, например u32:
