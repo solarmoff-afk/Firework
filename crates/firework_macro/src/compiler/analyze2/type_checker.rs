@@ -62,7 +62,7 @@ pub fn guess_type_from_expr(expr: &Expr) -> Option<String> {
                             .unwrap_or_else(|| "_".to_string());
 
                         Some(format!("Option<{}>", inner_type))
-                    }
+                    },
                     
                     // Box
                     "Box::new" => {
@@ -71,7 +71,52 @@ pub fn guess_type_from_expr(expr: &Expr) -> Option<String> {
                             .unwrap_or_else(|| "_".to_string());
                         
                         Some(format!("Box<{}>", inner_type))
-                    }
+                    },
+
+                    // Arc
+                    "Arc::new" => {
+                        let inner_type = expr_call.args.first()
+                            .and_then(guess_type_from_expr)
+                            .unwrap_or_else(|| "_".to_string());
+                        
+                        Some(format!("Arc<{}>", inner_type))
+                    },
+
+                    // Rc
+                    "Rc::new" => {
+                        let inner_type = expr_call.args.first()
+                            .and_then(guess_type_from_expr)
+                            .unwrap_or_else(|| "_".to_string());
+                        
+                        Some(format!("Rc<{}>", inner_type))
+                    },
+
+                    // RefCell
+                    "RefCell::new" => {
+                        let inner_type = expr_call.args.first()
+                            .and_then(guess_type_from_expr)
+                            .unwrap_or_else(|| "_".to_string());
+                        
+                        Some(format!("RefCell<{}>", inner_type))
+                    },
+
+                    // Mutex
+                    "Mutex::new" => {
+                        let inner_type = expr_call.args.first()
+                            .and_then(guess_type_from_expr)
+                            .unwrap_or_else(|| "_".to_string());
+                        
+                        Some(format!("Mutex<{}>", inner_type))
+                    },
+
+                    // RwLock
+                    "RwLock::new" => {
+                        let inner_type = expr_call.args.first()
+                            .and_then(guess_type_from_expr)
+                            .unwrap_or_else(|| "_".to_string());
+                        
+                        Some(format!("RwLock<{}>", inner_type))
+                    },
                     
                     // Если это какой-то другой вызов конструктора
                     _ => None,
