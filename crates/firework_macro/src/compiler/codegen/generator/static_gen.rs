@@ -27,23 +27,22 @@ pub(crate) fn static_declaration(instance_name: &str, struct_name: &str, fields:
     output
 }
 
-/// Хелпер для инлайна проверки на первый вызов. Проверяет маркерное поле _fwc_screen_id
-/// на то, было ли оно инициализировано (some) в статичном экземпляре через unwrap_or,
-/// _fwc_id хранит либо айди экрана либо хардкод usize::MAX если это первая сборка
-pub(crate) fn is_first_call(instance_name: &str) -> String {
+/// Хелпер для создания переменной которая хранит указатель на текущую
+/// функцию чтобы сравнивать его и установить в диспетчере
+pub(crate) fn is_first_call(function_name: &str) -> String {
     format!(
-        "\tlet mut _fwc_id = unsafe {{ {}_INSTANCE._fwc_screen_id.unwrap_or(usize::MAX) }};\n",
-        instance_name,
+        "\tlet _fwc_id: fn() = {};\n",
+        function_name,
     )
 }
 
 /// Хелпер для инлайна инициализации поля _fwc_screen_id через firework::register, так как
-/// функция экрана регистрирует сама себя в системе навигации диспетчера. Требует использования
-/// хелпера screen_id перед вызовом себя для валидности итогового кода
+/// новая архитектура хранит только указатель на функцию, а не контейнер и индексы, то нужно
+/// использовать заглушку (Some(1)) чтобы не переписывать много кода
 pub(crate) fn init_instance(instance_name: &str, screen_name: &str) -> String {
     format!(
-        "\tif _fwc_id == usize::MAX {{\n\t\t_fwc_build = true;\n\t\t_fwc_id = firework::register({});\n\t\tunsafe {{\n\t\t\t{}_INSTANCE._fwc_screen_id = Some(_fwc_id);\n\t\t}}\n\t}}\n\n",
-        screen_name, instance_name,
+        "\tif _fwc_id == firework::get_focus() {{\n\t\t_fwc_build = true;\n\t\tunsafe {{\n\t\t\t{}_INSTANCE._fwc_screen_id = Some(1);\n\t\t}}\n\t}}\n\n",
+        instance_name,
     )
 }
 

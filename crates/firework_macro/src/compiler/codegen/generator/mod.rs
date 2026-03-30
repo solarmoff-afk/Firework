@@ -55,7 +55,7 @@ impl CodeGen {
            
             // Проверка является ли это первым вызовом функции, так как на каждый экран
             // (функцию) идёт свой экземпляр то можно проверять по нему 
-            output.push_str(static_gen::is_first_call(&instance_name).as_str());
+            output.push_str(static_gen::is_first_call(&screen_name).as_str());
             output.push_str("\tlet mut _fwc_build = false;\n");
            
             // Инициализация если экземпляр ещё не инициализирован
