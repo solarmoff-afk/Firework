@@ -242,6 +242,8 @@ impl Analyzer {
         action: FireworkAction,
         visit_fn: impl FnOnce(&mut Self),
     ) {
+        // Добавление к счётчику глубины. Это используется для форматирования вывода чтобы
+        // определить сколько табов нужно
         self.scope.depth += 1;
 
         let state = self.reactive_block;
@@ -252,9 +254,15 @@ impl Analyzer {
         
         if condition_has_spark && self.reactive_block.is_none() {
             open_statement.action = action;
+            open_statement.is_reactive_block = true;
             self.reactive_block = Some((self.statement_index, is_loop));
         } else {
-            open_statement.action = FireworkAction::DefaultCode;
+            open_statement.action = FireworkAction::ReactiveElse;
+            if !matches!(action, FireworkAction::ReactiveElse) {
+                open_statement.action = FireworkAction::DefaultCode;
+            }
+
+            open_statement.is_reactive_block = false;
         }
         
         self.ir.statements.push(open_statement);
@@ -267,8 +275,12 @@ impl Analyzer {
         
         self.statement.action = FireworkAction::DefaultCode;
         self.statement.string = "}".to_string();
-        self.statement_index += 1; 
-        self.reactive_block = state;
+        self.statement_index += 1;
+
+        // Закрывающая фигурная скобка также является частью реактивного блока
+        self.statement.is_reactive_block = true;
+        
+        self.reactive_block = state; 
         
         // Защита от переполнения
         if self.scope.depth > 0 {

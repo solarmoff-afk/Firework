@@ -41,6 +41,9 @@ pub enum FireworkAction {
     // Обновление значения спарка
     UpdateSpark(String, usize),
 
+    // Блок else который является частью реактивного условия
+    ReactiveElse,
+
     // Лайаут блок, первое значение это название лайаута, второе значение это нужен
     // ли микрорантайм
     LayoutBlock(String, bool),

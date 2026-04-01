@@ -27,9 +27,18 @@ impl<'ast> Analyzer {
         self.update_scope(scope, true);
     }
 
-    /// Условие
+    /// Условие. Обрабатывает if, else if и else с поддержкой реактивных переменных
+    /// в условии
     pub(crate) fn analyze_expr_if(&mut self, i: &'ast ExprIf) {
+        // Спарки в условии
         let sparks = self.get_sparks(&i.cond);
+
+        let mut else_action = FireworkAction::DefaultCode;
+        if sparks.len() >= 0 {
+            else_action = FireworkAction::ReactiveElse;
+        }
+        
+        // Исходная строка созданная из токенов внутри условия блока
         let condition_code = i.cond.to_token_stream().to_string();
         
         self.handle_reactive_block(
@@ -37,7 +46,59 @@ impl<'ast> Analyzer {
             false,
             format!("if {} {{", condition_code),
             FireworkAction::ReactiveIf(sparks),
-            |this| visit::visit_expr_if(this, i),
+            |this| {
+                // Основное тело условия
+                visit::visit_block(this, &i.then_branch);
+            
+                // При наличии else блока
+                if let Some((_, else_branch)) = &i.else_branch {
+                    match &**else_branch {
+                        Expr::If(else_if) => {
+                            // Для else if нужно проанализировать его как отдельное условие
+                            // со своими собственными спарками
+                            let else_if_sparks = this.get_sparks(&else_if.cond);
+                            let else_if_condition_code = else_if.cond.to_token_stream().to_string();
+                        
+                            this.handle_reactive_block(
+                                else_if_sparks.clone(),
+                                false,
+                                format!("else if {} {{", else_if_condition_code),
+                                FireworkAction::ReactiveIf(else_if_sparks),
+                                |inner_this| {
+                                    visit::visit_block(inner_this, &else_if.then_branch);
+                                    
+                                    // Вложенные else/else if
+                                    if let Some((_, inner_else_branch)) = &else_if.else_branch {
+                                        match &**inner_else_branch {
+                                            Expr::If(inner_else_if) => {
+                                                inner_this.analyze_expr_if(inner_else_if);
+                                            },
+
+                                            syn::Expr::Block(inner_block) => {
+                                                inner_this.analyze_block(&inner_block.block);
+                                            },
+                                        
+                                            _ => {}
+                                        }
+                                    }
+                                },
+                            );
+                        },
+
+                        syn::Expr::Block(else_block) => { 
+                            this.handle_reactive_block(
+                                Vec::new(),
+                                false,
+                                "else {".to_string(),
+                                else_action,
+                                |inner_this| inner_this.analyze_block(&else_block.block),
+                            );
+                        },
+
+                        _ => {}
+                    }
+                }
+            },
         );
     }
 
