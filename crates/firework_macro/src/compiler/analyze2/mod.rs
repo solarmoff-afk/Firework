@@ -16,7 +16,7 @@ use rand::Rng;
 
 use marks::*;
 use widget::{is_widget, is_layout, map_skin, WidgetArgs};
-use spark::{SparkValidator, SparkFinder, get_root_variable_name};
+use spark::{SparkValidator, SparkFinder, SparkFinderWithId, get_root_variable_name};
 
 use crate::compiler::utils::is_mutable_method;
 use crate::compiler::codegen::actions::{FireworkIR, FireworkStatement, FireworkAction, FireworkWidgetField};
@@ -203,11 +203,11 @@ impl Analyzer {
    
     /// Метод обёртка над SparkFinder чтобы быстро найти наличие спарка в выражении
     /// используется в коде чтобы проверить явлется ли блок реактивным и получить вектор
-    /// спарков
-    pub fn get_sparks(&self, expr: &Expr) -> Vec<String> {
+    /// спарков который содержит кортеж (имя, айди)
+    pub fn get_sparks(&self, expr: &Expr) -> Vec<(String, usize)> {
         let mut found = Vec::new();
 
-        let mut finder = SparkFinder {
+        let mut finder = SparkFinderWithId {
             scope: &self.scope,
             found: &mut found,
         };
@@ -236,7 +236,7 @@ impl Analyzer {
     /// замыкание (visit_fn). Добавляет закрывающий блок (}) в конце блока
     fn handle_reactive_block(
         &mut self,
-        sparks: Vec<String>,
+        sparks: Vec<(String, usize)>,
         is_loop: bool,
         open_code: String, 
         action: FireworkAction,
@@ -269,8 +269,11 @@ impl Analyzer {
         self.statement.string = "}".to_string();
         self.statement_index += 1; 
         self.reactive_block = state;
-
-        // self.scope.depth -= 1;
+        
+        // Защита от переполнения
+        if self.scope.depth > 0 {
+            self.scope.depth -= 1;
+        }
     }
 
     /// Систсема для обработки выхода из области видимости, принимает старую область

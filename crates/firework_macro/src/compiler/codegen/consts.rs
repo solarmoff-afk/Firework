@@ -27,5 +27,9 @@ pub const CHECK_EVENT: &str = "
 /// завести _fwc_id и дать правильное значение из firework::register для правильной
 /// работы
 pub const SET_FOCUS: &str = "
-\tfirework::set_focus(_fwc_id);
+\tfirework::set_focus(_fwc_id);\n
+";
+
+pub const CHECK_NAVIGATE: &str = "
+\tif matches!(_fwc_event, firework::LifeCycle::Navigate) {{\n
 ";

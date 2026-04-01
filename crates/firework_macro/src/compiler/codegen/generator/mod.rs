@@ -3,6 +3,7 @@
 
 mod base;
 mod static_gen;
+mod bitmask_gen;
 
 use std::collections::HashMap;
 use rand::Rng;
@@ -65,6 +66,8 @@ impl CodeGen {
             
             // Устанавливает фокус на этот экран
             output.push_str(format!("{}", SET_FOCUS).as_str());
+            
+            output.push_str(format!("\tlet mut _fwc_bitmask = unsafe {{ {}_INSTANCE.bitmask_0 }};\n", instance_name).as_str());
             
             output.push_str("\n\t// Phase 2: Navigate/Build code\n");
             

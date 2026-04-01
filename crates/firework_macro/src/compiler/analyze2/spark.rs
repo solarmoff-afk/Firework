@@ -66,6 +66,27 @@ impl<'ast> Visit<'ast> for SparkFinder<'_> {
     }
 }
 
+pub struct SparkFinderWithId<'a> {
+    pub scope: &'a Scope,
+    pub found: &'a mut Vec<(String, usize)>,
+}
+
+impl<'ast> Visit<'ast> for SparkFinderWithId<'_> {
+    fn visit_expr_path(&mut self, i: &'ast ExprPath) {
+        let var_name = i.path.to_token_stream().to_string();
+
+        if let Some(var) = self.scope.variables.get(&var_name) {
+            if var.is_spark {
+                let id = var.spark_id;
+                
+                if !self.found.contains(&(var_name.clone(), id)) {
+                    self.found.push((var_name, id));
+                }
+            }
+        }
+    }
+}
+
 /// Эта функция позволяет узнать корень выражения чтобы потом понять явлется ли это
 /// работой со спарком или нет в выражениях с полями на более высоком уровне анализатора
 /// Пример:

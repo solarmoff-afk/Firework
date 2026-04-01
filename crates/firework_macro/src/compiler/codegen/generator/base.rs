@@ -23,7 +23,7 @@ impl CodeGen {
     /// где структура ui блока, пример
     ///
     /// struct ApplicationUiBlockStruct1 {
-	  ///     spark_0: Option<Vec < u32 >>,
+	    ///     spark_0: Option<Vec < u32 >>,
     ///	    widget_object_3: Option<firework::RectSkin>,
     /// }
     ///
@@ -33,7 +33,7 @@ impl CodeGen {
     ///
     /// static mut APPLICATIONUIBLOCKSTRUCT1_INSTANCE: ApplicationUiBlockStruct1 = ApplicationUiBlockStruct1 {
     ///     spark_0: None,
-	  ///     widget_object_3: None,
+	    ///     widget_object_3: None,
     /// }
     pub(crate) fn inline_block_struct(&self, output: &mut String) {
         for (block_struct, fields) in &self.ir.screen_structs {
@@ -46,6 +46,10 @@ impl CodeGen {
               
                 // Специальное поле чтобы хранить индекс указателя на функцию экрана в фреймворке 
                 output.push_str("\t_fwc_screen_id: Option<usize>,\n");
+                
+                // Битовая маска для реактивных блоков
+                output.push_str("\tbitmask_0: u64,\n");
+                
                 output.push_str("}\n\n"); 
             } else {
                 output.push_str(format!("struct {};\n\n", block_struct).as_str());
@@ -53,22 +57,26 @@ impl CodeGen {
         }
 
         // Статический экземпляр (для доступа нужен unsafe, это нормально так как ui всегда
-        // однопоточный), а RefCell добавляет оверхед и раздувает результат кодогенерации
-      
+        // однопоточный)
         for (block_struct, fields) in &self.ir.screen_structs {
             let instance_name = block_struct.to_uppercase();
 
+            // Если в структуре есть поля
             if fields.len() > 0 {
                 output.push_str(format!(
                     "static mut {}_INSTANCE: {} = {} {{\n",
                     instance_name, block_struct, block_struct,
                 ).as_str());
                 
+                // Все поля которые создал анализатор это None
                 for (field_name, _) in fields {
                     output.push_str(format!("\t{}: None,\n", field_name).as_str());
                 }
                 
+                // Сгенерированные кодогенератором переменные (Остальные создал анализатор)
                 output.push_str("\t_fwc_screen_id: None,\n");
+                output.push_str("\tbitmask_0: 0,\n");
+                
                 output.push_str("};\n\n");
             }
         }

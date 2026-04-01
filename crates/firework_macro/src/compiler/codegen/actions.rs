@@ -25,18 +25,18 @@ pub enum FireworkAction {
     },
 
     // Реактивный блок типа условие. Первое значение это вектор с названиями реактивных
-    // переменных (спарков) которые используются в условии
-    ReactiveIf(Vec<String>),
+    // переменных (спарков) которые используются в условии и их id
+    ReactiveIf(Vec<(String, usize)>),
 
     // Реактивный блок типа матч, первое значение это вектор с названиями реактивных
     // переменных (спарков), нужен для match ... { ... };
-    ReactiveMatch(Vec<String>),
+    ReactiveMatch(Vec<(String, usize)>),
 
     // Реактивный цикл for
-    ReactiveFor(Vec<String>),
+    ReactiveFor(Vec<(String, usize)>),
 
     // Реактивный цикл while
-    ReactiveWhile(Vec<String>),
+    ReactiveWhile(Vec<(String, usize)>),
 
     // Обновление значения спарка
     UpdateSpark(String, usize),
