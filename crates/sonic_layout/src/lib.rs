@@ -10,7 +10,7 @@ pub use template::SonicTemplate;
 use element::{Element, ElementKind, ContainerType, WidgetType, StackFrame};
 use template::replace_placeholders;
 use codegen::structgen::generate_struct;
-use codegen::layoutgen::generate_layout;
+use codegen::layoutgen::LayoutGenerator;
 
 pub struct Sonic {
     pub tree: Element, 
@@ -79,7 +79,8 @@ impl Sonic {
     }
 
     pub fn genenerate_layout(&self) -> String {
-        generate_layout(&self.tree, &self.template)
+        let mut generator = LayoutGenerator::new();
+        generator.generate_layout(&self.tree, &self.template)
     }
 }
 

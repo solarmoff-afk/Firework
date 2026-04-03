@@ -1,6 +1,8 @@
 // Часть проекта Firework с открытым исходным кодом.
 // Лицензия EPL 2.0, подробнее в файле LICENSE. Copyright (c) 2026 Firework
 
-pub mod structgen;
-pub mod layoutgen;
-mod layouts;
+use crate::LayoutGenerator;
+
+impl LayoutGenerator {
+
+}
