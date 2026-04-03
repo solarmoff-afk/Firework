@@ -3,11 +3,13 @@
 
 pub mod template;
 pub mod element;
+mod codegen;
 
 pub use template::SonicTemplate;
 
 use element::{Element, ElementKind, ContainerType, WidgetType, StackFrame};
 use template::replace_placeholders;
+use codegen::structgen::generate_struct;
 
 pub struct Sonic {
     pub tree: Element, 
@@ -72,9 +74,7 @@ impl Sonic {
     }
 
     pub fn genenerate_buffers(&self) -> String {
-        
-
-        "".to_string()
+        generate_struct(&self.tree, &self.template)
     }
 }
 
@@ -85,7 +85,7 @@ mod tests {
     #[test]
     fn sonic_test() {
         let mut sonic = Sonic::new(SonicTemplate {
-            layout_variable: "\tpub _fwc_layout_{name}: {type},".to_string(),
+            layout_variable: "\tpub _fwc_layout_{name}: {type},\n".to_string(),
         });
 
         sonic.push_container(ContainerType::Vertical);
@@ -102,6 +102,6 @@ mod tests {
 
         sonic.log();
 
-        println!("{}", sonic.genenerate_buffers());
+        println!("pub struct name {{\n{}\n}}", sonic.genenerate_buffers());
     }
 }
