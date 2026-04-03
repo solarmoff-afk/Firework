@@ -18,7 +18,7 @@ pub enum ContainerType {
 }
 
 #[derive(Debug, Clone)]
-pub enum Element {
+pub enum ElementKind {
     Widget(WidgetType),
 
     MaybeWidget(WidgetType),
@@ -28,6 +28,21 @@ pub enum Element {
     MaybeContainer(ContainerType, Vec<Element>),
 
     None,
+}
+
+#[derive(Debug, Clone)]
+pub struct Element {
+    pub kind: ElementKind,
+    pub id: usize,
+}
+
+impl Element {
+    pub fn new() -> Self {
+        Self {
+            kind: ElementKind::None,
+            id: 0,
+        }
+    }
 }
 
 #[derive(Debug, Clone)]
