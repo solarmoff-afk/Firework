@@ -58,9 +58,9 @@ impl Sonic {
         self.counter
     }
 
-    pub fn add_widget(&mut self, widget_type: WidgetType) -> usize {
+    pub fn add_widget(&mut self, widget_type: WidgetType, id: usize) -> usize {
         let widget = Element {
-            kind: ElementKind::Widget(widget_type),
+            kind: ElementKind::Widget(widget_type, id),
             id: self.counter,
         };
         
@@ -92,17 +92,22 @@ mod tests {
     fn sonic_test() {
         let mut sonic = Sonic::new(SonicTemplate {
             layout_variable: "\tpub _fwc_layout_{name}: {type},\n".to_string(),
+            set_layout_variable: "name_instance._fwc_layout_{name} = {value};\n".to_string(),
+            add_layout_variable: "name_instance._fwc_layout_{name} += {value};\n".to_string(),
+            get_layout_variable: "name_instance._fwc_layout_{name}".to_string(),
+            measure_widget: "adapt.measure(name_instance.widget{id})".to_string(),
+            add_position: "adapt.add_position({id}, {x}, {y});".to_string(),
         });
 
         sonic.push_container(ContainerType::Vertical);
             sonic.log();
 
-            sonic.add_widget(WidgetType::Fixed);
-            sonic.add_widget(WidgetType::Fixed);
-            sonic.add_widget(WidgetType::Fixed);
+            sonic.add_widget(WidgetType::Fixed, 1);
+            sonic.add_widget(WidgetType::Fixed, 2);
+            sonic.add_widget(WidgetType::Fixed, 3);
 
             sonic.push_container(ContainerType::Vertical);
-                sonic.add_widget(WidgetType::Fixed);
+                sonic.add_widget(WidgetType::Fixed, 4);
             sonic.pop_container();
         sonic.pop_container();
 

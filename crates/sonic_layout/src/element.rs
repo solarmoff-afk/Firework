@@ -1,7 +1,7 @@
 // Часть проекта Firework с открытым исходным кодом.
 // Лицензия EPL 2.0, подробнее в файле LICENSE. Copyright (c) 2026 Firework
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub enum WidgetType {
     Fixed,
     Fill,
@@ -19,9 +19,9 @@ pub enum ContainerType {
 
 #[derive(Debug, Clone)]
 pub enum ElementKind {
-    Widget(WidgetType),
+    Widget(WidgetType, usize),
 
-    MaybeWidget(WidgetType),
+    MaybeWidget(WidgetType, usize),
 
     Container(ContainerType, Vec<Element>),
 
