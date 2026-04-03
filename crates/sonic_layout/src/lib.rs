@@ -1,20 +1,26 @@
 // Часть проекта Firework с открытым исходным кодом.
 // Лицензия EPL 2.0, подробнее в файле LICENSE. Copyright (c) 2026 Firework
 
-mod element;
+pub mod template;
+pub mod element;
+
+pub use template::SonicTemplate;
 
 use element::{Element, ContainerType, WidgetType, StackFrame};
+use template::replace_placeholders;
 
 pub struct Sonic {
-    pub tree: Element,
+    pub tree: Element, 
     stack: Vec<StackFrame>,
+    template: SonicTemplate,
 }
 
 impl Sonic {
-    pub fn new() -> Self {
+    pub fn new(template: SonicTemplate) -> Self {
         Self {
             tree: Element::None,
             stack: Vec::new(),
+            template,
         }
     }
 
@@ -50,6 +56,10 @@ impl Sonic {
             self.tree = widget;
         }
     }
+
+    pub fn genenerate_buffers(&self) -> String {
+        "".to_string()
+    }
 }
 
 #[cfg(test)]
@@ -58,7 +68,9 @@ mod tests {
 
     #[test]
     fn sonic_test() {
-        let mut sonic = Sonic::new();
+        let mut sonic = Sonic::new(SonicTemplate {
+            layout_variable: "\t_fwc_layout_{name}: {type},".to_string(),
+        });
 
         sonic.push_container(ContainerType::Vertical);
             sonic.log();
