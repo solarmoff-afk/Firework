@@ -16,21 +16,29 @@ pub(crate) fn generate_struct(element: &Element, template: &SonicTemplate) -> St
 fn process_element(element: &Element, template: &SonicTemplate, output: &mut String) {
     match &element.kind {
         ElementKind::Container(container_type, children) => {
-            let mut output_buffer = "".to_string();
-
-            output_buffer = replace_placeholders(
-                &template.layout_variable,
-                "name",
+            // Курсор
+            generate_layout_variable(
                 format!("{}_cursor", element.id).as_str(),
-            );
-
-            output_buffer = replace_placeholders(
-                &output_buffer,
-                "type",
                 "f32",
+                template,
+                output,
             );
 
-            output.push_str(output_buffer.as_str());
+            // Размер всех детей
+            generate_layout_variable(
+                format!("{}_total_size", element.id).as_str(),
+                "f32",
+                template,
+                output,
+            );
+
+            // Количество fill элементов
+            generate_layout_variable(
+                format!("{}_fill_count", element.id).as_str(),
+                "f32",
+                template,
+                output,
+            );
 
             for child in children {
                 process_element(&child, template, output);
@@ -39,4 +47,20 @@ fn process_element(element: &Element, template: &SonicTemplate, output: &mut Str
 
         _ => {}
     }
+}
+
+fn generate_layout_variable(name: &str, var_type: &str, template: &SonicTemplate, output: &mut String) {
+    let mut var_decl = replace_placeholders(
+        &template.layout_variable,
+        "name",
+        name,
+    );
+    
+    var_decl = replace_placeholders(
+        &var_decl,
+        "type",
+        var_type,
+    );
+    
+    output.push_str(&var_decl);
 }

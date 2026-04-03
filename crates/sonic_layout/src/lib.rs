@@ -10,6 +10,7 @@ pub use template::SonicTemplate;
 use element::{Element, ElementKind, ContainerType, WidgetType, StackFrame};
 use template::replace_placeholders;
 use codegen::structgen::generate_struct;
+use codegen::layoutgen::generate_layout;
 
 pub struct Sonic {
     pub tree: Element, 
@@ -76,6 +77,10 @@ impl Sonic {
     pub fn genenerate_buffers(&self) -> String {
         generate_struct(&self.tree, &self.template)
     }
+
+    pub fn genenerate_layout(&self) -> String {
+        generate_layout(&self.tree, &self.template)
+    }
 }
 
 #[cfg(test)]
@@ -95,7 +100,7 @@ mod tests {
             sonic.add_widget(WidgetType::Fixed);
             sonic.add_widget(WidgetType::Fixed);
 
-            sonic.push_container(ContainerType::Horizontal);
+            sonic.push_container(ContainerType::Vertical);
                 sonic.add_widget(WidgetType::Fixed);
             sonic.pop_container();
         sonic.pop_container();
@@ -103,5 +108,6 @@ mod tests {
         sonic.log();
 
         println!("pub struct name {{\n{}\n}}", sonic.genenerate_buffers());
+        println!("\n{}", sonic.genenerate_layout());
     }
 }
