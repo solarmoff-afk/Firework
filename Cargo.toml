@@ -1,7 +1,7 @@
 [workspace]
 resolver = "2"
 members = [
-  "crates/firework_macro",
+  "crates/firework_macro", "crates/sonic_layout",
   "examples/example-simple",
   "firework"    
 ]
