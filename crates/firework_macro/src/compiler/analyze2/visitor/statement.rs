@@ -17,7 +17,9 @@ impl<'ast> Analyzer {
         if should_push {
             self.statement.string = i.to_token_stream().to_string();
         } else {
-            self.statement.string = format!("{} {{", layout_name);
+            // Имя макроса не включает восклицательный знак поэтому он добавляется
+            // вручнуб в вызове format
+            self.statement.string = format!("{}! {{", layout_name);
         }
 
         // println!("STATEMENT: {}", self.statement_index);

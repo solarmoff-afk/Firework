@@ -28,7 +28,7 @@ impl CodeGen {
     }
 
     /// Запустить кодогенерацию
-    pub fn run(&mut self) {
+    pub fn run(&mut self) -> String {
         let mut output = String::from("");
 
         self.inline_items(&mut output);
@@ -41,7 +41,7 @@ impl CodeGen {
             // println!("{:#?}", _statement);
         }
 
-        println!("Output:\n{}", output);
+        output
     }
 
     /// Полный инлайн функции экрана

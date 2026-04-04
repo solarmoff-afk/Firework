@@ -69,7 +69,7 @@ impl<'ast> Analyzer {
                             this.handle_reactive_block(
                                 else_if_sparks.clone(),
                                 false,
-                                format!("else if {} {{", else_if_condition_code),
+                                format!("}} else if {} {{", else_if_condition_code),
                                 FireworkAction::ReactiveIf(else_if_sparks),
                                 |inner_this| {
                                     visit::visit_block(inner_this, &else_if.then_branch);
@@ -96,7 +96,7 @@ impl<'ast> Analyzer {
                             this.handle_reactive_block(
                                 Vec::new(),
                                 false,
-                                "else {".to_string(),
+                                "} else {".to_string(),
                                 else_action,
                                 |inner_this| inner_this.analyze_block(&else_block.block),
                             );

@@ -11,6 +11,8 @@ use codegen::generator::CodeGen;
 
 use proc_macro2::TokenTree;
 use quote::quote;
+use syn::{File, parse_str};
+use prettyplease::unparse;
 
 use crate::FireworkAst;
 
@@ -49,7 +51,14 @@ pub fn run_firework_compiler_temp(ast: FireworkAst, id: u64) -> (proc_macro2::To
 
     if let Some(ir) = output.2 {
         let mut codegen = CodeGen::new(ir);
-        codegen.run();
+        let output = codegen.run();
+
+        println!("{}", output);
+
+        let syntax_tree: File = parse_str(&output).unwrap();
+        let formatted = unparse(&syntax_tree);
+
+        println!("{}", formatted);
     }
 
     (output.0, output.1)
