@@ -162,10 +162,7 @@ impl CodeGen {
                             &expr_body,
                         ));
                         
-                        screen_code.0.push_str(format!("{}}}\n\n", depth).as_str());
-                        
-                        // Флаг для того чтобы в 4 фазе найти грязные спарки
-                        screen_code.0.push_str(format!("{}let mut _fwc_{}_dirty = false;\n\n", depth, field_name).as_str());
+                        screen_code.0.push_str(format!("{}}}\n\n", depth).as_str()); 
                         
                         // Снятие владения из структуры
                         let getter = format!("{}_INSTANCE.{}", struct_name, field_name);
@@ -176,8 +173,14 @@ impl CodeGen {
                     
                     // Обновление реактивной переменной
                     FireworkAction::UpdateSpark(_, id) => {
-                        screen_code.0.push_str(format!("{}_fwc_spark_{}_dirty = true;\n",
-                            depth, id).as_str());
+                        screen_code.0.push_str(format!("{}{};\n", depth, bitmask_gen::set_flag(
+                                format!("_fwc_bitmask{}", 0)  // Name, TODO: Сделать несколько
+                                    .as_str(),                // масок 
+                                
+                                // Используется айди спарка как бит для отслеживания
+                                *id as u8,
+                            )
+                        ).as_str());
                         
                         // Всё равно нужно проинлайнить код самого присваивания
                         screen_code.0.push_str(format!("{}{}\n", depth, statement.string).as_str());
