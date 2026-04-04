@@ -145,6 +145,9 @@ pub struct Analyzer {
     // Счётчики чтобы генерировать названия полей глобальной структуры экрана
     widget_counter: usize,
     spark_counter: usize,
+
+    // Определяет первый ли это лайаут в дереве
+    layouts_count: usize,
 }
 
 impl Analyzer {
@@ -173,6 +176,7 @@ impl Analyzer {
                 scope: Scope::new(),
                 string: String::from(""),
                 parent_widget_id: None,
+                reactive_loop: false,
             },
 
             ir: FireworkIR {
@@ -193,6 +197,8 @@ impl Analyzer {
             // Счётчики
             widget_counter: 0,
             spark_counter: 0,
+
+            layouts_count: 0,
         }
     }
 

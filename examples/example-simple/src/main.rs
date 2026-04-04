@@ -5,10 +5,12 @@ ui! {
     fn test_screen() { 
         let mut a = spark!(5);
 
-        if a > 5 {
-            println!("Реактивный блок");
-        } else {
-            a += 1;
+        vertical! {
+            if a > 5 {
+                println!("Реактивный блок");
+            } else {
+                a += 1;
+            }
         }
     } 
 }

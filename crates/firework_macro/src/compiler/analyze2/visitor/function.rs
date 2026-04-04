@@ -8,6 +8,7 @@ impl<'ast> Analyzer {
     /// вероятно это временное решение. Также собирает сигнатуру функции для кодогенератора
     pub(crate) fn analyze_item_fn(&mut self, node: &'ast ItemFn) {
         self.item_scope = self.scope.clone();
+        self.layouts_count = 0;
 
         let mut function_head = String::from("");
         for attr in &node.attrs {

@@ -60,6 +60,10 @@ impl<'ast> Analyzer {
                     has_microruntime = need_microruntime;
                 }
 
+                if self.layouts_count == 0 {
+                    self.statement.reactive_loop = true;
+                }
+
                 self.statement.action = FireworkAction::LayoutBlock(
                     name.clone(), has_microruntime,
                 );
@@ -70,9 +74,19 @@ impl<'ast> Analyzer {
                 self.scope.depth += 1;
                 self.statement.scope.depth += 1;
 
+                // Добавление перед парсингом вложенных команд
+                self.layouts_count += 1;
+
                 for statement in block.stmts { 
                     // Парсинг всех команд внутри
                     self.visit_stmt(&statement);
+                }
+
+                self.layouts_count -= 1;
+                
+                // Выход
+                if self.layouts_count == 0 {
+                    self.statement.reactive_loop = false;
                 }
                
                 self.scope.depth -= 1;
@@ -81,7 +95,7 @@ impl<'ast> Analyzer {
                 self.statement.string = "}".to_string();
                 self.statement_index += 1;
 
-                self.ir.statements.push(self.statement.clone());
+                self.ir.statements.push(self.statement.clone()); 
             } else {
                 // FE008, невалидный синтаксис в лайауте. Как уже было сказанно ранее,
                 // лайаут требует полностью валидный раст синтаксис

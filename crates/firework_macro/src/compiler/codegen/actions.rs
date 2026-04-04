@@ -84,6 +84,8 @@ pub struct FireworkStatement {
     // определить какой именно блок кода дёргать зная айди виджета
     pub parent_widget_id: Option<usize>,
 
+    pub reactive_loop: bool,
+
     // TODO: Оптимизировать, так как клонировать Scope (HashSet + usize) для каждого
     // statement может быть дорого
     pub scope: Scope,
