@@ -17,6 +17,13 @@ pub struct CodeGen {
 
     // Хэш мап для хранения результатов кодогенерации для каждого экрана
     screen_map: HashMap<String, (String, u64)>,
+
+    // Старое значение флага у FireworkStatement который означает обёрнут ли
+    // блок в loop { ... }, если старый флаг был true то нужно сгенерировать
+    // выход из цикла, если false то сгенерировать вход в цикл. Анализатор
+    // атоматически добавил стейтемент с меткой Terminator который нужен чтобы
+    // зафиксировать изменение этого флага
+    old_reactive_loop_flag: bool,
 }
 
 impl CodeGen {
@@ -24,6 +31,7 @@ impl CodeGen {
         Self {
             ir,
             screen_map: HashMap::new(),
+            old_reactive_loop_flag: false,
         }
     }
 
@@ -65,9 +73,7 @@ impl CodeGen {
             output.push_str(format!("{}",CHECK_EVENT).as_str());
             
             // Устанавливает фокус на этот экран
-            output.push_str(format!("{}", SET_FOCUS).as_str());
-            
-            output.push_str(format!("\tlet mut _fwc_bitmask = unsafe {{ {}_INSTANCE.bitmask_0 }};\n", instance_name).as_str());
+            output.push_str(format!("{}", SET_FOCUS).as_str()); 
             
             output.push_str("\n\t// Phase 2: Navigate/Build code\n");
             
@@ -96,6 +102,8 @@ impl CodeGen {
 
             let struct_name = format!("ApplicationUiBlockStruct{}", statement.scope.screen_index);
             if let Some(screen_code) = self.screen_map.get_mut(&statement.screen_name) {
+                
+
                 match &statement.action {
                     // Создание реактивной переменной
                     FireworkAction::InitialSpark { id, expr_body, name, .. } => {
@@ -118,12 +126,15 @@ impl CodeGen {
                         
                         // Снятие владения из структуры
                         let getter = format!("{}_INSTANCE.{}", struct_name, field_name);
-                        screen_code.0.push_str(format!("{}let mut {} = unsafe {{ {}.take().unwrap() }};\n", depth, name, getter).as_str());
+                        screen_code.0.push_str(
+                            format!("{}let mut {} = unsafe {{ {}.take().unwrap() }};\n",
+                                depth, name, getter).as_str());
                     },
                     
                     // Обновление реактивной переменной
                     FireworkAction::UpdateSpark(_, id) => {
-                        screen_code.0.push_str(format!("{}_fwc_spark_{}_dirty = true;\n", depth, id).as_str());
+                        screen_code.0.push_str(format!("{}_fwc_spark_{}_dirty = true;\n",
+                            depth, id).as_str());
                         
                         // Всё равно нужно проинлайнить код самого присваивания
                         screen_code.0.push_str(format!("{}{}\n", depth, statement.string).as_str());
@@ -139,6 +150,10 @@ impl CodeGen {
                             &name,
                         ));
                     },
+
+                    // Терминатор нужен только для проверки флага выше, никакой код он не
+                    // генерирует. Он просто означант конец функции экрана
+                    FireworkAction::Terminator => {},
 
                     _ => {
                         // Делаем инлайн изначальной строки только если у нас нет специальной логики для

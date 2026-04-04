@@ -59,6 +59,17 @@ impl<'ast> Analyzer {
 
         syn::visit::visit_item_fn(self, node);
 
+        // После парсинга функции нужно добавить стейтемент который уведомит
+        // кодогенератор о завершении тела функции чтобы он перед этим сгенерировал
+        // выход из цикла реактивности если этого ещё никто не сделал
+        let mut statement = self.statement.clone();
+        statement.action = FireworkAction::Terminator;
+
+        // Больше не часть цикла реактивности
+        statement.reactive_loop = false;
+
+        self.ir.statements.push(statement);
+
         // Нужно сгенерировать индекс после анализации функции чтобы id экземпляра
         // был синхронизирован внутри блоков ir для одного экрана
         self.scope.screen_index_generate();

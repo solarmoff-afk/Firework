@@ -23,7 +23,7 @@ impl CodeGen {
     /// где структура ui блока, пример
     ///
     /// struct ApplicationUiBlockStruct1 {
-	    ///     spark_0: Option<Vec < u32 >>,
+	  ///     spark_0: Option<Vec < u32 >>,
     ///	    widget_object_3: Option<firework::RectSkin>,
     /// }
     ///
@@ -46,10 +46,7 @@ impl CodeGen {
               
                 // Специальное поле чтобы хранить индекс указателя на функцию экрана в фреймворке 
                 output.push_str("\t_fwc_screen_id: Option<usize>,\n");
-                
-                // Битовая маска для реактивных блоков
-                output.push_str("\tbitmask_0: u64,\n");
-                
+
                 output.push_str("}\n\n"); 
             } else {
                 output.push_str(format!("struct {};\n\n", block_struct).as_str());

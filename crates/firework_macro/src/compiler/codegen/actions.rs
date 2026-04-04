@@ -59,6 +59,9 @@ pub enum FireworkAction {
 
     // Просто код для инлайна
     DefaultCode,
+
+    // Завершение функции экрана
+    Terminator,
 }
 
 /// Раст команда (statement) записанная анализатором
