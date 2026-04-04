@@ -91,10 +91,15 @@ impl CodeGen {
     /// fn screen_func {
     ///  // Тело
     /// }
-    fn make_screens_body(&mut self, depth: usize) {
+    fn make_screens_body(&mut self, depth_value: usize) {
         for statement in self.ir.statements.iter() {
-            let depth = "\t".repeat(depth + statement.scope.depth);
+            // Текущая глубина, мутабельна так как её нужно изменить при входе в цикл
+            // реактивности и при выходе из него
+            let mut depth = "\t".repeat(depth_value + statement.scope.depth);
+            
             if !self.screen_map.contains_key(&statement.screen_name) {
+                // Случайный айди для статического экземпляра и структуры чтобы предотвратить
+                // попытку пользователя использовать или изменить эти данные
                 let id: u64 = rand::thread_rng().gen_range(0..=u64::MAX); 
 
                 self.screen_map.insert(statement.screen_name.clone(), (String::from(SCREEN_HEADER), id));
@@ -102,7 +107,45 @@ impl CodeGen {
 
             let struct_name = format!("ApplicationUiBlockStruct{}", statement.scope.screen_index);
             if let Some(screen_code) = self.screen_map.get_mut(&statement.screen_name) {
-                
+                // Проверка, если прошлый стейтемент не был частью реактивного цикла, а
+                // текущий элемент таковым явлется то нужно сгенерировать битовую маску
+                // и вход в цикл
+                if !self.old_reactive_loop_flag && statement.reactive_loop {
+                    // TODO: Спарков может быть больше чем 64, в таком случае нужно создавать
+                    // несколько масок. Второй блок форматирования ({}) нужен для номера
+                    // битовой маски. Писать логику для сбросв флага после выхода за
+                    // пределы тела функции не нужно так как анализатор создаёт терминатор,
+                    // он автоматически хранит reactive_loop = false
+                    screen_code.0.push_str(format!("{}let mut _fwc_bitmask{} = 0u64;\n", depth, 0).as_str());
+                    screen_code.0.push_str(format!("{}loop {{\n", depth).as_str());
+                    
+                    // Так как мы перешли в цикл нужно добавить глубины
+                    depth = "\t".repeat(depth_value + 1 + statement.scope.depth);
+                }
+
+                // Если наоборот старый флаг говорит что прошлый стейтемент был в цикле, а
+                // этот стейтемент не в цикле то нужно закрыть цикл
+                if self.old_reactive_loop_flag && !statement.reactive_loop {
+                    // Выход из цикла если не было изменений. Цикл будет шагать пока
+                    // не будет ситуации когда изменений спарков больше нет, для каждого
+                    // бита маски свой спарк
+                    // TODO: Добавить разные битовые маски (с.м. todo выше)
+                    // TODO: Реализовать защиту от циклических зависимостей
+                    screen_code.0.push_str(format!("\n{}if _fwc_bitmask{} == 0 {{ break; }}\n",
+                            depth, 0).as_str());
+
+                    // Так как это был либо терминатор либо стейтемент который не относится
+                    // к циклу реактивности то это завершение и нужно снизить глубину
+                    // форматирования
+                    depth = "\t".repeat(depth_value + statement.scope.depth);
+
+                    // Выход из цикла
+                    screen_code.0.push_str(format!("{}}}\n", depth).as_str());
+                }
+
+                // После обработки поле который хранит прошлый флаг получает текущий флаг
+                // так как на следующем шаге цикла этот блок выполнится после обработки
+                self.old_reactive_loop_flag = statement.reactive_loop;
 
                 match &statement.action {
                     // Создание реактивной переменной
@@ -144,6 +187,11 @@ impl CodeGen {
                     FireworkAction::DropSpark { name, id } => {
                         let field_name = format!("spark_{}", id);
 
+                        // Генерация возврата владения в BSS
+                        // TODO: Могут возникнуть ошибки компиляции на уровне rustc если
+                        // пользователь переместит владение, так как возврат владения сделать
+                        // будет нельзя (Ибо rustc проверит владение на этой строке). Нужно
+                        // добавить магию компилятора в будущем
                         screen_code.0.push_str(&static_gen::set_field(
                             &struct_name,
                             &field_name,
@@ -155,6 +203,8 @@ impl CodeGen {
                     // генерирует. Он просто означант конец функции экрана
                     FireworkAction::Terminator => {},
 
+                    // Другой случай который либо не реализован, либо DefaultCode (код без
+                    // семантической метки)
                     _ => {
                         // Делаем инлайн изначальной строки только если у нас нет специальной логики для
                         // этого действия из FireworkAction

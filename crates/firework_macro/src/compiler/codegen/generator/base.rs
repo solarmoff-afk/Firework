@@ -72,7 +72,6 @@ impl CodeGen {
                 
                 // Сгенерированные кодогенератором переменные (Остальные создал анализатор)
                 output.push_str("\t_fwc_screen_id: None,\n");
-                output.push_str("\tbitmask_0: 0,\n");
                 
                 output.push_str("};\n\n");
             }
