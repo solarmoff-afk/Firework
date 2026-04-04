@@ -69,6 +69,7 @@ impl<'ast> Analyzer {
         statement.reactive_loop = false;
 
         self.ir.statements.push(statement);
+        self.ir.screen_sparks.insert(self.scope.screen_index, self.spark_counter);
 
         // Нужно сгенерировать индекс после анализации функции чтобы id экземпляра
         // был синхронизирован внутри блоков ir для одного экрана
