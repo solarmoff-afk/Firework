@@ -23,12 +23,14 @@ impl LayoutGenerator {
 
     pub fn generate_layout(&mut self, element: &Element, template: &SonicTemplate) -> String {
         let mut output = "".to_string();
-        self.process_element(element, template, &mut output, None);
+        self.generate_measure(element, template, &mut output, None);
+
+        output.push_str("\nPosition Phase\n");
         
         output
     }
     
-    fn process_element(
+    fn generate_measure(
         &mut self,
         element: &Element,
         template: &SonicTemplate,
@@ -59,7 +61,7 @@ impl LayoutGenerator {
                 output.push('\n');
                 
                 for child in children {
-                    self.process_element(&child, template, output, Some((my_id, container_type.clone())));
+                    self.generate_measure(&child, template, output, Some((my_id, container_type.clone())));
                 }
 
                 if let Some((pid, p_type)) = parent_id.clone() {
@@ -80,13 +82,25 @@ impl LayoutGenerator {
                 self.last_container_id = old_context;
             },
 
-            ElementKind::Widget(widget_type, id) => {
-                match self.last_container_id.1 {
-                    ContainerType::Vertical => {
-                        println!("Vertical layout for widget");  
-                        self.vertical_layout(template, output, *widget_type, *id);
+            ElementKind::Widget(widget_type, id) => { 
+                match widget_type {
+                    WidgetType::Fixed => {
+                        output.push_str(format!("let (_fwc_sonic_w, _fwc_sonic_h) = {};\n",
+                            replace_placeholders(
+                                &template.measure_widget,
+                                "id",
+                                &id.to_string()
+                            )
+                        ).as_str());
+                        
+                        generate_add_variable(
+                            format!("{}_total_size", self.last_container_id.0).as_str(),
+                            "_fwc_sonic_h",
+                            template,
+                            output
+                        );
                     },
-                    
+
                     _ => todo!(),
                 };
             },

@@ -12,6 +12,8 @@ ui! {
                 a += 1;
             }
         }
+
+        println!("Hello");
     } 
 }
 

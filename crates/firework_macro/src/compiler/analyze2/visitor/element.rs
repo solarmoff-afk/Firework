@@ -82,12 +82,7 @@ impl<'ast> Analyzer {
                     self.visit_stmt(&statement);
                 }
 
-                self.layouts_count -= 1;
-                
-                // Выход
-                if self.layouts_count == 0 {
-                    self.statement.reactive_loop = false;
-                }
+                self.layouts_count -= 1; 
                
                 self.scope.depth -= 1;
                 self.statement.scope.depth -= 1;
