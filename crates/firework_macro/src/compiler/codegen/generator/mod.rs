@@ -3,10 +3,11 @@
 
 mod base;
 mod static_gen;
-mod bitmask_gen;
+mod reactive;
 
 use std::collections::HashMap;
 use rand::Rng;
+use reactive::bitmask_gen::get_spark_mask;
 
 use super::actions::{FireworkIR, FireworkAction};
 use super::consts::*;
@@ -45,6 +46,8 @@ impl CodeGen {
 
         self.inline_items(&mut output);
         self.inline_block_struct(&mut output);
+        
+        // Определение сколько нужно битовых масок для реактивности каждого экрана
         self.find_mask_counts();
 
         self.make_screens_body(1);
@@ -89,21 +92,7 @@ impl CodeGen {
             
             output.push_str("}\n\n");
         }
-    }
-
-    /// Проходится по всем экранам и вычисляет сколько нужно битовых масок для отслеживания
-    /// реактивеости, по 64 спарка на одну битовую маску
-    fn find_mask_counts(&mut self) {
-        for (screen_name, screen_signature, screen_id) in self.ir.screens.iter() {
-            // Вычисление количества битовых масок, одна битовая маска это 64 бита
-            let spark_count = self.ir.screen_sparks.get(screen_id).unwrap_or(&0usize);
-
-            // Расчёт сколько нужно битовых масок на основе количество спарков
-            // 1 -> 1, 19 -> 1, 64 -> 1, 67 -> 2, 98 -> 2, 128 -> 2, 136 -> 3
-            self.screen_bitmask_count_map.insert(
-                screen_name.to_string(), ((spark_count + 63) / 64) as u8); 
-        }
-    }
+    } 
 
     /// Сборка содержимого функции экрана из её тела, то есть
     ///
@@ -132,45 +121,17 @@ impl CodeGen {
                 let mask_count = self.screen_bitmask_count_map.get(&statement.screen_name)
                     .unwrap_or(&0);
 
-                // Проверка, если прошлый стейтемент не был частью реактивного цикла, а
-                // текущий элемент таковым явлется то нужно сгенерировать битовую маску
-                // и вход в цикл
-                if !self.old_reactive_loop_flag && statement.reactive_loop {
-                    // Писать логику для сбросв флага после выхода за пределы тела функции
-                    // не нужно так как анализатор создаёт терминатор, он автоматически
-                    // хранит reactive_loop = false
-
-                    for mask_index in 0u8..*mask_count {
-                        screen_code.0.push_str(format!("{}let mut _fwc_bitmask{} = 0u64;\n",
-                            depth, mask_index).as_str());
-                    }
-
-                    screen_code.0.push_str(format!("{}loop {{\n", depth).as_str());
-                    
-                    // Так как мы перешли в цикл нужно добавить глубины
-                    depth = "\t".repeat(depth_value + 1 + statement.scope.depth);
-                }
-
-                // Если наоборот старый флаг говорит что прошлый стейтемент был в цикле, а
-                // этот стейтемент не в цикле то нужно закрыть цикл
-                if self.old_reactive_loop_flag && !statement.reactive_loop {
-                    // Выход из цикла если не было изменений. Цикл будет шагать пока
-                    // не будет ситуации когда изменений спарков больше нет, для каждого
-                    // бита маски свой спарк
-                    // TODO: Реализовать защиту от циклических зависимостей
-                    for mask_index in 0u8..*mask_count {
-                        screen_code.0.push_str(format!("\n{}if _fwc_bitmask{} == 0 {{ break; }}\n",
-                                depth, mask_index).as_str()); 
-                    }
-
-                    // Так как это был либо терминатор либо стейтемент который не относится
-                    // к циклу реактивности то это завершение и нужно снизить глубину
-                    // форматирования
-                    depth = "\t".repeat(depth_value + statement.scope.depth);
-
-                    // Выход из цикла
-                    screen_code.0.push_str(format!("{}}}\n", depth).as_str());
-                }
+                // Чтобы избежать ошибки компиляции из-за borrow checker функции для
+                // генерации реактивного цикла статические (не требуют передачи self)
+                // этот вызов генерирует битовые маски и вход в реактивный цикл если
+                // эта строка находится в UI контексте, а прошлый контекст это pre-ui,
+                // а если контекст pre-ui, а прошлый контекст ui то генерирует выход
+                // из реактивного цикла. Благодаря Terminator выход из цикла будет всегда
+                // даже если после ui контекста нет pre-ui контекста
+                CodeGen::check_reactive_loop(
+                    self.old_reactive_loop_flag, depth_value, &mut depth, screen_code,
+                    &statement, *mask_count,
+                );
 
                 // После обработки поле который хранит прошлый флаг получает текущий флаг
                 // так как на следующем шаге цикла этот блок выполнится после обработки
@@ -202,17 +163,14 @@ impl CodeGen {
                     
                     // Обновление реактивной переменной
                     FireworkAction::UpdateSpark(_, id) => {
-                        screen_code.0.push_str(format!("{}{};\n", depth, bitmask_gen::set_flag(
-                                format!("_fwc_bitmask{}", 0)  // Name, TODO: Сделать несколько
-                                    .as_str(),                // масок 
-                                
-                                // Используется айди спарка как бит для отслеживания
-                                *id as u8,
-                            )
-                        ).as_str());
-                        
-                        // Всё равно нужно проинлайнить код самого присваивания
-                        screen_code.0.push_str(format!("{}{}\n", depth, statement.string).as_str());
+                        // Реактивная переменная (спарк) обновилась то нужно изменить бит
+                        // который соотвествует этому спарку. Для каждого диапазона спарков
+                        // (от 0 до 64) своя битовая маска, поэтому эта строка позволяет
+                        // определить в какой маске изменить спарк
+                        let mask = get_spark_mask(*id);
+
+                        // Генерация кода изменения бита
+                        CodeGen::generate_update_spark(screen_code, *id, mask.into(), &depth);
                     },
 
                     // Возврат реактивной переменной со стэка обратно в статическую память

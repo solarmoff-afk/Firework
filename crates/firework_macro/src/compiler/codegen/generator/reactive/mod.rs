@@ -1,0 +1,114 @@
+// Часть проекта Firework с открытым исходным кодом.
+// Лицензия EPL 2.0, подробнее в файле LICENSE. Copyright (c) 2026 Firework
+
+pub mod bitmask_gen;
+
+use bitmask_gen::*;
+
+use super::CodeGen;
+
+use crate::compiler::codegen::actions::FireworkStatement;
+
+impl CodeGen {
+    /// Проходится по всем экранам и вычисляет сколько нужно битовых масок для отслеживания
+    /// реактивеости, по 64 спарка на одну битовую маску
+    pub(crate) fn find_mask_counts(&mut self) {
+        for (screen_name, screen_signature, screen_id) in self.ir.screens.iter() {
+            // Вычисление количества битовых масок, одна битовая маска это 64 бита
+            let spark_count = self.ir.screen_sparks.get(screen_id).unwrap_or(&0usize);
+
+            // Расчёт сколько нужно битовых масок на основе количество спарков
+            // 1 -> 1, 19 -> 1, 64 -> 1, 67 -> 2, 98 -> 2, 128 -> 2, 136 -> 3
+            self.screen_bitmask_count_map.insert(screen_name.to_string(), get_spark_mask(*spark_count)); 
+        }
+    } 
+
+    /// Генерирует вход и выход из реактивного цикла, а также битовые маски для его
+    /// работы
+    pub(crate) fn check_reactive_loop(
+        old_reactive_loop_flag: bool,
+        depth_value: usize,
+        depth: &mut String,
+        screen_code: &mut (String, u64),
+        statement: &FireworkStatement,
+        mask_count: u8,
+    ) { 
+        // Проверка, если прошлый стейтемент не был частью реактивного цикла, а
+        // текущий элемент таковым явлется то нужно сгенерировать битовую маску
+        // и вход в цикл
+        if !old_reactive_loop_flag && statement.reactive_loop {
+            // Писать логику для сбросв флага после выхода за пределы тела функции
+            // не нужно так как анализатор создаёт терминатор, он автоматически
+            // хранит reactive_loop = false
+            for mask_index in 0u8..mask_count {
+                screen_code.0.push_str(format!("{}let mut _fwc_bitmask{} = 0u64;\n",
+                    depth, mask_index).as_str());
+            }
+            
+            screen_code.0.push_str(format!("{}loop {{\n", depth).as_str());
+                    
+            // Так как мы перешли в цикл нужно добавить глубины
+            *depth = "\t".repeat(depth_value + 1 + statement.scope.depth);
+
+            // Генерация начала цикла реактивности, он нужен чтобы правильно очистить
+            // битовые маски для каждого шага цикла, но при этом иметь возможность
+            // сравнивать бит для проверки изменения реактивности. Это нужно выполнить
+            // для каждой битовой маски
+            for mask_index in 0u8..mask_count {
+                // Первое, делается клон (копия, так как маска u64) каждой битовой маски.
+                // Он нужен чтобы ЧИТАТЬ его и проверять измненение состояния. Это
+                // локальная переменная которая будет дропнута. Здесь используется клон
+                // несмотря на то, что u64 реализует Copy для явности кодогенерации
+                screen_code.0.push_str(
+                    format!("{}let _fwc_bitmask{}_clone = _fwc_bitmask{}.clone();\n",
+                        depth, mask_count, mask_count).as_str());
+
+                // Второе, обнуляется оригинальная маска после того как сделан клон. Это
+                // нужно чтобы ПИСАТЬ в неё по мере нахождения UpdateSpark. На следующем
+                // шаге цикла (если цикл не будет завершёе из-за превышения максимального
+                // количества итераций или отсуствия обновлений в маске) эта оригинальная
+                // маска где при UpdateSpark будут записаны обновления будет скопирована
+                // для чтения, а сама маска обнулится чтобы в неё сами писали. Это самый
+                // элегантный способ реализации, так как, например, точечный сброс бита
+                // имеют огромные недостатки
+                screen_code.0.push_str(
+                    format!("{}_fwc_bitmask{} = 0;\n", depth, mask_count).as_str());
+            }
+        }
+
+        // Если наоборот старый флаг говорит что прошлый стейтемент был в цикле, а
+        // этот стейтемент не в цикле то нужно закрыть цикл
+        if old_reactive_loop_flag && !statement.reactive_loop {
+            // Выход из цикла если не было изменений. Цикл будет шагать пока
+            // не будет ситуации когда изменений спарков больше нет, для каждого
+            // бита маски свой спарк
+            // TODO: Реализовать защиту от циклических зависимостей
+            for mask_index in 0u8..mask_count {
+                screen_code.0.push_str(format!("\n{}if _fwc_bitmask{} == 0 {{ break; }}\n",
+                    depth, mask_index).as_str()); 
+            }
+            
+            // Так как это был либо терминатор либо стейтемент который не относится
+            // к циклу реактивности то это завершение и нужно снизить глубину
+            // форматирования
+            *depth = "\t".repeat(depth_value + statement.scope.depth);
+            
+            // Завершение блока цикла закрывающей скобкой
+            screen_code.0.push_str(format!("{}}}\n", depth).as_str());
+        } 
+    }
+   
+    /// Генерирует обновление соотвествующего спарку бита. Принимает screen_code куда нужно
+    /// запушить результат генерации, айди спарка, айди маски и глубину для гененрации
+    pub(crate) fn generate_update_spark(screen_code: &mut (String, u64), id: usize, mask: usize, depth: &String) {
+        screen_code.0.push_str(format!("{}{};\n", depth, bitmask_gen::set_flag(
+            format!("_fwc_bitmask{}", mask).as_str(),
+
+            // Используется айди спарка как бит для отслеживания, но
+            // перед этим он проходит через нормализацию (id % 64)
+            // который позволяет использовать даже айди больше 64 
+            // для множества битовых масок
+            normalize_bit_index(id),
+        )).as_str());
+    }
+}

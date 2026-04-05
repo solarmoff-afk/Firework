@@ -11,6 +11,12 @@ ui! {
                 break 'loop;
             }
         }
+
+        vertical! {
+            rect! {
+                field: 123,
+            }
+        }
     } 
 }
 
