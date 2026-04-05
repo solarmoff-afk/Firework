@@ -19,7 +19,9 @@ use widget::{is_widget, is_layout, map_skin, WidgetArgs};
 use spark::{SparkValidator, SparkFinder, SparkFinderWithId, get_root_variable_name};
 
 use crate::compiler::utils::is_mutable_method;
-use crate::compiler::codegen::actions::{FireworkIR, FireworkStatement, FireworkAction, FireworkWidgetField};
+use crate::compiler::codegen::actions::{
+    FireworkIR, FireworkStatement, FireworkAction, FireworkWidgetField, FireworkReactiveBlock,
+};
 use crate::compiler::error::*;
 
 /// Нельзя хранить String поэтому используется &str, при использовании нужно использовать
@@ -299,7 +301,7 @@ impl Analyzer {
         
         visit_fn(self);
         
-        self.statement.action = FireworkAction::DefaultCode;
+        self.statement.action = FireworkAction::ReactiveBlockTerminator;
         self.statement.string = "}".to_string();
         self.statement_index += 1;
 

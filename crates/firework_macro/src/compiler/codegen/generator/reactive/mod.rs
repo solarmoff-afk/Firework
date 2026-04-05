@@ -42,7 +42,7 @@ impl CodeGen {
             // хранит reactive_loop = false
             for mask_index in 0u8..mask_count {
                 screen_code.0.push_str(format!("{}let mut _fwc_bitmask{} = 0u64;\n",
-                    depth, mask_index).as_str());
+                    depth, mask_index + 1).as_str());
             }
 
             // [_fwc_guard]
@@ -100,7 +100,7 @@ impl CodeGen {
             for mask_index in 0u8..mask_count {
                 // Вторая часть выражения, для каждой маски генерируем проверку что она
                 // не нулевая
-                screen_code.0.push_str(format!("_fwc_bitmask{} == 0 &&", mask_index).as_str()); 
+                screen_code.0.push_str(format!("_fwc_bitmask{} == 0 && ", mask_index + 1).as_str()); 
             }
 
             // Третья часть выражения, небольшой хак. Вторая часть выражения сгенерирует
@@ -151,5 +151,19 @@ impl CodeGen {
             // для множества битовых масок
             normalize_bit_index(id),
         )).as_str());
+    }
+
+    pub(crate) fn generate_check_spark_bit(screen_code: &mut (String, u64), id: usize) {
+        // Получение маски на основе айди спарка
+        let mask = get_spark_mask(id);
+        let id_in_mask = bitmask_gen::normalize_bit_index(id);
+
+        screen_code.0.push_str(bitmask_gen::check_flag(
+            // Имя маски
+            format!("_fwc_bitmask{}", mask).as_str(),
+            
+            // Индекс внутри этой маски
+            id_in_mask,
+        ).as_str());
     }
 }

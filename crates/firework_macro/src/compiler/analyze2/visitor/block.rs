@@ -41,7 +41,10 @@ impl<'ast> Analyzer {
         let sparks = self.get_sparks(&i.cond);
 
         let mut else_action = FireworkAction::DefaultCode;
-        if sparks.len() >= 0 {
+
+        // Если в условии есть спарки то else блок будет реактивным, так как основное
+        // условие реактивное
+        if sparks.len() > 0 {
             else_action = FireworkAction::ReactiveElse;
         }
         
@@ -52,7 +55,7 @@ impl<'ast> Analyzer {
             sparks.clone(),
             false,
             format!("if {} {{", condition_code),
-            FireworkAction::ReactiveIf(sparks),
+            FireworkAction::ReactiveBlock(FireworkReactiveBlock::ReactiveIf, sparks),
             |this| {
                 // Основное тело условия
                 visit::visit_block(this, &i.then_branch);
@@ -70,7 +73,9 @@ impl<'ast> Analyzer {
                                 else_if_sparks.clone(),
                                 false,
                                 format!("}} else if {} {{", else_if_condition_code),
-                                FireworkAction::ReactiveIf(else_if_sparks),
+                                FireworkAction::ReactiveBlock(
+                                    FireworkReactiveBlock::ReactiveIf, else_if_sparks,
+                                ),
                                 |inner_this| {
                                     visit::visit_block(inner_this, &else_if.then_branch);
                                     
@@ -124,7 +129,7 @@ impl<'ast> Analyzer {
             sparks.clone(),
             true,
             format!("while {} {{", condition_code),
-            FireworkAction::ReactiveWhile(sparks.clone()),
+            FireworkAction::ReactiveBlock(FireworkReactiveBlock::ReactiveWhile, sparks.clone()),
             |this| visit::visit_expr_while(this, i),
         );
     }
@@ -145,7 +150,7 @@ impl<'ast> Analyzer {
             sparks.clone(),
             true,
             format!("for {} in {} {{", pattern_code, expr_code),
-            FireworkAction::ReactiveFor(sparks.clone()),
+            FireworkAction::ReactiveBlock(FireworkReactiveBlock::ReactiveFor, sparks.clone()),
             |this| visit::visit_expr_for_loop(this, i),
         );
     }
@@ -159,7 +164,7 @@ impl<'ast> Analyzer {
             sparks.clone(),
             false,
             format!("match {} {{", expr_code),
-            FireworkAction::ReactiveMatch(sparks.clone()),
+            FireworkAction::ReactiveBlock(FireworkReactiveBlock::ReactiveMatch, sparks.clone()),
             |this| visit::visit_expr_match(this, i),
         );
     }

@@ -5,6 +5,22 @@ use std::collections::HashMap;
 
 use crate::compiler::analyze2::Scope;
 
+/// Какой это конкретно реактивный блок
+#[derive(Debug, Clone)]
+pub enum FireworkReactiveBlock {
+    // Условие
+    ReactiveIf,
+
+    // Цикл for 
+    ReactiveFor,
+
+    // Цикл while 
+    ReactiveWhile,
+
+    // Match 
+    ReactiveMatch,
+}
+
 #[derive(Debug, Clone)]
 pub enum FireworkAction {
     // Инициализация реактивной переменной (спарка) в области видимости. Первое значение
@@ -24,25 +40,18 @@ pub enum FireworkAction {
         id: usize,
     },
 
-    // Реактивный блок типа условие. Первое значение это вектор с названиями реактивных
-    // переменных (спарков) которые используются в условии и их id
-    ReactiveIf(Vec<(String, usize)>),
-
-    // Реактивный блок типа матч, первое значение это вектор с названиями реактивных
-    // переменных (спарков), нужен для match ... { ... };
-    ReactiveMatch(Vec<(String, usize)>),
-
-    // Реактивный цикл for
-    ReactiveFor(Vec<(String, usize)>),
-
-    // Реактивный цикл while
-    ReactiveWhile(Vec<(String, usize)>),
-
-    // Обновление значения спарка
-    UpdateSpark(String, usize),
+    // Реактивный блок. Первое значение это вектор с названиями реактивных
+    // переменных (спарков) которые используются в блоке и их айди
+    ReactiveBlock(FireworkReactiveBlock, Vec<(String, usize)>),
 
     // Блок else который является частью реактивного условия
     ReactiveElse,
+
+    // Закрывающа фигурная скобка для реактивного блока
+    ReactiveBlockTerminator,
+
+    // Обновление значения спарка
+    UpdateSpark(String, usize), 
 
     // Лайаут блок, первое значение это название лайаута, второе значение это нужен
     // ли микрорантайм
