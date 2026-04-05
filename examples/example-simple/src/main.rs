@@ -3,19 +3,12 @@ use firework::ui;
 
 ui! {
     fn test_screen() { 
-        'loop: for i in 0..3 {
-            let mut spark1 = spark!(0u32);
+        let mut spark1 = spark!(0u32);
 
-            'sub_loop: for j in 0..3 {
-                func(j);
-                break 'loop;
-            }
-        }
-
-        vertical! {
-            rect! {
-                field: 123,
-            }
+        if spark1 > 1 && spark1 < 5 {
+            println!("Реактивное обновление!");
+        } else if spark1 < 5 {
+            spark1 += 1;
         }
     } 
 }

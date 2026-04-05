@@ -171,6 +171,9 @@ impl CodeGen {
 
                         // Генерация кода изменения бита
                         CodeGen::generate_update_spark(screen_code, *id, mask.into(), &depth);
+                    
+                        // Всё равно нужен инлайн строки в результат кодогенерации
+                        screen_code.0.push_str(format!("{}{}\n", depth, statement.string).as_str());
                     },
 
                     // Возврат реактивной переменной со стэка обратно в статическую память

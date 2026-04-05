@@ -35,6 +35,9 @@ impl<'ast> Analyzer {
                     self.statement.action = FireworkAction::UpdateSpark(
                         root_name, variable.spark_id,
                     );
+                    
+                    // Работа со спарками также должна включать реактивный цикл
+                    self.statement.reactive_loop = true;
                 }
             }
         }
@@ -69,6 +72,7 @@ impl<'ast> Analyzer {
                         self.statement.action = FireworkAction::UpdateSpark(
                             root_name, variable.spark_id,
                         );
+                        self.statement.reactive_loop = true;
                     }
                 }
             }
@@ -97,6 +101,7 @@ impl<'ast> Analyzer {
                         self.statement.action = FireworkAction::UpdateSpark(
                             root_name, variable.spark_id,
                         );
+                        self.statement.reactive_loop = true;
                     }
                 }
             }
