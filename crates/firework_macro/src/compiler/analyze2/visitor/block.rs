@@ -113,8 +113,13 @@ impl<'ast> Analyzer {
     pub(crate) fn analyze_expr_while(&mut self, i: &'ast ExprWhile) {
         let sparks = self.get_sparks(&i.cond);
         let condition_code = i.cond.to_token_stream().to_string();
-       
+
+        // Метка цикла
+        let label = i.label.as_ref().map(|l| l.name.ident.to_string());
+
         self.scope.is_cycle = true;
+        self.scope.label = label;
+       
         self.handle_reactive_block(
             sparks.clone(),
             true,
@@ -129,8 +134,13 @@ impl<'ast> Analyzer {
         let sparks = self.get_sparks(&i.expr);
         let pattern_code = i.pat.to_token_stream().to_string();
         let expr_code = i.expr.to_token_stream().to_string();
-        
+
+        // Метка цикла
+        let label = i.label.as_ref().map(|l| l.name.ident.to_string());
+
         self.scope.is_cycle = true;
+        self.scope.label = label;
+        
         self.handle_reactive_block(
             sparks.clone(),
             true,
@@ -156,7 +166,12 @@ impl<'ast> Analyzer {
 
     /// Loop { ... }
     pub(crate) fn analyze_expr_loop(&mut self, i: &'ast ExprLoop) {
+        // Метка цикла
+        let label = i.label.as_ref().map(|l| l.name.ident.to_string());
+
         self.scope.is_cycle = true;
+        self.scope.label = label;
+
         self.handle_reactive_block(
             Vec::new(),
             true,
@@ -170,14 +185,10 @@ impl<'ast> Analyzer {
     /// for i in 1..5 {
     ///  break;
     /// }
+    ///
+    /// Также поддерживает break 'label
     pub(crate) fn analyze_expr_break(&mut self, i: &'ast ExprBreak) {
-        // Получение последней области видимости в стэке
-        let target_scope = self.old_scope.iter()
-            .rev()
-            .find(|s| s.is_cycle)
-            .cloned()
-            .unwrap_or_else(|| Scope::new());
-
+        let target_scope = self.get_target_scope(&i.label);
         self.update_scope(target_scope, false);
         
         visit::visit_expr_break(self, i);
@@ -185,13 +196,9 @@ impl<'ast> Analyzer {
 
     /// Шаг цикла (continue)
     pub(crate) fn analyze_expr_continue(&mut self, i: &'ast ExprContinue) {
-        let target_scope = self.old_scope.iter()
-            .rev()
-            .find(|s| s.is_cycle)
-            .cloned()
-            .unwrap_or_else(|| Scope::new());
-
+        let target_scope = self.get_target_scope(&i.label);
         self.update_scope(target_scope, false);
+
         visit::visit_expr_continue(self, i);
     }
 
@@ -207,5 +214,33 @@ impl<'ast> Analyzer {
         self.update_scope(target_scope, false);
         
         visit::visit_expr_return(self, i);
+    }
+
+    /// Этот метод используется в break и continue чтобы найти последнюю область
+    /// видимости которая явлется циклом, label нужен для циклов с именем, принимает
+    /// опциональный Lifetime от syn, а возвращает область видимости которая была
+    /// найдена в стэке
+    fn get_target_scope(&mut self, label: &Option<Lifetime>) -> Scope {
+        // Получение последней области видимости в стэке
+        let target_scope = if let Some(label_break) = label {
+            // Имя цикла который нужно остановить
+            let label_name = label_break.ident.to_string();
+
+            // Поиск цикла с таким именем по стэку областей видимости
+            self.old_scope.iter()
+                .rev()
+                .find(|s| s.label.as_ref() == Some(&label_name))
+                .cloned()
+                .unwrap_or_else(|| Scope::new())
+        } else {
+            // Если нет имени цикла в break {'имя} <- вот тут
+            self.old_scope.iter()
+                .rev()
+                .find(|s| s.is_cycle)
+                .cloned()
+                .unwrap_or_else(|| Scope::new())
+        };
+
+        target_scope
     }
 }

@@ -3,17 +3,14 @@ use firework::ui;
 
 ui! {
     fn test_screen() { 
-        let mut a = spark!(5);
+        'loop: for i in 0..3 {
+            let mut spark1 = spark!(0u32);
 
-        vertical! {
-            if a > 5 {
-                println!("Реактивный блок");
-            } else {
-                a += 1;
+            'sub_loop: for j in 0..3 {
+                func(j);
+                break 'loop;
             }
         }
-
-        println!("Hello");
     } 
 }
 

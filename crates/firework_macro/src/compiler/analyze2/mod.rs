@@ -47,6 +47,8 @@ pub struct Variable {
     // Явлется ли эта переменная мутабельной
     pub is_mut: bool,
 
+    // Айди спарка (если это спарк, иначе 0) в качестве которого используется счётчик
+    // spark_counter
     pub spark_id: usize,
 }
 
@@ -60,6 +62,9 @@ pub struct Scope {
     pub screen_index: usize,
     pub depth: usize,
     pub is_cycle: bool,
+
+    // Имя цикла, нужно для синтаксиса break 'label. Если это не цикл то None
+    pub label: Option<String>,
 }
 
 impl Scope {
@@ -68,12 +73,17 @@ impl Scope {
             // Нет имён на старте
             variables: HashMap::new(),
             screen_index: 0,
+
+            // Первая область видимости имеет нулевую глубину
             depth: 0,
+
+            // Так как начальный Scope не может быть в цикле
             is_cycle: false,
+            label: None,
         }
     }
 
-    /// Генерирует рандомный айди экрана
+    /// Генерирует случайный айди экрана для надёжности
     pub fn screen_index_generate(&mut self) {
         let mut range = rand::thread_rng();
         self.screen_index = range.gen_range(0..=usize::MAX);
