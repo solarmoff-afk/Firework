@@ -7,7 +7,7 @@ ui! {
         if spark1 >= 1 && spark1 < 5 {
             println!("Реактивное обновление!");
             spark1 += 1;
-        } else { 
+        } else if spark1 < 5 { 
             spark1 += 1;       
         }
 

@@ -220,7 +220,7 @@ impl<'ast> Analyzer {
                         effect_sparks.clone(),
                         false,
                         "{ // effect".to_string(),
-                        FireworkAction::ReactiveBlock(FireworkReactiveBlock::ReactiveIf, effect_sparks),
+                        FireworkAction::ReactiveBlock(FireworkReactiveBlock::Effect, effect_sparks),
                         |this| {
                             for stmt in &last_expr_block.block.stmts {
                                 this.visit_stmt(stmt);
