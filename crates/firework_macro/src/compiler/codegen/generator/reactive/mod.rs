@@ -160,7 +160,7 @@ impl CodeGen {
 
         screen_code.0.push_str(bitmask_gen::check_flag(
             // Имя маски
-            format!("_fwc_bitmask{}", mask).as_str(),
+            format!("_fwc_bitmask{}_clone", mask).as_str(),
             
             // Индекс внутри этой маски
             id_in_mask,

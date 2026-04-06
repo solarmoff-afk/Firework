@@ -51,11 +51,7 @@ impl CodeGen {
         self.find_mask_counts();
 
         self.make_screens_body(1);
-        self.inline_screens(&mut output);
-
-        for _statement in self.ir.statements.iter() {
-            // println!("{:#?}", _statement);
-        }
+        self.inline_screens(&mut output); 
 
         output
     }
