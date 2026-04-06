@@ -14,7 +14,6 @@ use std::collections::HashMap;
 use quote::ToTokens;
 use rand::Rng;
 
-use marks::*;
 use widget::{is_widget, is_layout, map_skin, WidgetArgs};
 use spark::{SparkValidator, SparkFinder, SparkFinderWithId, get_root_variable_name};
 
@@ -516,9 +515,7 @@ pub fn prepare_tokens(tokens: Vec<TokenTree>, _id: u64) -> (proc_macro2::TokenSt
     let mut analyzer = Analyzer::new();
     analyzer.scope.screen_index_generate();
     analyzer.visit_file(&file); 
-
-    println!("IR len: {}, IR: {:#?}", analyzer.ir.statements.len(), analyzer.ir);
-    
+ 
     if !analyzer.errors.is_empty() {
         let mut final_error = analyzer.errors[0].clone();
         

@@ -198,7 +198,7 @@ impl CodeGen {
                     // if spark1 == 1 {
                     //  // Это реактивный блок
                     // }
-                    FireworkAction::ReactiveBlock(block_type, sparks) => {
+                    FireworkAction::ReactiveBlock(_block_type, sparks) => {
                         // Первое, условие по которому будет срабатывать реактивный блок
                         screen_code.0.push_str(format!("{}if ", depth).as_str());
 

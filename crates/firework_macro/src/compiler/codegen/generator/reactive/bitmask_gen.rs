@@ -1,6 +1,8 @@
 // Часть проекта Firework с открытым исходным кодом.
 // Лицензия EPL 2.0, подробнее в файле LICENSE. Copyright (c) 2026 Firework
 
+#![allow(dead_code)]
+
 pub(crate) fn set_flag(mask_name: &str, flag: u8) -> String {
     assert!(flag < 64, "Flag bit index must be < 64");
     return format!("{} |= 1 << {}", mask_name, flag);

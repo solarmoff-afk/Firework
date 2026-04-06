@@ -119,7 +119,6 @@ pub fn get_root_variable_name(expr: &Expr) -> Option<String> {
             get_root_variable_name(&index_expr.expr)
         },
 
-        Expr::Path(path) => Some(path.to_token_stream().to_string()),
         Expr::Paren(paren) => get_root_variable_name(&paren.expr),
 
         // Ссылки

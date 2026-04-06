@@ -5,12 +5,13 @@ use syn::Error;
 
 /// Маркер spark можно использовать только как значение для переменной. Это нужно чтобы
 /// сопоставить реактивную переменную в IR
-pub const SPARK_USAGE_ERROR: &str = "\
-error[FE001]: spark may only be used as a variable initializer
-   = note: spark!() creates a reactive value that must be bound to a variable
-   = help: assign the spark to a variable: `let name = spark!(value);`
-   = note: for more information, see: [WORK IN PROGRESS]
-";
+// [UNUSED_ERROR]
+// pub const SPARK_USAGE_ERROR: &str = "\
+// error[FE001]: spark may only be used as a variable initializer
+//   = note: spark!() creates a reactive value that must be bound to a variable
+//   = help: assign the spark to a variable: `let name = spark!(value);`
+//   = note: for more information, see: [WORK IN PROGRESS]
+// ";
 
 /// Нельзя затенять спарк переменную, это нужно для упрощения составления IR и кодогенерации
 /// на его основе. Продолжение этого правила: FE004
@@ -41,14 +42,14 @@ error[FE004]: spark variable requires a unique name
    = note: for more information, see: [WORK IN PROGRESS]
 ";
 
-/// Спарк нельзя создать глобально
-pub const SPARK_GLOBAL_ERROR: &str = "\
-error[FE005]: spark cannot be used in global or static context
-   = note: spark!() is only allowed in local scope
-   = help: move spark!() inside a function body
-   = note: spark values are automatically globalized for screen transitions
-   = note: for more information, see: [WORK IN PROGRESS]
-";
+// [UNUSED_ERROR]
+// pub const SPARK_GLOBAL_ERROR: &str = "\
+// error[FE005]: spark cannot be used in global or static context
+//   = note: spark!() is only allowed in local scope
+//   = help: move spark!() inside a function body
+//   = note: spark values are automatically globalized for screen transitions
+//   = note: for more information, see: [WORK IN PROGRESS]
+// ";
 
 /// Запрещено использовать несколько спарков в одном выражении, это нужно для упрощения
 /// генерации IR

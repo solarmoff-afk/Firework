@@ -1,6 +1,8 @@
 // Часть проекта Firework с открытым исходным кодом.
 // Лицензия EPL 2.0, подробнее в файле LICENSE. Copyright (c) 2026 Firework
 
+#![allow(dead_code)]
+
 /// Хелпер для декларации статического экземпляра структуры экрана (слайда), заполняет
 /// все поля как None, то есть требует чтобы все поля структуры были строго Option. Это
 /// не проблема так как компилятор раста не скомпилирует код который использует переменные
@@ -36,7 +38,7 @@ pub(crate) fn is_first_call(id: u128) -> String {
 /// Хелпер для инлайна инициализации поля _fwc_screen_id через firework::register, так как
 /// новая архитектура хранит только указатель на функцию, а не контейнер и индексы, то нужно
 /// использовать заглушку (Some(1)) чтобы не переписывать много кода
-pub(crate) fn init_instance(instance_name: &str, screen_name: &str) -> String {
+pub(crate) fn init_instance(instance_name: &str, _screen_name: &str) -> String {
     format!(
         "\tif unsafe {{ {}_INSTANCE._fwc_screen_id.is_none() }} {{\n\t\t_fwc_build = true;\n\t\tunsafe {{\n\t\t\t{}_INSTANCE._fwc_screen_id = Some(1);\n\t\t}}\n\t}}\n\n",
         instance_name, instance_name,
