@@ -61,7 +61,7 @@ pub struct Variable {
 #[derive(Debug, Clone)]
 pub struct Scope {
     pub variables: HashMap<String, Variable>,
-    pub screen_index: usize,
+    pub screen_index: u128,
     pub depth: usize,
     pub is_cycle: bool,
 
@@ -88,7 +88,7 @@ impl Scope {
     /// Генерирует случайный айди экрана для надёжности
     pub fn screen_index_generate(&mut self) {
         let mut range = rand::thread_rng();
-        self.screen_index = range.gen_range(0..=usize::MAX);
+        self.screen_index = range.gen_range(0..=u128::MAX);
     }
 }
 

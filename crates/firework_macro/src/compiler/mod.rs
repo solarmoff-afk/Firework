@@ -51,14 +51,33 @@ pub fn run_firework_compiler_temp(ast: FireworkAst, id: u64) -> (proc_macro2::To
 
     if let Some(ir) = output.2 {
         let mut codegen = CodeGen::new(ir);
-        let output = codegen.run();
+        let codegen_output = codegen.run();
 
-        println!("{}", output);
+        println!("{}", codegen_output);
 
-        let syntax_tree: File = parse_str(&output).unwrap();
+        let syntax_tree: File = parse_str(&codegen_output).unwrap();
         let formatted = unparse(&syntax_tree);
 
         println!("{}", formatted);
+
+        // Парсинг сгенерированного кода в токены
+        let token_stream: proc_macro2::TokenStream = match formatted.parse() {
+            Ok(token_stream) => token_stream,
+            Err(e) => {
+                let err_msg = format!("Generated invalid Rust code: {}", e);
+                let error_tokens = quote::quote! {
+                    compile_error!(#err_msg);
+                };
+                
+                return (output.0, Some(error_tokens));
+            }
+        };
+
+        let combined = quote::quote! {
+            #token_stream
+        };
+
+        return (combined, output.1)
     }
 
     (output.0, output.1)

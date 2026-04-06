@@ -10,7 +10,7 @@ pub const SCREEN_HEADER: &str = "
 /// Константа для определения ивента
 pub const CHECK_EVENT: &str = "
 \tlet mut _fwc_event = firework::LifeCycle::Zero;
-\tif _fwc_id == firework::get_focus() {
+\tif _fwc_id == firework::get_focus_id() && !_fwc_build {
 \t\t_fwc_event = firework::LifeCycle::Event;
 \t} else {
 \t\tif _fwc_build {
@@ -27,9 +27,7 @@ pub const CHECK_EVENT: &str = "
 /// завести _fwc_id и дать правильное значение из firework::register для правильной
 /// работы
 pub const SET_FOCUS: &str = "
-\tfirework::set_focus(_fwc_id);\n
+\tfirework::set_focus_id(_fwc_id);\n
 ";
 
-pub const CHECK_NAVIGATE: &str = "
-\tif matches!(_fwc_event, firework::LifeCycle::Navigate) {{\n
-";
+pub const CHECK_NAVIGATE: &str = " matches!(_fwc_event, firework::LifeCycle::Navigate) || matches!(_fwc_event, firework::LifeCycle::Build) ";

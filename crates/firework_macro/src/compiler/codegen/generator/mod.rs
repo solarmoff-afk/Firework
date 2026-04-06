@@ -68,7 +68,7 @@ impl CodeGen {
            
             // Проверка является ли это первым вызовом функции, так как на каждый экран
             // (функцию) идёт свой экземпляр то можно проверять по нему 
-            output.push_str(static_gen::is_first_call(&screen_name).as_str());
+            output.push_str(static_gen::is_first_call(*screen_id).as_str());
             output.push_str("\tlet mut _fwc_build = false;\n");
            
             // Инициализация если экземпляр ещё не инициализирован
@@ -77,7 +77,10 @@ impl CodeGen {
             output.push_str(format!("{}",CHECK_EVENT).as_str());
             
             // Устанавливает фокус на этот экран
-            output.push_str(format!("{}", SET_FOCUS).as_str()); 
+            output.push_str(format!("{}", SET_FOCUS).as_str());
+
+            // Устанавливает указатель на функцию чтобы присылать ивенты
+            output.push_str(format!("\tfirework::set_focus({});\n", screen_name).as_str());
             
             output.push_str("\n\t// Phase 2: Navigate/Build code\n");
             
@@ -151,7 +154,9 @@ impl CodeGen {
                         screen_code.0.push_str(format!("{}}}\n\n", depth).as_str()); 
                         
                         // Снятие владения из структуры
-                        let getter = format!("{}_INSTANCE.{}", struct_name, field_name);
+                        let instance_name_upper = struct_name.to_uppercase();
+                        let getter = format!("{}_INSTANCE.{}", instance_name_upper, field_name);
+
                         screen_code.0.push_str(
                             format!("{}let mut {} = unsafe {{ {}.take().unwrap() }};\n",
                                 depth, name, getter).as_str());
@@ -204,6 +209,10 @@ impl CodeGen {
                             CodeGen::generate_check_spark_bit(screen_code, *id);
                             screen_code.0.push_str(" ||");
                         }
+
+                        // Третья часть выражения, проверка на навигацию или билд чтобы
+                        // реактивный блок выполнился один раз при первой навигации
+                        screen_code.0.push_str(format!("{} || ", CHECK_NAVIGATE).as_str());
 
                         // Хак для упрощения кодогенератора, только здесь false чтобы
                         // это условие никогда не выполнилось. Это третье

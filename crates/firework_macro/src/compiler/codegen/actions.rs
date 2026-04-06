@@ -115,11 +115,11 @@ pub struct FireworkIR {
     pub screens: Vec<(
         String,
         String,
-        usize, // Id экрана
+        u128, // Id экрана
     )>,
 
     // Хэшмап для хранения id экрана -> количество спарков
-    pub screen_sparks: HashMap<usize, usize>, 
+    pub screen_sparks: HashMap<u128, usize>, 
    
     // Структуры, трейты и так далее которые определены на верхнем уровне вызова
     // процедурного макроса, нужны для вставки в кодогенерации

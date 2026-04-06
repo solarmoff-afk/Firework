@@ -29,11 +29,8 @@ pub(crate) fn static_declaration(instance_name: &str, struct_name: &str, fields:
 
 /// Хелпер для создания переменной которая хранит указатель на текущую
 /// функцию чтобы сравнивать его и установить в диспетчере
-pub(crate) fn is_first_call(function_name: &str) -> String {
-    format!(
-        "\tlet _fwc_id: fn() = {};\n",
-        function_name,
-    )
+pub(crate) fn is_first_call(id: u128) -> String {
+    format!("\tlet _fwc_id: u128 = {};\n", id)
 }
 
 /// Хелпер для инлайна инициализации поля _fwc_screen_id через firework::register, так как
@@ -41,8 +38,8 @@ pub(crate) fn is_first_call(function_name: &str) -> String {
 /// использовать заглушку (Some(1)) чтобы не переписывать много кода
 pub(crate) fn init_instance(instance_name: &str, screen_name: &str) -> String {
     format!(
-        "\tif _fwc_id == firework::get_focus() {{\n\t\t_fwc_build = true;\n\t\tunsafe {{\n\t\t\t{}_INSTANCE._fwc_screen_id = Some(1);\n\t\t}}\n\t}}\n\n",
-        instance_name,
+        "\tif unsafe {{ {}_INSTANCE._fwc_screen_id.is_none() }} {{\n\t\t_fwc_build = true;\n\t\tunsafe {{\n\t\t\t{}_INSTANCE._fwc_screen_id = Some(1);\n\t\t}}\n\t}}\n\n",
+        instance_name, instance_name,
     )
 }
 
@@ -55,8 +52,12 @@ pub(crate) fn block_ref(instance_name: &str) -> String {
 /// считает что все поля в экземпляре это Option поэтому автоматически задае́т
 /// им значение как Some( ... ) где "..." это ввод
 pub(crate) fn set_field(instance_name: &str, field_name: &str, value: &str) -> String {
+    // Статический экземпляр имеет имя в верхнем регистре поэтому для правильной генерации
+    // нужно возвести имя структуры в верхний регистр
+    let instance_name_upper = instance_name.to_uppercase();
+
     format!(
         "\tunsafe {{ {}_INSTANCE.{} = Some({}) }};\n",
-        instance_name, field_name, value,
+        instance_name_upper, field_name, value,
     )
 }

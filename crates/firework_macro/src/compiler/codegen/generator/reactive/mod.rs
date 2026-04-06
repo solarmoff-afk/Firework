@@ -51,7 +51,7 @@ impl CodeGen {
             // позволяет выйти из цикла если происходит уже более 64 итераций. Он
             // u8 так как цикл будет завершён если итераций больше 64, а лимит u8
             // это 256. Также 64 является оптимальным значением для 99.999% UI
-            screen_code.0.push_str(format!("{}let _fwc_guard: u8 = 0;\n", depth).as_str());
+            screen_code.0.push_str(format!("{}let mut _fwc_guard: u8 = 0;\n", depth).as_str());
             
             screen_code.0.push_str(format!("{}loop {{\n", depth).as_str());
                     
@@ -101,7 +101,7 @@ impl CodeGen {
                 // Вторая часть выражения, для каждой маски генерируем проверку что она
                 // не нулевая
                 screen_code.0.push_str(format!("_fwc_bitmask{} == 0 && ", mask_index + 1).as_str()); 
-            }
+            } 
 
             // Третья часть выражения, небольшой хак. Вторая часть выражения сгенерирует
             // код типа if _fwc_bitmask0 == 0 && {} или if _fwc_bitmask0 == 0 &&

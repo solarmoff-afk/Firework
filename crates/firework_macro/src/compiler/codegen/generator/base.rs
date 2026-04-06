@@ -45,7 +45,7 @@ impl CodeGen {
                 }
               
                 // Специальное поле чтобы хранить индекс указателя на функцию экрана в фреймворке 
-                output.push_str("\t_fwc_screen_id: Option<usize>,\n");
+                output.push_str("\t_fwc_screen_id: Option<u64>,\n");
 
                 output.push_str("}\n\n"); 
             } else {
