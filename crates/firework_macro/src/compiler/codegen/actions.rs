@@ -21,6 +21,9 @@ pub enum FireworkReactiveBlock {
 
     // Match 
     ReactiveMatch,
+
+    // Эффект, реактивный блок без условия
+    Effect,
 }
 
 #[derive(Debug, Clone)]

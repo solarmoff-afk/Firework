@@ -10,6 +10,10 @@ ui! {
         } else { 
             spark1 += 1;       
         }
+
+        effect!(spark1, {
+            println!("Привет мир");
+        });
     }
 }
 

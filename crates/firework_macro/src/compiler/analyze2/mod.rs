@@ -307,7 +307,7 @@ impl Analyzer {
         // Закрывающая фигурная скобка также является частью реактивного блока
         self.statement.is_reactive_block = true;
         
-        self.reactive_block = state; 
+        self.reactive_block = state;
         
         // Защита от переполнения
         if self.scope.depth > 0 {
@@ -515,7 +515,9 @@ pub fn prepare_tokens(tokens: Vec<TokenTree>, _id: u64) -> (proc_macro2::TokenSt
     let mut analyzer = Analyzer::new();
     analyzer.scope.screen_index_generate();
     analyzer.visit_file(&file); 
- 
+
+    println!("IR len: {}, IR: {:#?}", analyzer.ir.statements.len(), analyzer.ir);
+    
     if !analyzer.errors.is_empty() {
         let mut final_error = analyzer.errors[0].clone();
         

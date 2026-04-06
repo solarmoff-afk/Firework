@@ -109,6 +109,24 @@ error[FE011]: cannot assign to reactive variable without `mut`
    = note: for more information, see: [WORK IN PROGRESS]
 ";
 
+/// Эффект должен содержать блок с логикой которая будет вызываться при изменении зависимостей
+pub const EFFECT_MISSING_BODY_ERROR: &str = "\
+error[FE012]: effect!() requires a body block as the last argument
+   = note: effect!() tracks reactive dependencies and re-runs the body when they change
+   = help: add a block `{ ... }` after the reactive variables
+   = help: example: `effect!(spark1, spark2, { println!(\"changed!\"); });`
+   = note: for more information, see: [WORK IN PROGRESS]
+";
+
+/// Эффект должен отслеживать хотя бы один спарк иначе он никогда не сработает
+pub const EFFECT_NO_SPARKS_ERROR: &str = "\
+error[FE013]: effect!() must track at least one reactive variable
+   = note: effects without reactive dependencies never trigger and are useless
+   = help: pass at least one spark variable as an argument before the body block
+   = help: example: `effect!(my_spark, { println!(\"changed!\"); });`
+   = note: for more information, see: [WORK IN PROGRESS]
+";
+
 pub fn compile_error_spanned<T: quote::ToTokens>(tokens: T, msg: &str) -> Error {
     Error::new_spanned(tokens, msg)
 }
