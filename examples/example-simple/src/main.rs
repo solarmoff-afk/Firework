@@ -13,7 +13,7 @@ ui! {
 
         effect!(spark1, {
             println!("Привет мир");
-        });
+        }); 
 
         spark1 += 1;
     }

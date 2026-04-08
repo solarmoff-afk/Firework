@@ -3,7 +3,7 @@
 
 pub use super::super::*;
 
-use super::super::type_checker::guess_type_from_expr;
+use super::super::type_inference::guess_type_from_expr;
 
 impl Analyzer {
     /// Маркер spark!()

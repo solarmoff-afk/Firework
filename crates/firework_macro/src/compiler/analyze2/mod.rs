@@ -5,7 +5,7 @@ mod marks;
 mod spark;
 mod widget;
 mod visitor;
-mod type_checker;
+mod type_inference;
 
 use proc_macro2::{TokenTree, TokenStream};
 use syn::*;
