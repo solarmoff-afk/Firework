@@ -3,6 +3,8 @@
 
 use super::CodeGen;
 
+use crate::compiler::codegen::generator::static_gen;
+
 impl CodeGen {
     /// Добавляет в выходной код декларацию всех элементов верхнего уровня которые
     /// собрал analyze и которые не относятся к ui, например
@@ -57,24 +59,7 @@ impl CodeGen {
         // однопоточный)
         for (block_struct, fields) in &self.ir.screen_structs {
             let instance_name = block_struct.to_uppercase();
-
-            // Если в структуре есть поля
-            if fields.len() > 0 {
-                output.push_str(format!(
-                    "static mut {}_INSTANCE: {} = {} {{\n",
-                    instance_name, block_struct, block_struct,
-                ).as_str());
-                
-                // Все поля которые создал анализатор это None
-                for (field_name, _) in fields {
-                    output.push_str(format!("\t{}: None,\n", field_name).as_str());
-                }
-                
-                // Сгенерированные кодогенератором переменные (Остальные создал анализатор)
-                output.push_str("\t_fwc_screen_id: None,\n");
-                
-                output.push_str("};\n\n");
-            }
+            output.push_str(&static_gen::static_declaration(&instance_name, block_struct, fields));
         }
     }
 }

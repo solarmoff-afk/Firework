@@ -72,7 +72,13 @@ impl CodeGen {
             output.push_str("\tlet mut _fwc_build = false;\n");
            
             // Инициализация если экземпляр ещё не инициализирован
-            output.push_str(static_gen::init_instance(&instance_name, screen_name).as_str());
+            if let Some(fields) = self.ir.screen_structs.get(&struct_name) {
+                output.push_str(static_gen::init_instance(
+                    &instance_name, &struct_name, fields).as_str());
+            } else {
+                output.push_str(static_gen::init_instance(
+                    &instance_name, &struct_name, &[]).as_str());
+            }
 
             output.push_str(format!("{}",CHECK_EVENT).as_str());
             
@@ -155,11 +161,12 @@ impl CodeGen {
                         
                         // Снятие владения из структуры
                         let instance_name_upper = struct_name.to_uppercase();
-                        let getter = format!("{}_INSTANCE.{}", instance_name_upper, field_name);
 
                         screen_code.0.push_str(
-                            format!("{}let mut {} = unsafe {{ {}.take().unwrap() }};\n",
-                                depth, name, getter).as_str());
+                            format!("{}let mut {} = {};\n",
+                                depth, name,
+                                static_gen::take_field(&instance_name_upper, &field_name))
+                            .as_str());
                     },
                     
                     // Обновление реактивной переменной
