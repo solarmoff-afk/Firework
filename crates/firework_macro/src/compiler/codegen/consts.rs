@@ -9,16 +9,16 @@ pub const SCREEN_HEADER: &str = "
 
 /// Константа для определения ивента
 pub const CHECK_EVENT: &str = "
-\tlet mut _fwc_event = firework::LifeCycle::Zero;
-\tif _fwc_id == firework::get_focus_id() && !_fwc_build {
-\t\t_fwc_event = firework::LifeCycle::Event;
+\tlet mut _fwc_event = firework_ui::LifeCycle::Zero;
+\tif _fwc_id == firework_ui::get_focus_id() && !_fwc_build {
+\t\t_fwc_event = firework_ui::LifeCycle::Event;
 \t} else {
 \t\tif _fwc_build {
-\t\t\tfirework::adapter_command(firework::AdapterCommand::RemoveAll);
-\t\t\t_fwc_event = firework::LifeCycle::Build;
+\t\t\tfirework_ui::adapter_command(firework_ui::AdapterCommand::RemoveAll);
+\t\t\t_fwc_event = firework_ui::LifeCycle::Build;
 \t\t} else {
-\t\t\tfirework::adapter_command(firework::AdapterCommand::RemoveAll);
-\t\t\t_fwc_event = firework::LifeCycle::Navigate;
+\t\t\tfirework_ui::adapter_command(firework_ui::AdapterCommand::RemoveAll);
+\t\t\t_fwc_event = firework_ui::LifeCycle::Navigate;
 \t\t}
 \t}
 ";
@@ -27,7 +27,7 @@ pub const CHECK_EVENT: &str = "
 /// завести _fwc_id и дать правильное значение из firework::register для правильной
 /// работы
 pub const SET_FOCUS: &str = "
-\tfirework::set_focus_id(_fwc_id);\n
+\tfirework_ui::set_focus_id(_fwc_id);\n
 ";
 
-pub const CHECK_NAVIGATE: &str = " matches!(_fwc_event, firework::LifeCycle::Navigate) || matches!(_fwc_event, firework::LifeCycle::Build) ";
+pub const CHECK_NAVIGATE: &str = " matches!(_fwc_event, firework_ui::LifeCycle::Navigate) || matches!(_fwc_event, firework_ui::LifeCycle::Build) ";

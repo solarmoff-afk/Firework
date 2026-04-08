@@ -16,5 +16,5 @@ panic = "abort"
 strip = true
 
 [workspace.dependencies]
-firework = { path = "./firework" }
+firework-ui = { path = "./firework" }
 firework_macro = { path = "./crates/firework_macro" }

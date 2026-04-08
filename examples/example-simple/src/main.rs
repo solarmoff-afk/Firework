@@ -1,4 +1,4 @@
-use firework::ui;
+use firework_ui::ui;
 
 ui! {
     fn test_screen() { 
@@ -18,5 +18,5 @@ ui! {
 }
 
 fn main() {
-    firework::run(test_screen);
+    firework_ui::run(test_screen);
 }

@@ -86,7 +86,7 @@ impl CodeGen {
             output.push_str(format!("{}", SET_FOCUS).as_str());
 
             // Устанавливает указатель на функцию чтобы присылать ивенты
-            output.push_str(format!("\tfirework::set_focus({});\n", screen_name).as_str());
+            output.push_str(format!("\tfirework_ui::set_focus({});\n", screen_name).as_str());
             
             output.push_str("\n\t// Phase 2: Navigate/Build code\n");
             
@@ -148,7 +148,7 @@ impl CodeGen {
                         let field_name = format!("spark_{}", id);
                         
                         screen_code.0.push_str(format!(
-                            "{}if matches!(_fwc_event, firework::LifeCycle::Build) {{\n", depth,
+                            "{}if matches!(_fwc_event, firework_ui::LifeCycle::Build) {{\n", depth,
                         ).as_str());
                         
                         screen_code.0.push_str(&static_gen::set_field(
