@@ -215,8 +215,6 @@ impl<'ast> Analyzer {
                         return;
                     }
 
-                    // Используем хэндлер, но БЕЗ вызова analyze_block внутри,
-                    // чтобы избежать дублирования скобок и проблем со стэком областей видимости.
                     self.handle_reactive_block(
                         effect_sparks.clone(),
                         false,
@@ -229,7 +227,7 @@ impl<'ast> Analyzer {
                         }
                     );
                 } else {
-                    // [FE0012]
+                    // [FE012]
                     // Эффект должен иметь блок последним аргументом
                     self.errors.push(
                         compile_error_spanned(

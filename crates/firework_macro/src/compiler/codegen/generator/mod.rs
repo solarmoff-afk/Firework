@@ -177,11 +177,44 @@ impl CodeGen {
                         // определить в какой маске изменить спарк
                         let mask = get_spark_mask(*id);
 
+                        // Если это обновление спарка которое не находится в реактивном
+                        // блоке либо в ивенте то оно должно сработать только при Navigate
+                        // или Build для того чтобы не было сюрпризов. При следующем шаге
+                        // цикла (если хотя-бы один бит в одной из битовых масок активен то
+                        // break не выполнится) _fwc_event изменит своё значение со старого
+                        // на LifeCycle::Reactive из-за чего это не позволит создать цикл
+                        // на 64 итерации (или другое ограничение _fwc_guard) при подобном
+                        // коде
+                        //
+                        // fn test_screen() {
+                        //  // Spark...
+                        //
+                        //  // Это сработает только если _fwc_event это Build или Navigate,
+                        //  // как только значение изменится и в битовой маске появится
+                        //  // активный бит то _fwc_event станет LifeCycle::Reactive 
+                        //  // из-за чего этот код не будет выполнен и не начнёт обновлять
+                        //  // битовую маску каждую итерацию
+                        //  spark1 += 1;
+                        // }
+                        let need_condition = !statement.is_reactive_block
+                            && statement.parent_widget_id.is_none();
+
+                        if need_condition {
+                            screen_code.0.push_str(
+                                format!("{}if {} {{\n", depth, CHECK_NAVIGATE).as_str());
+                        }
+
                         // Генерация кода изменения бита
-                        CodeGen::generate_update_spark(screen_code, *id, mask.into(), &depth);
-                    
+                        CodeGen::generate_update_spark(screen_code, *id, mask.into(), &depth); 
+
                         // Всё равно нужен инлайн строки в результат кодогенерации
                         screen_code.0.push_str(format!("{}{}\n", depth, statement.string).as_str());
+
+                        // Если условие на Navigate или Build было открыто то его нужно
+                        // закрыть. Это нужно сделать после инлайна оригинальной строки
+                        if need_condition {
+                            screen_code.0.push_str(format!("{}}}", depth).as_str());
+                        }
                     },
 
                     // Возврат реактивной переменной со стэка обратно в статическую память
