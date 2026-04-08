@@ -148,7 +148,7 @@ impl CodeGen {
                         let field_name = format!("spark_{}", id);
                         
                         screen_code.0.push_str(format!(
-                            "{}if matches!(_fwc_event, firework_ui::LifeCycle::Build) {{\n", depth,
+                            "{}if firework_ui::tiny_matches!(_fwc_event, firework_ui::LifeCycle::Build) {{\n", depth,
                         ).as_str());
                         
                         screen_code.0.push_str(&static_gen::set_field(

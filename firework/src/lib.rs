@@ -3,7 +3,19 @@
 
 pub use firework_macro::{ui, component};
 
-/// Состояния жизненного цикла
+/// A simpler implementation of the matches macro separate from STD for use in
+/// generated code
+#[macro_export]
+macro_rules! tiny_matches {
+    ($expression:expr, $($pattern:pat_param)|+ $(if $guard:expr)?) => {
+        match $expression {
+            $($pattern)|+ $(if $guard)? => true,
+            _ => false
+        }
+    };
+}
+
+/// Current Flash pass context of the screen or component
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum LifeCycle {
     Zero,
@@ -82,8 +94,6 @@ pub fn set_focus_id(id: u128) {
     *CURRENT_FOCUS_ID.get_or_init(|| Mutex::new(None)).lock().unwrap() = Some(id);
 }
 
-/// Точка входа для адаптера отрисовки. 
-/// Макрос генерирует вызовы этой функции для управления кадрами.
 pub fn adapter_command(command: AdapterCommand) {
     match command {
         AdapterCommand::RemoveAll => {

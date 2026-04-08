@@ -43,11 +43,11 @@ impl CodeGen {
                 output.push_str(format!("struct {} {{\n", block_struct).as_str());
                 
                 for (field_name, field_type) in fields {
-                    output.push_str(format!("\t{}: Option<{}>,\n", field_name, field_type).as_str());
+                    output.push_str(format!("\t{}: core::option::Option<{}>,\n", field_name, field_type).as_str());
                 }
               
                 // Специальное поле чтобы хранить индекс указателя на функцию экрана в фреймворке 
-                output.push_str("\t_fwc_screen_id: Option<u64>,\n");
+                output.push_str("\t_fwc_screen_id: core::option::Option<u64>,\n");
 
                 output.push_str("}\n\n"); 
             } else {
