@@ -10,6 +10,7 @@ pub enum LifeCycle {
     Event,
     Build,
     Navigate,
+    Reactive,
 }
 
 /// Команды для низкоуровневого графического адаптера
