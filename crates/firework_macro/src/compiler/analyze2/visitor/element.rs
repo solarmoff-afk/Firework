@@ -70,11 +70,12 @@ impl<'ast> Analyzer {
                     name.clone(), has_microruntime,
                 );
                 
-                self.statement.scope = self.scope.clone(); 
+                self.statement.screen_index = self.scope.screen_index;
+                self.statement.depth = self.scope.depth;
                 self.ir.statements.push(self.statement.clone());
 
                 self.scope.depth += 1;
-                self.statement.scope.depth += 1;
+                self.statement.depth += 1;
 
                 // Добавление перед парсингом вложенных команд
                 self.layouts_count += 1;
@@ -87,7 +88,7 @@ impl<'ast> Analyzer {
                 self.layouts_count -= 1; 
                
                 self.scope.depth -= 1;
-                self.statement.scope.depth -= 1;
+                self.statement.depth -= 1;
                 self.statement.action = FireworkAction::DefaultCode;
                 self.statement.string = "}".to_string();
                 self.statement_index += 1;

@@ -35,7 +35,8 @@ impl<'ast> Analyzer {
         if should_push {
             // Если это лайаут блок то клонирование области видимости и пуш уже
             // были и клонировать второй раз нет смысла
-            self.statement.scope = self.scope.clone();
+             self.statement.screen_index = self.scope.screen_index;
+            self.statement.depth = self.scope.depth;
             self.ir.statements.push(self.statement.clone());
         }
         

@@ -11,7 +11,11 @@ use codegen::generator::CodeGen;
 
 use proc_macro2::TokenTree;
 use quote::quote;
+
+#[cfg(feature = "debug_output")]
 use syn::{File, parse_str};
+
+#[cfg(feature = "debug_output")]
 use prettyplease::unparse;
 
 use crate::FireworkAst;
@@ -49,17 +53,25 @@ pub fn run_firework_compiler_temp(ast: FireworkAst, id: u64) -> (proc_macro2::To
 
     if let Some(ir) = output.2 {
         let mut codegen = CodeGen::new(ir);
+
+        #[cfg(feature = "debug_output")]
+        let mut codegen_output = codegen.run();
+
+        #[cfg(not(feature = "debug_output"))]
         let codegen_output = codegen.run();
 
-        println!("{}", codegen_output);
+        #[cfg(feature = "debug_output")]
+        {
+            println!("{}", codegen_output);
 
-        let syntax_tree: File = parse_str(&codegen_output).unwrap();
-        let formatted = unparse(&syntax_tree);
+            let syntax_tree: File = parse_str(&codegen_output).unwrap();
+            codegen_output = unparse(&syntax_tree);
 
-        println!("{}", formatted);
+            println!("{}", codegen_output);
+        }
 
         // Парсинг сгенерированного кода в токены
-        let token_stream: proc_macro2::TokenStream = match formatted.parse() {
+        let token_stream: proc_macro2::TokenStream = match codegen_output.parse() {
             Ok(token_stream) => token_stream,
             Err(e) => {
                 let err_msg = format!("Generated invalid Rust code: {}", e);

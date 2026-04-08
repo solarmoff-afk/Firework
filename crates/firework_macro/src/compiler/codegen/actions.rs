@@ -5,8 +5,6 @@
 
 use std::collections::HashMap;
 
-use crate::compiler::analyze2::Scope;
-
 /// Какой это конкретно реактивный блок
 #[derive(Debug, Clone)]
 pub enum FireworkReactiveBlock {
@@ -103,9 +101,8 @@ pub struct FireworkStatement {
 
     pub reactive_loop: bool,
 
-    // TODO: Оптимизировать, так как клонировать Scope (HashSet + usize) для каждого
-    // statement может быть дорого
-    pub scope: Scope,
+    pub depth: u16,
+    pub screen_index: u128,
 }
 
 #[derive(Debug, Clone)]
@@ -128,7 +125,7 @@ pub struct FireworkIR {
    
     // Структуры, трейты и так далее которые определены на верхнем уровне вызова
     // процедурного макроса, нужны для вставки в кодогенерации
-    pub items: Vec<String>,
+    pub items: Vec<String>, 
 }
 
 /// Поле виджета в Widget DSL, полем считается отдельная часть общей настройки

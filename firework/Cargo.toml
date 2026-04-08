@@ -9,6 +9,7 @@ proc-macro = false
 [features]
 default = []
 safety-multithread = ["firework_macro/safety-multithread"]
+detail = ["firework_macro/debug_output"]
 
 [dependencies]
 firework_macro = { workspace = true }

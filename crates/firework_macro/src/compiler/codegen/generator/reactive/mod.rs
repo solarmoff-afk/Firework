@@ -27,7 +27,7 @@ impl CodeGen {
     /// работы
     pub(crate) fn check_reactive_loop(
         old_reactive_loop_flag: bool,
-        depth_value: usize,
+        depth_value: u16,
         depth: &mut String,
         screen_code: &mut (String, u64),
         statement: &FireworkStatement,
@@ -56,7 +56,7 @@ impl CodeGen {
             screen_code.0.push_str(format!("{}loop {{\n", depth).as_str());
                     
             // Так как мы перешли в цикл нужно добавить глубины
-            *depth = "\t".repeat(depth_value + 1 + statement.scope.depth);
+            *depth = "\t".repeat((depth_value + 1 + statement.depth).into());
 
             // Генерация начала цикла реактивности, он нужен чтобы правильно очистить
             // битовые маски для каждого шага цикла, но при этом иметь возможность
@@ -137,7 +137,7 @@ impl CodeGen {
             // Так как это был либо терминатор либо стейтемент который не относится
             // к циклу реактивности то это завершение и нужно снизить глубину
             // форматирования
-            *depth = "\t".repeat(depth_value + statement.scope.depth);
+            *depth = "\t".repeat((depth_value + statement.depth).into());
             
             // Завершение блока цикла закрывающей скобкой
             screen_code.0.push_str(format!("{}}}\n", depth).as_str());

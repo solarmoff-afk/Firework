@@ -104,11 +104,11 @@ impl CodeGen {
     /// fn screen_func {
     ///  // Тело
     /// }
-    fn make_screens_body(&mut self, depth_value: usize) {
+    fn make_screens_body(&mut self, depth_value: u16) {
         for statement in self.ir.statements.iter() {
             // Текущая глубина, мутабельна так как её нужно изменить при входе в цикл
             // реактивности и при выходе из него
-            let mut depth = "\t".repeat(depth_value + statement.scope.depth);
+            let mut depth = "\t".repeat((depth_value + statement.depth).into());
             
             if !self.screen_map.contains_key(&statement.screen_name) {
                 // Случайный айди для статического экземпляра и структуры чтобы предотвратить
@@ -120,7 +120,7 @@ impl CodeGen {
 
             // Имя структуры для которой будет создан статический экземпляр для хранения
             // состояния и скинов виджетов
-            let struct_name = format!("ApplicationUiBlockStruct{}", statement.scope.screen_index);
+            let struct_name = format!("ApplicationUiBlockStruct{}", statement.screen_index);
             if let Some(screen_code) = self.screen_map.get_mut(&statement.screen_name) {
                 // Получение количества битовых масок для цикла по этому значению
                 let mask_count = self.screen_bitmask_count_map.get(&statement.screen_name)

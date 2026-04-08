@@ -61,7 +61,7 @@ pub struct Variable {
 pub struct Scope {
     pub variables: HashMap<String, Variable>,
     pub screen_index: u128,
-    pub depth: usize,
+    pub depth: u16,
     pub is_cycle: bool,
 
     // Имя цикла, нужно для синтаксиса break 'label. Если это не цикл то None
@@ -184,10 +184,11 @@ impl Analyzer {
                 is_reactive_block: false,
                 index: 0,
                 screen_name: String::from(""),
-                scope: Scope::new(),
                 string: String::from(""),
                 parent_widget_id: None,
                 reactive_loop: false,
+                depth: 0,
+                screen_index: 0,
             },
 
             ir: FireworkIR {
@@ -216,7 +217,8 @@ impl Analyzer {
 
     /// Метод для вывода всего что собранно в области видимости
     pub fn log_scope(&self) {
-        // println!("{:#?}", self.scope.variables);
+        #[cfg(feature = "debug_output")]
+        println!("{:#?}", self.scope.variables);
     }
    
     /// Метод обёртка над SparkFinder чтобы быстро найти наличие спарка в выражении
@@ -516,6 +518,7 @@ pub fn prepare_tokens(tokens: Vec<TokenTree>, _id: u64) -> (proc_macro2::TokenSt
     analyzer.scope.screen_index_generate();
     analyzer.visit_file(&file); 
 
+    #[cfg(feature = "debug_output")]
     println!("IR len: {}, IR: {:#?}", analyzer.ir.statements.len(), analyzer.ir);
     
     if !analyzer.errors.is_empty() {
