@@ -26,5 +26,5 @@ pub(crate) fn normalize_bit_index(id: usize) -> u8 {
 
 pub(crate) fn get_spark_mask(id: usize) -> u8 {
     // 1 -> 1, 19 -> 1, 64 -> 1, 67 -> 2, 98 -> 2, 128 -> 2, 136 -> 3
-    ((id + 63) / 64) as u8
+    ((id / 64) + 1) as u8
 }

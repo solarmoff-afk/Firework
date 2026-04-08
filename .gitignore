@@ -1,2 +1,3 @@
 target/
+crates/sonic_layout/
 Cargo.lock
