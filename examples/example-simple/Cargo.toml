@@ -3,5 +3,10 @@ name = "example-simple"
 version = "0.1.0"
 edition = "2024"
 
+[features]
+default = []
+safety-multithread = ["firework-ui/safety-multithread"]
+detail = ["firework-ui/detail"]
+
 [dependencies]
-firework-ui = { workspace = true, features = ["detail"] }
+firework-ui = { workspace = true }

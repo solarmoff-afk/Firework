@@ -3,17 +3,16 @@ use firework_ui::ui;
 ui! {
     fn test_screen() { 
         let mut spark1 = spark!(0u32);
-
-        if spark1 >= 1 && spark1 < 5 {
-            println!("Реактивное обновление!");
-            spark1 += 1;
-        }
+        let mut spark2 = spark!(0u32);
+        
+        spark1 += spark2;
 
         effect!(spark1, {
-            println!("Привет мир");
-        }); 
+            println!("Update spark1: {}", spark1);
+            spark2 = 10;
+        });
 
-        spark1 += 1;
+        spark2 = 10;
     }
 }
 

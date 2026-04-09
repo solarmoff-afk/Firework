@@ -3,7 +3,7 @@ resolver = "2"
 members = [
   "crates/firework_macro",
   "examples/example-simple",
-  "firework"    
+  "firework",
 ]
 
 [profile.release]

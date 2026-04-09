@@ -30,14 +30,18 @@ impl<'ast> Analyzer {
                             &i,
                             SPARK_MUT_REQUIRED_ERROR,
                         ));
-                    }
-                    
+                    } 
+
                     self.statement.action = FireworkAction::UpdateSpark(
                         root_name, variable.spark_id,
                     );
                     
                     // Работа со спарками также должна включать реактивный цикл
                     self.statement.reactive_loop = true;
+
+                    // Клоинрование стейтемента перед передачей нужно для того чтобы
+                    // сохранилась семантическая метка (FireworkAction)
+                    self.compute_spark(&i.right, self.statement.clone());
                 }
             }
         }
@@ -53,7 +57,7 @@ impl<'ast> Analyzer {
             BinOp::AddAssign(_)   | BinOp::SubAssign(_)    | BinOp::MulAssign(_)    |
             BinOp::DivAssign(_)   | BinOp::RemAssign(_)    | BinOp::BitAndAssign(_) |
             BinOp::BitOrAssign(_) | BinOp::BitXorAssign(_) | BinOp::ShlAssign(_)    |
-            BinOp::ShrAssign(_)  => true,
+            BinOp::ShrAssign(_)   => true,
 
             _ => false,
         };
@@ -72,7 +76,10 @@ impl<'ast> Analyzer {
                         self.statement.action = FireworkAction::UpdateSpark(
                             root_name, variable.spark_id,
                         );
+
                         self.statement.reactive_loop = true;
+
+                        self.compute_spark(&i.right, self.statement.clone());
                     }
                 }
             }
@@ -105,6 +112,33 @@ impl<'ast> Analyzer {
                     }
                 }
             }
+        }
+    }
+
+    /// Этот метод реализует ищет спарки в правой части присваивания к реактивной переменной
+    /// и если находит то оборачивает весь стейтемент в эффект который подписан на все
+    /// спарки которые используются в варажении. Позволяет писать spark1 = spark2 + spark3
+    /// без обёрток (как effect!(..., {})) и делать код интутивно понятным. Второй аргумент
+    /// это стейтемент который будет вставлен в IR как внутрянка эффекта
+    pub(crate) fn compute_spark(&mut self, right: &'ast Expr, mut statement: FireworkStatement) {
+        let effect_sparks = self.get_sparks(&right);
+        
+        if effect_sparks.len() > 0 {
+            self.handle_reactive_block(
+                effect_sparks.clone(),
+                false,
+                "{ // effect".to_string(),
+                FireworkAction::ReactiveBlock(FireworkReactiveBlock::Effect, effect_sparks),
+                |this| {
+                    // Так как условие if effect_sparks.len() > 0 { выше не сработало бы
+                    // и этот код не выполнился бы если в выражении нет спарков то блок
+                    // здесь точно реактивный. Это не затронет self.statement так как
+                    // statement это клон
+                    statement.is_reactive_block = true;
+
+                    this.ir.statements.push(statement);
+                }
+            ); 
         }
     }
 }

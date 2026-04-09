@@ -1,3 +1,4 @@
 target/
 crates/sonic_layout/
+crates/sonic_layout_aot/
 Cargo.lock
