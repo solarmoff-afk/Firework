@@ -1,6 +1,6 @@
 [package]
-name = "firework-ui"
-version = "0.2.0"
+name = "firework_ui"
+version = "0.3.0"
 edition = "2024"
 
 [lib]
@@ -13,3 +13,4 @@ detail = ["firework_macro/debug_output"]
 
 [dependencies]
 firework_macro = { workspace = true }
+firework_adapter = { workspace = true }

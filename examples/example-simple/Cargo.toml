@@ -5,8 +5,8 @@ edition = "2024"
 
 [features]
 default = []
-safety-multithread = ["firework-ui/safety-multithread"]
-detail = ["firework-ui/detail"]
+safety-multithread = ["firework_ui/safety-multithread"]
+detail = ["firework_ui/detail"]
 
 [dependencies]
-firework-ui = { workspace = true }
+firework_ui = { workspace = true }

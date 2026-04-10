@@ -1,6 +1,7 @@
 [workspace]
 resolver = "2"
 members = [
+  "crates/firework_adapter",
   "crates/firework_macro",
   "examples/example-simple",
   "firework",
@@ -16,5 +17,6 @@ panic = "abort"
 strip = true
 
 [workspace.dependencies]
-firework-ui = { path = "./firework" }
+firework_ui = { path = "./firework" }
 firework_macro = { path = "./crates/firework_macro" }
+firework_adapter = { path = "./crates/firework_adapter" }
