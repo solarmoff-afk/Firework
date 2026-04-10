@@ -5,8 +5,9 @@ ui! {
         let mut spark1 = spark!(0u32);
         let mut spark2 = spark!(0u32);
 
-        let mut spark0: u32 = spark!({
-            println!("Hello world"); 
+        let spark0: u32 = spark!({
+            println!("Hello world");
+            0
         });
 
         spark1 += spark2;
