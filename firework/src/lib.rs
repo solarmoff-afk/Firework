@@ -125,8 +125,18 @@ pub fn adapter_command(command: AdapterCommand) -> AdapterResult {
     get_adapter()(command)
 }
 
+fn default_adapter(command: AdapterCommand) -> AdapterResult {
+    match command {
+        _ => {},
+    }
+
+    AdapterResult::Void
+}
+
 pub fn run(root_slide: fn()) {
+    set_adapter(default_adapter);
     root_slide();
+
     after_first_flash();
 }
 
@@ -142,6 +152,14 @@ pub fn after_first_flash() {
         title: "Test",
         width: 720,
         height: 1280,
-        listener: |_event| {},
+        listener: |event| {
+            match event {
+                AdapterEvent::Tick => {
+                    adapter_command(AdapterCommand::Render);
+                },
+                
+                _ => {},
+            }
+        },
     });
 }

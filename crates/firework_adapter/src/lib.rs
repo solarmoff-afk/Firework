@@ -51,7 +51,9 @@ pub enum AdapterCommand {
         width: u32,
         height: u32,
         listener: fn(AdapterEvent),
-    }
+    },
+
+    Render,
 }
 
 /// > ENG: Enumeration for implementing an abstraction over the EventLoop event. In your 
