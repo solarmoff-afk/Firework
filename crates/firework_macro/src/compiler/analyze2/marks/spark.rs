@@ -102,6 +102,7 @@ impl Analyzer {
                         id: self.spark_counter,
                         spark_type: var_data.clone().variable_type,
                         expr_body: _spark_content,
+                        is_mut: var_data.is_mut,
                     };
                 }
                 

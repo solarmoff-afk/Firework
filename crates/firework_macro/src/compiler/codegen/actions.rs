@@ -36,6 +36,7 @@ pub enum FireworkAction {
         id: usize,
         spark_type: String,
         expr_body: String,
+        is_mut: bool,
     },
 
     // Когда спарк выходит из области видимости необходимо вернуть владение обратно в

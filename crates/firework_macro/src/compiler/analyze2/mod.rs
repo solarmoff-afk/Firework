@@ -272,19 +272,40 @@ impl Analyzer {
         // определить сколько табов нужно
         self.scope.depth += 1;
 
+        // Текущее состояние
         let state = self.reactive_block;
         let condition_has_spark = !sparks.is_empty();
         
+        // Стейтемент для открытия реактивного блока чтобы кодогенератор мог правильно
+        // сгенерировать реактивный блок
         let mut open_statement = self.statement.clone();
         open_statement.string = open_code;
+
+        // Нулевой эффект это эффект который не содержит спарков в условии. Он нужен чтобы
+        // создать код который выполняется только при билде и навигации, а Event или
+        // Reactive флэши его не трогают
+        let mut is_null_effect = false;
         
-        if condition_has_spark && self.reactive_block.is_none() {
+        if let FireworkAction::ReactiveBlock(FireworkReactiveBlock::Effect, vec) = &action {
+            // Нулевой эффект должен быть пустым
+            is_null_effect = vec.is_empty();
+        }
+        
+        // Если в условии есть спарки ИЛИ это нулевой эффект и мы сейчас не в реактивном
+        // блоке то мы входим в реактивный блок. Реактивные блоки в реактивных блоках не
+        // работают. То есть реактивный блок будет создан если в условии есть спарки или
+        // если это эффект без спарков. Если это эффект у которого есть спарки то это
+        // сделает true condition_has_spark, а если это эффект без спарков то is_null_effect
+        if (condition_has_spark || is_null_effect) && self.reactive_block.is_none() {
             open_statement.action = action;
             open_statement.is_reactive_block = true;
 
             self.reactive_block = Some((self.statement_index, is_loop));
         } else {
+            // Иначе это может быть else реактивного блока
             open_statement.action = FireworkAction::ReactiveElse;
+
+            // Если это не else то обычный код
             if !matches!(action, FireworkAction::ReactiveElse) {
                 open_statement.action = FireworkAction::DefaultCode;
             }
@@ -292,14 +313,19 @@ impl Analyzer {
             open_statement.is_reactive_block = false;
         } 
 
+        // Открывающий стейтемент реактивного блока
         self.ir.statements.push(open_statement);
         self.statement_index += 1;
         
         // let _saved_action = self.statement.action.clone();
         self.statement.action = FireworkAction::DefaultCode;
         
+        // Замыкание чтобы выполнить все блоки, self передаётся из-за того что в
+        // расте нельзя использовать self внутри метода этой же структуры поэтому
+        // здесь передаётся self как аргумент замыкания
         visit_fn(self);
         
+        // Закрывающий стейтемент реактивного блока
         self.statement.action = FireworkAction::ReactiveBlockTerminator;
         self.statement.string = "}".to_string();
         self.statement_index += 1;

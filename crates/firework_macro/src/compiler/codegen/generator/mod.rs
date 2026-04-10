@@ -152,7 +152,7 @@ impl CodeGen {
 
                 match &statement.action {
                     // Создание реактивной переменной
-                    FireworkAction::InitialSpark { id, expr_body, name, .. } => {
+                    FireworkAction::InitialSpark { id, expr_body, name, is_mut, .. } => {
                         let field_name = format!("spark_{}", id);
                         
                         screen_code.0.push_str(format!(
@@ -170,9 +170,16 @@ impl CodeGen {
                         // Снятие владения из структуры
                         let instance_name_upper = struct_name.to_uppercase();
 
+                        // Если спарк был инициализирован без mut то переменную тоже нужно
+                        // сгенерировать без mut
+                        let mut modifer = "".to_string();
+                        if *is_mut {
+                            modifer = "mut".to_string();
+                        }       
+
                         screen_code.0.push_str(
-                            format!("{}let mut {} = {};\n",
-                                depth, name,
+                            format!("{}let {} {} = {};\n",
+                                depth, modifer, name,
                                 static_gen::take_field(&instance_name_upper, &field_name))
                             .as_str());
                     },

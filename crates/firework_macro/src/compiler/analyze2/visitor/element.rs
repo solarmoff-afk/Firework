@@ -202,17 +202,6 @@ impl<'ast> Analyzer {
                     // этапе кодогенерации
                     effect_sparks.dedup();
 
-                    if effect_sparks.len() == 0 {
-                        // [FE003]
-                        // Эффект должен содержать спарки
-                        self.errors.push(compile_error_spanned(
-                            i,
-                            EFFECT_NO_SPARKS_ERROR,
-                        ));
-
-                        return;
-                    }
-
                     self.handle_reactive_block(
                         effect_sparks.clone(),
                         false,
