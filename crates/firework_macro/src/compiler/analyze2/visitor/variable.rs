@@ -34,10 +34,7 @@ impl<'ast> Analyzer {
 
                     self.statement.action = FireworkAction::UpdateSpark(
                         root_name, variable.spark_id,
-                    );
-                    
-                    // Работа со спарками также должна включать реактивный цикл
-                    self.statement.reactive_loop = true;
+                    ); 
 
                     // Клоинрование стейтемента перед передачей нужно для того чтобы
                     // сохранилась семантическая метка (FireworkAction)
@@ -77,8 +74,6 @@ impl<'ast> Analyzer {
                             root_name, variable.spark_id,
                         );
 
-                        self.statement.reactive_loop = true;
-
                         self.compute_spark(&i.right, self.statement.clone());
                     }
                 }
@@ -108,7 +103,6 @@ impl<'ast> Analyzer {
                         self.statement.action = FireworkAction::UpdateSpark(
                             root_name, variable.spark_id,
                         );
-                        self.statement.reactive_loop = true;
                     }
                 }
             }

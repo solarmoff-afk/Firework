@@ -25,13 +25,7 @@ impl<'ast> Analyzer {
         self.log_scope();
 
         // Область видимости закончилась, нужно восстановить состояние используя клон
-        let scope = self.old_scope.pop().unwrap_or(Scope::new());
-       
-        // Если это конец функции экрана то идёт отключение флага reactive_loop
-        // (находится ли стейтемент в цикле реактивности)
-        if self.old_scope.len() == 0 {
-            self.statement.reactive_loop = false;
-        }
+        let scope = self.old_scope.pop().unwrap_or(Scope::new()); 
 
         self.update_scope(scope, true);
     }

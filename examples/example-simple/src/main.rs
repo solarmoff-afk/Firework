@@ -1,7 +1,7 @@
 use firework_ui::ui;
 
 ui! {
-    fn test_screen() { 
+    fn test_screen() {
         let mut spark1 = spark!(0u32);
         let mut spark2 = spark!(0u32);
 

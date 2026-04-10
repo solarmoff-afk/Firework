@@ -281,12 +281,7 @@ impl Analyzer {
         if condition_has_spark && self.reactive_block.is_none() {
             open_statement.action = action;
             open_statement.is_reactive_block = true;
-            
-            // Реактивный блок также должен запускать реактивный цикл, причём не в
-            // open_statement, а в общий стейтемент чтобы остальные пуши в ir 
-            // содержали reactive_loop = true и добавлялись в цикл реактивности
-            self.statement.reactive_loop = true; 
-            
+
             self.reactive_block = Some((self.statement_index, is_loop));
         } else {
             open_statement.action = FireworkAction::ReactiveElse;
@@ -295,10 +290,7 @@ impl Analyzer {
             }
 
             open_statement.is_reactive_block = false;
-        }
-        
-        // Для open_statement тоже, он должен быть в цикле реактивности
-        open_statement.reactive_loop = true;
+        } 
 
         self.ir.statements.push(open_statement);
         self.statement_index += 1;

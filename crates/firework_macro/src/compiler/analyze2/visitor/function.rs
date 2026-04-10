@@ -57,6 +57,9 @@ impl<'ast> Analyzer {
         );
         self.statement.screen_name = function_name;
 
+        // Любой код в функции реактивный
+        self.statement.reactive_loop = true;
+
         syn::visit::visit_item_fn(self, node);
 
         // После парсинга функции нужно добавить стейтемент который уведомит
@@ -77,7 +80,7 @@ impl<'ast> Analyzer {
 
         // Обнуление счётчика реактивных переменных чтобы можно было считать что индекс
         // реактивной переменной это бит в битовой маске
-        self.spark_counter = 0;
+        self.spark_counter = 0; 
     }
 
     pub(crate) fn analyze_fn_arg(&mut self, i: &'ast FnArg) {

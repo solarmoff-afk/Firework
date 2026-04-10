@@ -62,11 +62,7 @@ impl<'ast> Analyzer {
                 let mut has_microruntime = false;
                 if let Some((_start, need_microruntime)) = self.reactive_block {
                     has_microruntime = need_microruntime;
-                }
-
-                if self.layouts_count == 0 {
-                    self.statement.reactive_loop = true;
-                }
+                } 
 
                 self.statement.action = FireworkAction::LayoutBlock(
                     name.clone(), has_microruntime,
