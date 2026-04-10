@@ -3,6 +3,8 @@
 
 #![allow(dead_code)]
 
+use proc_macro2::Span;
+
 use std::collections::HashMap;
 
 /// Какой это конкретно реактивный блок
@@ -103,6 +105,8 @@ pub struct FireworkStatement {
 
     pub depth: u16,
     pub screen_index: u128,
+
+    pub span: Span,
 }
 
 #[derive(Debug, Clone)]

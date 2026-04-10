@@ -1,6 +1,8 @@
 // Часть проекта Firework с открытым исходным кодом.
 // Лицензия EPL 2.0, подробнее в файле LICENSE. Copyright (c) 2026 Firework
 
+use syn::spanned::Spanned;
+
 pub use super::super::*;
 
 impl<'ast> Analyzer {
@@ -15,7 +17,10 @@ impl<'ast> Analyzer {
         };
 
         if should_push {
+            // Span добавляется в стейтемент только если это не элемент. Для элемента
+            // своя логика
             self.statement.string = i.to_token_stream().to_string();
+            self.statement.span = i.span();
         } else {
             // Имя макроса не включает восклицательный знак поэтому он добавляется
             // вручнуб в вызове format

@@ -96,7 +96,7 @@ pub(crate) fn set_field(instance_name: &str, field_name: &str, value: &str) -> S
     let instance_name_upper = instance_name.to_uppercase();
 
     format!(
-        "\tunsafe {{ {}_INSTANCE.{} = Some({}) }};\n",
+        "unsafe {{ (*::core::ptr::addr_of_mut!({}_INSTANCE)).{} = Some({}) }};\n",
         instance_name_upper, field_name, value,
     )
 }
@@ -118,7 +118,7 @@ pub(crate) fn take_field(instance_name: &str, field_name: &str) -> String {
     let instance_name_upper = instance_name.to_uppercase();
     
     format!(
-        "unsafe {{ {}_INSTANCE.{}.take().unwrap() }}",
+        "unsafe {{ (*::core::ptr::addr_of_mut!({}_INSTANCE)).{}.take().unwrap() }}",
         instance_name_upper, field_name,
     )
 }

@@ -2,13 +2,15 @@
 // Лицензия EPL 2.0, подробнее в файле LICENSE. Copyright (c) 2026 Firework
 
 use syn::parse::Parser;
+use syn::spanned::Spanned;
 
 pub use super::super::*;
 
 impl<'ast> Analyzer {
     /// Макрос который используются не в выражении, а как отдельный statement (команда)
     pub(crate) fn analyze_macro(&mut self, i: &'ast Macro) {
-        let name = i.path.to_token_stream().to_string(); 
+        let name = i.path.to_token_stream().to_string();
+        self.statement.span = i.path.span();
 
         // Проверка что лайаут конфигурируется только один раз в лайаут блоке
         if name == "layout" {

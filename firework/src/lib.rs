@@ -81,12 +81,12 @@ pub fn set_adapter(f: fn(AdapterCommand) -> AdapterResult) {
 
 #[cfg(feature = "safety-multithread")]
 pub fn set_adapter(f: fn(AdapterCommand) -> AdapterResult) {
-    CURRENT_ADAPTER.get_or_init(|| Mutex::new(None)).lock().unwrap().expect(RENDER_ADAPTER_MISSING_ERROR);
+    CURRENT_ADAPTER.get_or_init(|| Mutex::new(Some(f))).lock().unwrap().expect(RENDER_ADAPTER_MISSING_ERROR);
 }
 
 #[cfg(feature = "safety-multithread")]
 pub fn get_adapter() -> fn(AdapterCommand) -> AdapterResult {
-    CURRENT_ADAPTER.get_or_init(|| Mutex::new(None)).lock().unwrap().expect(RENDER_ADAPTER_MISSING_ERROR);
+    CURRENT_ADAPTER.get_or_init(|| Mutex::new(None)).lock().unwrap().expect(RENDER_ADAPTER_MISSING_ERROR)
 }
 
 #[cfg(not(feature = "safety-multithread"))]

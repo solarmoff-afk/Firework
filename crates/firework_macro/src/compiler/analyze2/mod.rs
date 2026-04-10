@@ -7,7 +7,7 @@ mod widget;
 mod visitor;
 mod type_inference;
 
-use proc_macro2::{TokenTree, TokenStream};
+use proc_macro2::{TokenTree, TokenStream, Span};
 use syn::*;
 use syn::visit::Visit;
 use std::collections::HashMap;
@@ -177,6 +177,8 @@ impl Analyzer {
             // Нулевая команда
             statement_index: 0,
 
+            // Был ли настроен текущий лайаут, этот флаг нужен чтобы исключить двойной
+            // вызов функционального виджета layout
             descript_layout: false,
 
             statement: FireworkStatement {
@@ -189,6 +191,10 @@ impl Analyzer {
                 reactive_loop: false,
                 depth: 0,
                 screen_index: 0,
+
+                // Указаывает на место макроса по умолчанию, в визиторе будет изменён на
+                // span конкретного стейтемента
+                span: Span::call_site(),
             },
 
             ir: FireworkIR {

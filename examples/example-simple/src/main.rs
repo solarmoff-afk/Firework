@@ -4,7 +4,7 @@ ui! {
     fn test_screen() { 
         let mut spark1 = spark!(0u32);
         let mut spark2 = spark!(0u32);
-        
+
         spark1 += spark2;
 
         effect!(spark1, {

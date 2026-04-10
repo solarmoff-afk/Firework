@@ -1,7 +1,7 @@
 // Часть проекта Firework с открытым исходным кодом.
 // Лицензия EPL 2.0, подробнее в файле LICENSE. Copyright (c) 2026 Firework
 
-use super::CodeGen;
+use super::{CodeGen, ChunkStore};
 
 use crate::compiler::codegen::generator::static_gen;
 
@@ -12,13 +12,12 @@ impl CodeGen {
     /// pub struct Name {
     ///  // ...
     /// }
-    pub(crate) fn inline_items(&self, output: &mut String) {
+    pub(crate) fn inline_items(&self, output: &mut ChunkStore) {
         for item in self.ir.items.iter() {
-            output.push_str(item);
-            output.push('\n');
+            output.push_str(format!("{}\n", item).as_str());
         }
 
-        output.push('\n');
+        output.push_str("\n");
     }
 
     /// Эта функция берёт информацию из IR и создаёт верхушку результата кодогенерации
@@ -37,7 +36,7 @@ impl CodeGen {
     ///     spark_0: None,
 	    ///     widget_object_3: None,
     /// }
-    pub(crate) fn inline_block_struct(&self, output: &mut String) {
+    pub(crate) fn inline_block_struct(&self, output: &mut ChunkStore) {
         for (block_struct, fields) in &self.ir.screen_structs {
             if fields.len() > 0 {
                 output.push_str(format!("struct {} {{\n", block_struct).as_str());

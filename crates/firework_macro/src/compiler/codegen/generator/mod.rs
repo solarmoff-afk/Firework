@@ -4,10 +4,12 @@
 mod base;
 mod static_gen;
 mod reactive;
+mod chunk;
 
 use std::collections::HashMap;
 use rand::Rng;
 use reactive::bitmask_gen::get_spark_mask;
+use chunk::ChunkStore;
 
 use super::actions::{FireworkIR, FireworkAction};
 use super::consts::*;
@@ -17,7 +19,7 @@ pub struct CodeGen {
     pub ir: FireworkIR,
 
     // Хэш мап для хранения результатов кодогенерации для каждого экрана
-    screen_map: HashMap<String, (String, u64)>,
+    screen_map: HashMap<String, (ChunkStore, u64)>,
 
     // Хэш мап айди экрана -> Количество битовых масок
     screen_bitmask_count_map: HashMap<String, u8>,
@@ -41,8 +43,8 @@ impl CodeGen {
     }
 
     /// Запустить кодогенерацию
-    pub fn run(&mut self) -> String {
-        let mut output = String::from("");
+    pub fn run(&mut self) -> ChunkStore {
+        let mut output = ChunkStore::new();
 
         self.inline_items(&mut output);
         self.inline_block_struct(&mut output);
@@ -57,7 +59,7 @@ impl CodeGen {
     }
 
     /// Полный инлайн функции экрана
-    fn inline_screens(&mut self, output: &mut String) {
+    fn inline_screens(&mut self, output: &mut ChunkStore) {
         for (screen_name, screen_signature, screen_id) in self.ir.screens.iter() { 
             output.push_str(format!("{} {{\n", screen_signature).as_str());
             
@@ -92,7 +94,7 @@ impl CodeGen {
             
             // Добавляем код экрана
             if let Some(screen_code) = self.screen_map.get(screen_name) {
-                output.push_str(&screen_code.0);
+                output.extend(&screen_code.0);
             } 
             
             output.push_str("}\n\n");
@@ -115,13 +117,19 @@ impl CodeGen {
                 // попытку пользователя использовать или изменить эти данные
                 let id: u64 = rand::thread_rng().gen_range(0..=u64::MAX); 
 
-                self.screen_map.insert(statement.screen_name.clone(), (String::from(SCREEN_HEADER), id));
+                self.screen_map.insert(statement.screen_name.clone(), (ChunkStore::new(), id));
             }
 
             // Имя структуры для которой будет создан статический экземпляр для хранения
             // состояния и скинов виджетов
             let struct_name = format!("ApplicationUiBlockStruct{}", statement.screen_index);
             if let Some(screen_code) = self.screen_map.get_mut(&statement.screen_name) {
+                // Используется спан для всех следующих строк до следующего вызова set_span
+                // из ChunkStore. Это нужно для того чтобы сгенерировать код с учётом
+                // спанов, а это позволит rustc в случае ошибки показать реальное место
+                // в коде пользователя где ошибка
+                screen_code.0.set_span(statement.span);
+
                 // Получение количества битовых масок для цикла по этому значению
                 let mask_count = self.screen_bitmask_count_map.get(&statement.screen_name)
                     .unwrap_or(&0);

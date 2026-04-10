@@ -6,6 +6,7 @@ pub mod bitmask_gen;
 use bitmask_gen::*;
 
 use super::CodeGen;
+use super::ChunkStore;
 
 use crate::compiler::codegen::actions::FireworkStatement;
 
@@ -29,7 +30,7 @@ impl CodeGen {
         old_reactive_loop_flag: bool,
         depth_value: u16,
         depth: &mut String,
-        screen_code: &mut (String, u64),
+        screen_code: &mut (ChunkStore, u64),
         statement: &FireworkStatement,
         mask_count: u8,
     ) { 
@@ -146,7 +147,7 @@ impl CodeGen {
    
     /// Генерирует обновление соотвествующего спарку бита. Принимает screen_code куда нужно
     /// запушить результат генерации, айди спарка, айди маски и глубину для гененрации
-    pub(crate) fn generate_update_spark(screen_code: &mut (String, u64), id: usize, mask: usize, depth: &String) {
+    pub(crate) fn generate_update_spark(screen_code: &mut (ChunkStore, u64), id: usize, mask: usize, depth: &String) {
         screen_code.0.push_str(format!("{}{};\n", depth, bitmask_gen::set_flag(
             format!("_fwc_bitmask{}", mask).as_str(),
 
@@ -158,7 +159,7 @@ impl CodeGen {
         )).as_str());
     }
 
-    pub(crate) fn generate_check_spark_bit(screen_code: &mut (String, u64), id: usize) {
+    pub(crate) fn generate_check_spark_bit(screen_code: &mut (ChunkStore, u64), id: usize) {
         // Получение маски на основе айди спарка
         let mask = get_spark_mask(id);
         let id_in_mask = bitmask_gen::normalize_bit_index(id);

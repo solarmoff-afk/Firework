@@ -1,6 +1,8 @@
 // Часть проекта Firework с открытым исходным кодом.
 // Лицензия EPL 2.0, подробнее в файле LICENSE. Copyright (c) 2026 Firework
 
+use syn::spanned::Spanned;
+
 pub use super::super::*;
 
 impl<'ast> Analyzer {
@@ -37,6 +39,8 @@ impl<'ast> Analyzer {
     /// Условие. Обрабатывает if, else if и else с поддержкой реактивных переменных
     /// в условии
     pub(crate) fn analyze_expr_if(&mut self, i: &'ast ExprIf) {
+        self.statement.span = i.if_token.span();
+
         // Спарки в условии
         let sparks = self.get_sparks(&i.cond);
 
