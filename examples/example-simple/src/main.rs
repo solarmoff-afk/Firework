@@ -5,6 +5,10 @@ ui! {
         let mut spark1 = spark!(0u32);
         let mut spark2 = spark!(0u32);
 
+        let mut spark0: u32 = spark!({
+            println!("Hello world"); 
+        });
+
         spark1 += spark2;
 
         effect!(spark1, {
