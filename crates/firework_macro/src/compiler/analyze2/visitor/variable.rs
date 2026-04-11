@@ -23,7 +23,7 @@ impl<'ast> Analyzer {
     /// обновлением состояния и требует обновления UI
     pub(crate) fn analyze_expr_assign(&mut self, i: &'ast ExprAssign) {
         if let Some(root_name) = get_root_variable_name(&i.left) {
-            if let Some(variable) = self.scope.variables.get(&root_name) {
+            if let Some(variable) = self.lifetime_manager.scope.variables.get(&root_name) {
                 if variable.is_spark {
                     if !variable.is_mut {
                         self.context.errors.push(compile_error_spanned(
@@ -61,7 +61,7 @@ impl<'ast> Analyzer {
 
         if is_mutation {
             if let Some(root_name) = get_root_variable_name(&i.left) {
-                if let Some(variable) = self.scope.variables.get(&root_name) {
+                if let Some(variable) = self.lifetime_manager.scope.variables.get(&root_name) {
                     if variable.is_spark {
                         if !variable.is_mut {
                             self.context.errors.push(compile_error_spanned(
@@ -85,7 +85,7 @@ impl<'ast> Analyzer {
 
     pub(crate) fn analyze_expr_method_call(&mut self, i: &'ast syn::ExprMethodCall) {
         if let Some(root_name) = get_root_variable_name(&i.receiver) {
-            if let Some(variable) = self.scope.variables.get(&root_name) {
+            if let Some(variable) = self.lifetime_manager.scope.variables.get(&root_name) {
                 if variable.is_spark {
                     let method_name = i.method.to_string();
                     

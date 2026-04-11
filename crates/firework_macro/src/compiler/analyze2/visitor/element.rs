@@ -68,11 +68,11 @@ impl<'ast> Analyzer {
                     name.clone(), has_microruntime,
                 );
                 
-                self.context.statement.screen_index = self.scope.screen_index;
-                self.context.statement.depth = self.scope.depth;
+                self.context.statement.screen_index = self.lifetime_manager.scope.screen_index;
+                self.context.statement.depth = self.lifetime_manager.scope.depth;
                 self.context.ir.statements.push(self.context.statement.clone());
 
-                self.scope.depth += 1;
+                self.lifetime_manager.scope.depth += 1;
                 self.context.statement.depth += 1;
 
                 // Добавление перед парсингом вложенных команд
@@ -85,7 +85,7 @@ impl<'ast> Analyzer {
 
                 self.context.layouts_count -= 1; 
                
-                self.scope.depth -= 1;
+                self.lifetime_manager.scope.depth -= 1;
                 self.context.statement.depth -= 1;
                 self.context.statement.action = FireworkAction::DefaultCode;
                 self.context.statement.string = "}".to_string();
@@ -139,7 +139,7 @@ impl<'ast> Analyzer {
                 };
                 
                 let mut finder = SparkFinder {
-                    scope: &self.scope,
+                    scope: &self.lifetime_manager.scope,
                     found: &mut this_field.sparks,
                 };
 

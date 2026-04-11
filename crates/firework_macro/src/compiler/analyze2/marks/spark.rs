@@ -55,7 +55,7 @@ impl Analyzer {
                         self.context.spark_counter += 1; 
                         
                         // FE002, нельзя затенять существующую переменную спарком
-                        if self.scope.variables.contains_key(&name) {
+                        if self.lifetime_manager.scope.variables.contains_key(&name) {
                         self.context.errors.push(compile_error_spanned(
                             &i.pat,
                             SPARK_SHADOWING_ERROR,
@@ -107,7 +107,7 @@ impl Analyzer {
                 }
                 
                 // FE004, нельзя затенить спарк
-                if let Some(value) = self.scope.variables.get(&name) {
+                if let Some(value) = self.lifetime_manager.scope.variables.get(&name) {
                     if value.is_spark { 
                         self.context.errors.push(compile_error_spanned(
                             &i.pat,
@@ -116,7 +116,7 @@ impl Analyzer {
                     }
                 }
                 
-                self.scope.variables.insert(name, var_data);
+                self.lifetime_manager.scope.variables.insert(name, var_data);
             }
             
             for (field_name, field_type) in temp_fields_to_struct.iter() {

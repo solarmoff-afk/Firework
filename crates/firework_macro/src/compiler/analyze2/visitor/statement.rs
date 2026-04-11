@@ -40,8 +40,8 @@ impl<'ast> Analyzer {
         if should_push {
             // Если это лайаут блок то клонирование области видимости и пуш уже
             // были и клонировать второй раз нет смысла
-            self.context.statement.screen_index = self.scope.screen_index;
-            self.context.statement.depth = self.scope.depth;
+            self.context.statement.screen_index = self.lifetime_manager.scope.screen_index;
+            self.context.statement.depth = self.lifetime_manager.scope.depth;
             self.context.ir.statements.push(self.context.statement.clone());
         }
         

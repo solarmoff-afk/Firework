@@ -8,17 +8,18 @@ mod visitor;
 mod type_inference;
 
 mod context;
+mod lifetime_manager;
 
 use proc_macro2::{TokenTree, TokenStream, Span};
 use syn::*;
 use syn::visit::Visit;
 use std::collections::HashMap;
 use quote::ToTokens;
-use rand::Rng;
 
 use widget::{is_widget, is_layout, map_skin, WidgetArgs};
 use spark::{SparkValidator, SparkFinder, SparkFinderWithId, get_root_variable_name};
 use context::AnalyzeContext;
+use lifetime_manager::{Variable, Scope, LifetimeManager};
 
 use crate::compiler::utils::is_mutable_method;
 use crate::compiler::codegen::actions::{
@@ -30,88 +31,13 @@ use crate::compiler::error::*;
 /// String::from, но это позволяет не тянуть lazy_static или другой крейт
 pub const NO_TYPE: &str = "NO TYPE";
 
-/// Структура для декларации переменной в структуре области видимости
-#[derive(Debug, Clone)]
-pub struct Variable {
-    // Тип переменной строкой, если не указан то он останется NO_TYPE
-    pub variable_type: String,
-
-    // Явлется ли эта переменная реактивной (спарком). Это определяется по налиию
-    // макроса spark!() в выражении, но будет ошибка если имя спарка не будет
-    // уникальным, если:
-    //
-    // 1 кейс: Другая переменная затенит спарк (shadowing)
-    // 2 кейс: Тип спарка не будет указан при инициализации
-    // 3 кейс: Используется несколько спарков в выражении (spark!() + spark!())
-    // 
-    // Также спарк не определится если не будет в statement::local, поэтому условная
-    // инициализация не работает для спарка
-    pub is_spark: bool,
-
-    // Явлется ли эта переменная мутабельной
-    pub is_mut: bool,
-
-    // Айди спарка (если это спарк, иначе 0) в качестве которого используется счётчик
-    // spark_counter
-    pub spark_id: usize,
-}
-
-/// Текущая область видимости, хранить всю таблицу символов для этой области. Начинается
-/// с { и при входе в эту область видимости экземпляр этой структуры будет скопирован
-/// чтобы когда произойдёт выход из неё все созданные в ней имена были заменены
-/// состояние слепок которого был сделан до входа в область видимости
-#[derive(Debug, Clone)]
-pub struct Scope {
-    pub variables: HashMap<String, Variable>,
-    pub screen_index: u128,
-    pub depth: u16,
-    pub is_cycle: bool,
-
-    // Имя цикла, нужно для синтаксиса break 'label. Если это не цикл то None
-    pub label: Option<String>,
-}
-
-impl Scope {
-    pub fn new() -> Self {
-        Self {
-            // Нет имён на старте
-            variables: HashMap::new(),
-            screen_index: 0,
-
-            // Первая область видимости имеет нулевую глубину
-            depth: 0,
-
-            // Так как начальный Scope не может быть в цикле
-            is_cycle: false,
-            label: None,
-        }
-    }
-
-    /// Генерирует случайный айди экрана для надёжности
-    pub fn screen_index_generate(&mut self) {
-        let mut range = rand::thread_rng();
-        self.screen_index = range.gen_range(0..=u128::MAX);
-    }
-}
-
 /// Главная структура анализатора для которого реализуется Visitor и который выполняет
 /// роль анализа кода пользователя firework чтобы построить граф реактивности и
 /// валидировать правильное использование спарков
 pub struct Analyzer {
     pub context: AnalyzeContext,
 
-    // Три области видимости которые нужны для реализации лайфтайм детектора
-    // Текущая область видимости куда добавляются локальные переменные
-    pub scope: Scope,
-
-    // Стэк областей видимости, при вхходе в область видимости делается пуш, при
-    // выходе из области видимости pop. Используется для break и continue в менеджере
-    // лайфтаймов
-    pub old_scope: Vec<Scope>,
-
-    // Дамп область видимости до входа в функцию, нужна для обработки дропа спарков
-    // при return
-    pub item_scope: Scope,
+    pub lifetime_manager: LifetimeManager,
 
     // Statement это блок кода от начала до ; фигурных скобок или в некоторых случаях
     // запятой. Нужно точно знать на каком statement мы сейчас. На старте это 1, поэтому
@@ -127,7 +53,7 @@ pub struct Analyzer {
 
     // Буферы
     // Буфер который используется для хранения текущего типа в парсинге переменной,
-    // если типа не указан то используется значения константы NO_TYPE
+    // если типа не указан то используется None
     current_type: String,
 
     // Временный вектор имён переменных которые были найдены в текущем let, но ещё
@@ -147,11 +73,7 @@ impl Analyzer {
     pub fn new() -> Self {
         Self {
             context: AnalyzeContext::new(),
-
-            // Три области видимости для лайфтайм менеджера
-            scope: Scope::new(),
-            old_scope: Vec::new(),
-            item_scope: Scope::new(),
+            lifetime_manager: LifetimeManager::new(),
 
             // Нулевая команда
             statement_index: 0,
@@ -173,7 +95,7 @@ impl Analyzer {
     /// Метод для вывода всего что собранно в области видимости
     pub fn log_scope(&self) {
         #[cfg(feature = "debug_output")]
-        println!("{:#?}", self.scope.variables);
+        println!("{:#?}", self.lifetime_manager.scope.variables);
     }
    
     /// Метод обёртка над SparkFinder чтобы быстро найти наличие спарка в выражении
@@ -183,7 +105,7 @@ impl Analyzer {
         let mut found = Vec::new();
 
         let mut finder = SparkFinderWithId {
-            scope: &self.scope,
+            scope: &self.lifetime_manager.scope,
             found: &mut found,
         };
 
@@ -198,7 +120,9 @@ impl Analyzer {
         if let Some(_function_name) = &self.function_name {
             // Добавляет значение в вектор (описание структуры экрана), если такого
             // значения нет в хэш мапе то создаёт пустой вектор
-            self.context.ir.screen_structs.entry(format!("ApplicationUiBlockStruct{}", self.scope.screen_index.to_string()))
+            self.context.ir.screen_structs.entry(
+                format!("ApplicationUiBlockStruct{}",
+                    self.lifetime_manager.scope.screen_index.to_string()))
                 .or_insert_with(Vec::new)
                 .push((field_name, field_type));
         }
@@ -219,7 +143,7 @@ impl Analyzer {
     ) {
         // Добавление к счётчику глубины. Это используется для форматирования вывода чтобы
         // определить сколько табов нужно
-        self.scope.depth += 1;
+        self.lifetime_manager.scope.depth += 1;
 
         // Текущее состояние
         let state = self.reactive_block;
@@ -285,45 +209,18 @@ impl Analyzer {
         self.reactive_block = state;
         
         // Защита от переполнения
-        if self.scope.depth > 0 {
-            self.scope.depth -= 1;
+        if self.lifetime_manager.scope.depth > 0 {
+            self.lifetime_manager.scope.depth -= 1;
         }
     }
 
-    /// Систсема для обработки выхода из области видимости, принимает старую область
-    /// видимости (scope) после чего делает сравнение с текущей областью видимости,
-    /// локальные переменных которые были созданы в этой области видимости нет в старой
-    /// области видимости, алгоритм сравнения найдёт отсуствие переменной и сгенерирует
-    /// семантическую метку для IR DropSpark, оно означает что нужно вернуть владение
-    /// обратно в BSS так как локальная переменная которая арендовала значение из BSS
-    /// мертва и чтобы не было UB нужно вернуть значение обратно в BSS память со стэка.
-    /// Так как мы делаем push в IR до обработки следующего statement то в IR сначала
-    /// будет возврат в этой же области видимости
-    ///
-    /// Семантика:
-    ///  - self.scope это текущая область видимости
-    ///  - scope это старая область видимости которая была до входа в текущую область
-    ///    видимости
     pub fn update_scope(&mut self, scope: Scope, set_scope: bool) {
-        for (name, value) in &self.scope.variables {
-            if !scope.variables.contains_key(name) && value.is_spark {
-                let mut statement = self.context.statement.clone();
-
-                statement.string = "".to_string();
-                statement.action = FireworkAction::DropSpark {
-                    name: name.to_string(),
-
-                    // Айди для определения статического поля экземпляра структуры в
-                    // проходе кодогенерации
-                    id: value.spark_id,
-                };
-                self.context.ir.statements.push(statement);
-                self.statement_index += 1;
-            }
-        }
-
-        if set_scope {
-            self.scope = scope;
+        let base_stmt = self.context.statement.clone();
+        let drop_statements = self.lifetime_manager.update_scope(scope, set_scope, &base_stmt);
+        
+        for stmt in drop_statements {
+            self.context.ir.statements.push(stmt);
+            self.statement_index += 1;
         }
     }
 }
@@ -488,11 +385,11 @@ pub fn prepare_tokens(tokens: Vec<TokenTree>, _id: u64) -> (proc_macro2::TokenSt
     };
     
     let mut analyzer = Analyzer::new();
-    analyzer.scope.screen_index_generate();
+    analyzer.lifetime_manager.scope.screen_index_generate();
     analyzer.visit_file(&file); 
 
     #[cfg(feature = "debug_output")]
-    println!("IR len: {}, IR: {:#?}", analyzer.context.ir.statements.len(), analyzer.ir);
+    println!("IR len: {}, IR: {:#?}", analyzer.context.ir.statements.len(), analyzer.context.ir);
     
     if !analyzer.context.errors.is_empty() {
         let mut final_error = analyzer.context.errors[0].clone();

@@ -7,7 +7,7 @@ impl<'ast> Analyzer {
     /// Генерирует заглушки для функций чтобы компилятор не выдал ошибку "функция отсуствует"
     /// вероятно это временное решение. Также собирает сигнатуру функции для кодогенератора
     pub(crate) fn analyze_item_fn(&mut self, node: &'ast ItemFn) {
-        self.item_scope = self.scope.clone();
+        self.lifetime_manager.item_scope = self.lifetime_manager.scope.clone();
         self.context.layouts_count = 0;
 
         let mut function_head = String::from("");
@@ -52,7 +52,7 @@ impl<'ast> Analyzer {
             (
                 function_name.clone(),
                 function_head,
-                self.scope.screen_index
+                self.lifetime_manager.scope.screen_index
             )
         );
         self.context.statement.screen_name = function_name;
@@ -72,11 +72,11 @@ impl<'ast> Analyzer {
         statement.reactive_loop = false;
 
         self.context.ir.statements.push(statement);
-        self.context.ir.screen_sparks.insert(self.scope.screen_index, self.context.spark_counter);
+        self.context.ir.screen_sparks.insert(self.lifetime_manager.scope.screen_index, self.context.spark_counter);
 
         // Нужно сгенерировать индекс после анализации функции чтобы id экземпляра
         // был синхронизирован внутри блоков ir для одного экрана
-        self.scope.screen_index_generate();
+        self.lifetime_manager.scope.screen_index_generate();
 
         // Обнуление счётчика реактивных переменных чтобы можно было считать что индекс
         // реактивной переменной это бит в битовой маске
@@ -94,7 +94,7 @@ impl<'ast> Analyzer {
                 // Аргумент функции не может быть спарком
                 var_data.is_spark = false;
 
-                self.scope.variables.insert(name, var_data);
+                self.lifetime_manager.scope.variables.insert(name, var_data);
             }
 
             self.current_type = String::from(NO_TYPE);

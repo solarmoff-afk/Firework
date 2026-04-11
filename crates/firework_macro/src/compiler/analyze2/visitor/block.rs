@@ -13,9 +13,8 @@ impl<'ast> Analyzer {
         // созданные внутри неё будут дропнуты и мы не можем их использовать. После
         // завершения блока нам нужно вернуть ранее сохранённое состояние, а для этого
         // мы будем использовать клон который создаётся здесь
-        self.old_scope.push(self.scope.clone());
-
-        self.scope.is_cycle = false;
+        self.lifetime_manager.old_scope.push(self.lifetime_manager.scope.clone());
+        self.lifetime_manager.scope.is_cycle = false;
 
         // Парсинг области видимости, переменные созданные в этой области видимости будут
         // в self.scrope.variables
@@ -25,7 +24,7 @@ impl<'ast> Analyzer {
         self.log_scope();
 
         // Область видимости закончилась, нужно восстановить состояние используя клон
-        let scope = self.old_scope.pop().unwrap_or(Scope::new()); 
+        let scope = self.lifetime_manager.old_scope.pop().unwrap_or(Scope::new()); 
 
         self.update_scope(scope, true);
     }
@@ -120,8 +119,8 @@ impl<'ast> Analyzer {
         // Метка цикла
         let label = i.label.as_ref().map(|l| l.name.ident.to_string());
 
-        self.scope.is_cycle = true;
-        self.scope.label = label;
+        self.lifetime_manager.scope.is_cycle = true;
+        self.lifetime_manager.scope.label = label;
        
         self.handle_reactive_block(
             sparks.clone(),
@@ -141,8 +140,8 @@ impl<'ast> Analyzer {
         // Метка цикла
         let label = i.label.as_ref().map(|l| l.name.ident.to_string());
 
-        self.scope.is_cycle = true;
-        self.scope.label = label;
+        self.lifetime_manager.scope.is_cycle = true;
+        self.lifetime_manager.scope.label = label;
         
         self.handle_reactive_block(
             sparks.clone(),
@@ -172,8 +171,8 @@ impl<'ast> Analyzer {
         // Метка цикла
         let label = i.label.as_ref().map(|l| l.name.ident.to_string());
 
-        self.scope.is_cycle = true;
-        self.scope.label = label;
+        self.lifetime_manager.scope.is_cycle = true;
+        self.lifetime_manager.scope.label = label;
 
         self.handle_reactive_block(
             Vec::new(),
@@ -212,7 +211,7 @@ impl<'ast> Analyzer {
         // для всех спарков которые были арендованы (take) от BSS экземпляра,
         // для этого подойдёт update_scope, в качестве второй точки для диффинга
         // используется item_scope
-        let target_scope = self.item_scope.clone();
+        let target_scope = self.lifetime_manager.item_scope.clone();
         
         self.update_scope(target_scope, false);
         
@@ -230,14 +229,14 @@ impl<'ast> Analyzer {
             let label_name = label_break.ident.to_string();
 
             // Поиск цикла с таким именем по стэку областей видимости
-            self.old_scope.iter()
+            self.lifetime_manager.old_scope.iter()
                 .rev()
                 .find(|s| s.label.as_ref() == Some(&label_name))
                 .cloned()
                 .unwrap_or_else(|| Scope::new())
         } else {
             // Если нет имени цикла в break {'имя} <- вот тут
-            self.old_scope.iter()
+            self.lifetime_manager.old_scope.iter()
                 .rev()
                 .find(|s| s.is_cycle)
                 .cloned()
