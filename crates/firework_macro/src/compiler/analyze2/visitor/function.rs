@@ -8,7 +8,7 @@ impl<'ast> Analyzer {
     /// вероятно это временное решение. Также собирает сигнатуру функции для кодогенератора
     pub(crate) fn analyze_item_fn(&mut self, node: &'ast ItemFn) {
         self.item_scope = self.scope.clone();
-        self.layouts_count = 0;
+        self.context.layouts_count = 0;
 
         let mut function_head = String::from("");
         for attr in &node.attrs {
@@ -37,7 +37,7 @@ impl<'ast> Analyzer {
             {}
         }).expect("Failed to parse item"); 
         
-        self.output.extend(quote::quote! {
+        self.context.output.extend(quote::quote! {
             #fn_stub
         });
 
@@ -48,31 +48,31 @@ impl<'ast> Analyzer {
 
         let function_name = node.sig.ident.to_string();
         self.function_name = Some(function_name.clone());
-        self.ir.screens.push(
+        self.context.ir.screens.push(
             (
                 function_name.clone(),
                 function_head,
                 self.scope.screen_index
             )
         );
-        self.statement.screen_name = function_name;
+        self.context.statement.screen_name = function_name;
 
         // Любой код в функции реактивный
-        self.statement.reactive_loop = true;
+        self.context.statement.reactive_loop = true;
 
         syn::visit::visit_item_fn(self, node);
 
         // После парсинга функции нужно добавить стейтемент который уведомит
         // кодогенератор о завершении тела функции чтобы он перед этим сгенерировал
         // выход из цикла реактивности если этого ещё никто не сделал
-        let mut statement = self.statement.clone();
+        let mut statement = self.context.statement.clone();
         statement.action = FireworkAction::Terminator;
 
         // Больше не часть цикла реактивности
         statement.reactive_loop = false;
 
-        self.ir.statements.push(statement);
-        self.ir.screen_sparks.insert(self.scope.screen_index, self.spark_counter);
+        self.context.ir.statements.push(statement);
+        self.context.ir.screen_sparks.insert(self.scope.screen_index, self.context.spark_counter);
 
         // Нужно сгенерировать индекс после анализации функции чтобы id экземпляра
         // был синхронизирован внутри блоков ir для одного экрана
@@ -80,7 +80,7 @@ impl<'ast> Analyzer {
 
         // Обнуление счётчика реактивных переменных чтобы можно было считать что индекс
         // реактивной переменной это бит в битовой маске
-        self.spark_counter = 0; 
+        self.context.spark_counter = 0; 
     }
 
     pub(crate) fn analyze_fn_arg(&mut self, i: &'ast FnArg) {

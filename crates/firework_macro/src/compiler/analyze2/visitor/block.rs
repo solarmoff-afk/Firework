@@ -33,7 +33,7 @@ impl<'ast> Analyzer {
     /// Условие. Обрабатывает if, else if и else с поддержкой реактивных переменных
     /// в условии
     pub(crate) fn analyze_expr_if(&mut self, i: &'ast ExprIf) {
-        self.statement.span = i.if_token.span();
+        self.context.statement.span = i.if_token.span();
 
         // Спарки в условии
         let sparks = self.get_sparks(&i.cond);

@@ -10,13 +10,13 @@ impl<'ast> Analyzer {
     /// Макрос который используются не в выражении, а как отдельный statement (команда)
     pub(crate) fn analyze_macro(&mut self, i: &'ast Macro) {
         let name = i.path.to_token_stream().to_string();
-        self.statement.span = i.path.span();
+        self.context.statement.span = i.path.span();
 
         // Проверка что лайаут конфигурируется только один раз в лайаут блоке
         if name == "layout" {
             if self.descript_layout {
                 // FE009
-                self.errors.push(compile_error_spanned(
+                self.context.errors.push(compile_error_spanned(
                     // Весь макрос
                     i,
                     LAYOUT_MULTIPLE_ERROR,
@@ -30,7 +30,7 @@ impl<'ast> Analyzer {
         }
 
         if (is_layout(&name) || is_widget(&name)) && !matches!(i.delimiter, MacroDelimiter::Brace(_)) {
-            self.errors.push(compile_error_spanned(
+            self.context.errors.push(compile_error_spanned(
                 i,
                 MACRO_BRACE_ERROR
             ));
@@ -64,38 +64,38 @@ impl<'ast> Analyzer {
                     has_microruntime = need_microruntime;
                 } 
 
-                self.statement.action = FireworkAction::LayoutBlock(
+                self.context.statement.action = FireworkAction::LayoutBlock(
                     name.clone(), has_microruntime,
                 );
                 
-                self.statement.screen_index = self.scope.screen_index;
-                self.statement.depth = self.scope.depth;
-                self.ir.statements.push(self.statement.clone());
+                self.context.statement.screen_index = self.scope.screen_index;
+                self.context.statement.depth = self.scope.depth;
+                self.context.ir.statements.push(self.context.statement.clone());
 
                 self.scope.depth += 1;
-                self.statement.depth += 1;
+                self.context.statement.depth += 1;
 
                 // Добавление перед парсингом вложенных команд
-                self.layouts_count += 1;
+                self.context.layouts_count += 1;
 
                 for statement in block.stmts { 
                     // Парсинг всех команд внутри
                     self.visit_stmt(&statement);
                 }
 
-                self.layouts_count -= 1; 
+                self.context.layouts_count -= 1; 
                
                 self.scope.depth -= 1;
-                self.statement.depth -= 1;
-                self.statement.action = FireworkAction::DefaultCode;
-                self.statement.string = "}".to_string();
+                self.context.statement.depth -= 1;
+                self.context.statement.action = FireworkAction::DefaultCode;
+                self.context.statement.string = "}".to_string();
                 self.statement_index += 1;
 
-                self.ir.statements.push(self.statement.clone()); 
+                self.context.ir.statements.push(self.context.statement.clone()); 
             } else {
                 // FE008, невалидный синтаксис в лайауте. Как уже было сказанно ранее,
                 // лайаут требует полностью валидный раст синтаксис
-                self.errors.push(compile_error_spanned(
+                self.context.errors.push(compile_error_spanned(
                     i.tokens.clone(),
                     LAYOUT_PARSE_ERROR,
                 ));
@@ -119,7 +119,7 @@ impl<'ast> Analyzer {
                     //   field1: 10,
                     //   field2: 20,
                     // }
-                    self.errors.push(compile_error_spanned(
+                    self.context.errors.push(compile_error_spanned(
                         i.tokens.clone(),
                         WIDGET_PARSE_ERROR, 
                     ));
@@ -146,12 +146,12 @@ impl<'ast> Analyzer {
                 finder.visit_expr(&prop.value);
 
                 if let Expr::Closure(closure) = &prop.value { 
-                    let saved_parent = self.statement.parent_widget_id;
+                    let saved_parent = self.context.statement.parent_widget_id;
                     
-                    self.statement.parent_widget_id = Some(self.widget_counter);
+                    self.context.statement.parent_widget_id = Some(self.context.widget_counter);
                     self.visit_expr(&closure.body);
                     
-                    self.statement.parent_widget_id = saved_parent;
+                    self.context.statement.parent_widget_id = saved_parent;
                 }
 
                 fields_map.insert(prop_name, this_field);
@@ -159,7 +159,7 @@ impl<'ast> Analyzer {
 
             if let Some(skin) = map_skin(&name) {
                 self.add_field_to_struct(
-                    format!("widget_object_{}", self.widget_counter),
+                    format!("widget_object_{}", self.context.widget_counter),
                     skin,
                 );
             }
@@ -172,17 +172,17 @@ impl<'ast> Analyzer {
                 has_microruntime = need_microruntime;
             }
 
-            self.statement.string = i.to_token_stream().to_string();
-            self.statement.action = FireworkAction::WidgetBlock(
+            self.context.statement.string = i.to_token_stream().to_string();
+            self.context.statement.action = FireworkAction::WidgetBlock(
                 name.clone(),
                 fields_map,
                 has_microruntime,
-                self.widget_counter,
+                self.context.widget_counter,
             );
-            self.ir.statements.push(self.statement.clone());
+            self.context.ir.statements.push(self.context.statement.clone());
             self.statement_index += 1;
 
-            self.widget_counter += 1;
+            self.context.widget_counter += 1;
         } else if name == "effect" {
             let parser = punctuated::Punctuated::<Expr, syn::Token![,]>::parse_terminated;
             
@@ -216,7 +216,7 @@ impl<'ast> Analyzer {
                 } else {
                     // [FE012]
                     // Эффект должен иметь блок последним аргументом
-                    self.errors.push(
+                    self.context.errors.push(
                         compile_error_spanned(
                             i,
                             EFFECT_MISSING_BODY_ERROR,

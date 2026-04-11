@@ -26,19 +26,19 @@ impl<'ast> Analyzer {
             if let Some(variable) = self.scope.variables.get(&root_name) {
                 if variable.is_spark {
                     if !variable.is_mut {
-                        self.errors.push(compile_error_spanned(
+                        self.context.errors.push(compile_error_spanned(
                             &i,
                             SPARK_MUT_REQUIRED_ERROR,
                         ));
                     } 
 
-                    self.statement.action = FireworkAction::UpdateSpark(
+                    self.context.statement.action = FireworkAction::UpdateSpark(
                         root_name, variable.spark_id,
                     ); 
 
                     // Клоинрование стейтемента перед передачей нужно для того чтобы
                     // сохранилась семантическая метка (FireworkAction)
-                    self.compute_spark(&i.right, self.statement.clone());
+                    self.compute_spark(&i.right, self.context.statement.clone());
                 }
             }
         }
@@ -64,17 +64,17 @@ impl<'ast> Analyzer {
                 if let Some(variable) = self.scope.variables.get(&root_name) {
                     if variable.is_spark {
                         if !variable.is_mut {
-                            self.errors.push(compile_error_spanned(
+                            self.context.errors.push(compile_error_spanned(
                                 &i,
                                 SPARK_MUT_REQUIRED_ERROR,
                             ));
                         }
                         
-                        self.statement.action = FireworkAction::UpdateSpark(
+                        self.context.statement.action = FireworkAction::UpdateSpark(
                             root_name, variable.spark_id,
                         );
 
-                        self.compute_spark(&i.right, self.statement.clone());
+                        self.compute_spark(&i.right, self.context.statement.clone());
                     }
                 }
             }
@@ -90,7 +90,7 @@ impl<'ast> Analyzer {
                     let method_name = i.method.to_string();
                     
                     if !variable.is_mut {
-                        self.errors.push(compile_error_spanned(
+                        self.context.errors.push(compile_error_spanned(
                             &i,
                             SPARK_MUT_REQUIRED_ERROR,
                         ));
@@ -100,7 +100,7 @@ impl<'ast> Analyzer {
                     // через хелпер, если это кастомный тип то используется хак и
                     // все методы считаются мутабельными
                     if is_mutable_method(&variable.variable_type, &method_name) {
-                        self.statement.action = FireworkAction::UpdateSpark(
+                        self.context.statement.action = FireworkAction::UpdateSpark(
                             root_name, variable.spark_id,
                         );
                     }
@@ -130,7 +130,7 @@ impl<'ast> Analyzer {
                     // statement это клон
                     statement.is_reactive_block = true;
 
-                    this.ir.statements.push(statement);
+                    this.context.ir.statements.push(statement);
                 }
             ); 
         }

@@ -7,6 +7,8 @@ mod widget;
 mod visitor;
 mod type_inference;
 
+mod context;
+
 use proc_macro2::{TokenTree, TokenStream, Span};
 use syn::*;
 use syn::visit::Visit;
@@ -16,6 +18,7 @@ use rand::Rng;
 
 use widget::{is_widget, is_layout, map_skin, WidgetArgs};
 use spark::{SparkValidator, SparkFinder, SparkFinderWithId, get_root_variable_name};
+use context::AnalyzeContext;
 
 use crate::compiler::utils::is_mutable_method;
 use crate::compiler::codegen::actions::{
@@ -95,16 +98,8 @@ impl Scope {
 /// роль анализа кода пользователя firework чтобы построить граф реактивности и
 /// валидировать правильное использование спарков
 pub struct Analyzer {
-    // Ошибки компиляции, они накапливаются весь парсинг чтобы по завершению анализа
-    // вывести их в терминал. Подробнее про сообщения ошибок можно узнать в файле
-    // firework_macro/src/compiler/errors.rs. Все ошибки начинаются с FE, то есть
-    // Firework Error и заканчиваются числом из трёх цифр, это номер ошибки. Пример:
-    // FE001, FE004
-    pub errors: Vec<Error>,
-    
-    // Выходные токены
-    pub output: TokenStream,
-    
+    pub context: AnalyzeContext,
+
     // Три области видимости которые нужны для реализации лайфтайм детектора
     // Текущая область видимости куда добавляются локальные переменные
     pub scope: Scope,
@@ -127,12 +122,6 @@ pub struct Analyzer {
     // лайаут блоке. Описывать лайаут можно только один раз в лайаут блоке
     descript_layout: bool,
 
-    // Промежуточное представление, строки кода с добавлением семантической метки
-    pub ir: FireworkIR,
-
-    // Текущий стейтемент который будет использоваться для пуша в ir
-    statement: FireworkStatement,
-
     // Текущее имя функции, если мы вне функции то None
     function_name: Option<String>,
 
@@ -151,24 +140,14 @@ pub struct Analyzer {
     // то строка в реактивном блоке, а usize это начало блока. Вложенные конструкции и
     // вложенные реактивные блоки не меняют этот флаг, он всегда показывает на первый
     // реактивный блок. Второе значение кортежа это цикл (нужен ли микрорантайм)
-    reactive_block: Option<(usize, bool)>,
-
-    // Счётчики чтобы генерировать названия полей глобальной структуры экрана
-    widget_counter: usize,
-    spark_counter: usize,
-
-    // Определяет первый ли это лайаут в дереве
-    layouts_count: usize,
+    reactive_block: Option<(usize, bool)>, 
 }
 
 impl Analyzer {
     pub fn new() -> Self {
         Self {
-            // При старте нет ошибок
-            errors: Vec::new(),
-            
-            output: TokenStream::new(),
-            
+            context: AnalyzeContext::new(),
+
             // Три области видимости для лайфтайм менеджера
             scope: Scope::new(),
             old_scope: Vec::new(),
@@ -179,31 +158,7 @@ impl Analyzer {
 
             // Был ли настроен текущий лайаут, этот флаг нужен чтобы исключить двойной
             // вызов функционального виджета layout
-            descript_layout: false,
-
-            statement: FireworkStatement {
-                action: FireworkAction::DefaultCode,
-                is_reactive_block: false,
-                index: 0,
-                screen_name: String::from(""),
-                string: String::from(""),
-                parent_widget_id: None,
-                reactive_loop: false,
-                depth: 0,
-                screen_index: 0,
-
-                // Указаывает на место макроса по умолчанию, в визиторе будет изменён на
-                // span конкретного стейтемента
-                span: Span::call_site(),
-            },
-
-            ir: FireworkIR {
-                statements: Vec::new(),
-                screen_structs: HashMap::new(),
-                screens: Vec::new(),
-                screen_sparks: HashMap::new(),
-                items: Vec::new(),
-            },
+            descript_layout: false, 
 
             function_name: None,
 
@@ -211,13 +166,7 @@ impl Analyzer {
             pending_vars: Vec::new(),
 
             // Изначально мы не в реактивном блоке
-            reactive_block: None,
-
-            // Счётчики
-            widget_counter: 0,
-            spark_counter: 0,
-
-            layouts_count: 0,
+            reactive_block: None, 
         }
     }
 
@@ -249,7 +198,7 @@ impl Analyzer {
         if let Some(_function_name) = &self.function_name {
             // Добавляет значение в вектор (описание структуры экрана), если такого
             // значения нет в хэш мапе то создаёт пустой вектор
-            self.ir.screen_structs.entry(format!("ApplicationUiBlockStruct{}", self.scope.screen_index.to_string()))
+            self.context.ir.screen_structs.entry(format!("ApplicationUiBlockStruct{}", self.scope.screen_index.to_string()))
                 .or_insert_with(Vec::new)
                 .push((field_name, field_type));
         }
@@ -278,7 +227,7 @@ impl Analyzer {
         
         // Стейтемент для открытия реактивного блока чтобы кодогенератор мог правильно
         // сгенерировать реактивный блок
-        let mut open_statement = self.statement.clone();
+        let mut open_statement = self.context.statement.clone();
         open_statement.string = open_code;
 
         // Нулевой эффект это эффект который не содержит спарков в условии. Он нужен чтобы
@@ -314,11 +263,11 @@ impl Analyzer {
         } 
 
         // Открывающий стейтемент реактивного блока
-        self.ir.statements.push(open_statement);
+        self.context.ir.statements.push(open_statement);
         self.statement_index += 1;
         
         // let _saved_action = self.statement.action.clone();
-        self.statement.action = FireworkAction::DefaultCode;
+        self.context.statement.action = FireworkAction::DefaultCode;
         
         // Замыкание чтобы выполнить все блоки, self передаётся из-за того что в
         // расте нельзя использовать self внутри метода этой же структуры поэтому
@@ -326,12 +275,12 @@ impl Analyzer {
         visit_fn(self);
         
         // Закрывающий стейтемент реактивного блока
-        self.statement.action = FireworkAction::ReactiveBlockTerminator;
-        self.statement.string = "}".to_string();
+        self.context.statement.action = FireworkAction::ReactiveBlockTerminator;
+        self.context.statement.string = "}".to_string();
         self.statement_index += 1;
 
         // Закрывающая фигурная скобка также является частью реактивного блока
-        self.statement.is_reactive_block = true;
+        self.context.statement.is_reactive_block = true;
         
         self.reactive_block = state;
         
@@ -358,7 +307,7 @@ impl Analyzer {
     pub fn update_scope(&mut self, scope: Scope, set_scope: bool) {
         for (name, value) in &self.scope.variables {
             if !scope.variables.contains_key(name) && value.is_spark {
-                let mut statement = self.statement.clone();
+                let mut statement = self.context.statement.clone();
 
                 statement.string = "".to_string();
                 statement.action = FireworkAction::DropSpark {
@@ -368,7 +317,7 @@ impl Analyzer {
                     // проходе кодогенерации
                     id: value.spark_id,
                 };
-                self.ir.statements.push(statement);
+                self.context.ir.statements.push(statement);
                 self.statement_index += 1;
             }
         }
@@ -480,53 +429,53 @@ impl<'ast> Visit<'ast> for Analyzer {
     }
 
     fn visit_item_struct(&mut self, node: &'ast ItemStruct) {
-        self.ir.items.push(node.to_token_stream().to_string());
-        self.output.extend(node.to_token_stream());
+        self.context.ir.items.push(node.to_token_stream().to_string());
+        self.context.output.extend(node.to_token_stream());
     }
     
     fn visit_item_enum(&mut self, node: &'ast ItemEnum) {
-        self.ir.items.push(node.to_token_stream().to_string());
-        self.output.extend(node.to_token_stream());
+        self.context.ir.items.push(node.to_token_stream().to_string());
+        self.context.output.extend(node.to_token_stream());
     }
     
     fn visit_item_type(&mut self, node: &'ast ItemType) {
-        self.ir.items.push(node.to_token_stream().to_string());
-        self.output.extend(node.to_token_stream());
+        self.context.ir.items.push(node.to_token_stream().to_string());
+        self.context.output.extend(node.to_token_stream());
     }
     
     fn visit_item_trait(&mut self, node: &'ast ItemTrait) {
-        self.ir.items.push(node.to_token_stream().to_string());
-        self.output.extend(node.to_token_stream());
+        self.context.ir.items.push(node.to_token_stream().to_string());
+        self.context.output.extend(node.to_token_stream());
     }
     
     fn visit_item_impl(&mut self, node: &'ast ItemImpl) {
-        self.ir.items.push(node.to_token_stream().to_string());
-        self.output.extend(node.to_token_stream());
+        self.context.ir.items.push(node.to_token_stream().to_string());
+        self.context.output.extend(node.to_token_stream());
     }
     
     fn visit_item_mod(&mut self, node: &'ast ItemMod) {
-        self.ir.items.push(node.to_token_stream().to_string());
-        self.output.extend(node.to_token_stream());
+        self.context.ir.items.push(node.to_token_stream().to_string());
+        self.context.output.extend(node.to_token_stream());
     }
     
     fn visit_item_use(&mut self, node: &'ast ItemUse) {
-        self.ir.items.push(node.to_token_stream().to_string());
-        self.output.extend(node.to_token_stream());
+        self.context.ir.items.push(node.to_token_stream().to_string());
+        self.context.output.extend(node.to_token_stream());
     }
     
     fn visit_item_extern_crate(&mut self, node: &'ast ItemExternCrate) {
-        self.ir.items.push(node.to_token_stream().to_string());
-        self.output.extend(node.to_token_stream());
+        self.context.ir.items.push(node.to_token_stream().to_string());
+        self.context.output.extend(node.to_token_stream());
     }
     
     fn visit_item_foreign_mod(&mut self, node: &'ast ItemForeignMod) {
-        self.ir.items.push(node.to_token_stream().to_string());
-        self.output.extend(node.to_token_stream());
+        self.context.ir.items.push(node.to_token_stream().to_string());
+        self.context.output.extend(node.to_token_stream());
     }
     
     fn visit_item_macro(&mut self, node: &'ast ItemMacro) {
-        self.ir.items.push(node.to_token_stream().to_string());
-        self.output.extend(node.to_token_stream());
+        self.context.ir.items.push(node.to_token_stream().to_string());
+        self.context.output.extend(node.to_token_stream());
     }
 }
 
@@ -543,17 +492,17 @@ pub fn prepare_tokens(tokens: Vec<TokenTree>, _id: u64) -> (proc_macro2::TokenSt
     analyzer.visit_file(&file); 
 
     #[cfg(feature = "debug_output")]
-    println!("IR len: {}, IR: {:#?}", analyzer.ir.statements.len(), analyzer.ir);
+    println!("IR len: {}, IR: {:#?}", analyzer.context.ir.statements.len(), analyzer.ir);
     
-    if !analyzer.errors.is_empty() {
-        let mut final_error = analyzer.errors[0].clone();
+    if !analyzer.context.errors.is_empty() {
+        let mut final_error = analyzer.context.errors[0].clone();
         
-        for error in analyzer.errors.iter().skip(1) {
+        for error in analyzer.context.errors.iter().skip(1) {
             final_error.combine(error.clone());
         }
 
-        (analyzer.output, Some(final_error.to_compile_error()), Some(analyzer.ir))
+        (analyzer.context.output, Some(final_error.to_compile_error()), Some(analyzer.context.ir))
     } else {
-        (analyzer.output, None, Some(analyzer.ir))
+        (analyzer.context.output, None, Some(analyzer.context.ir))
     }
 }

@@ -24,7 +24,7 @@ impl Analyzer {
             
             if validator.spark_count > 1 {
                 // FE006 нельзя делать выражения с несколькими инициализациями спарков
-                self.errors.push(compile_error_spanned(
+                self.context.errors.push(compile_error_spanned(
                     &local_init.expr,
                     SPARK_MULTIPLE_ERROR,
                 ));
@@ -52,11 +52,11 @@ impl Analyzer {
                         // быть не может при использовании unwrap
                         _spark_content = validator.spark_tokens.as_ref().unwrap().to_string();
                         
-                        self.spark_counter += 1; 
+                        self.context.spark_counter += 1; 
                         
                         // FE002, нельзя затенять существующую переменную спарком
                         if self.scope.variables.contains_key(&name) {
-                        self.errors.push(compile_error_spanned(
+                        self.context.errors.push(compile_error_spanned(
                             &i.pat,
                             SPARK_SHADOWING_ERROR,
                         ));
@@ -84,7 +84,7 @@ impl Analyzer {
                         } else {
                             // FE003, у спарка должен быть тип данных, например u32:
                             // let mut spark1: u32 = spark!(10); 
-                            self.errors.push(compile_error_spanned(
+                            self.context.errors.push(compile_error_spanned(
                                 &i.pat,
                                 SPARK_TYPE_ERROR,
                             ));
@@ -92,14 +92,14 @@ impl Analyzer {
                     }
 
                     temp_fields_to_struct.push((
-                        format!("spark_{}", self.spark_counter),
+                        format!("spark_{}", self.context.spark_counter),
                         spark_type,
                     ));
                     
-                    var_data.spark_id = self.spark_counter;
-                    self.statement.action = FireworkAction::InitialSpark {
+                    var_data.spark_id = self.context.spark_counter;
+                    self.context.statement.action = FireworkAction::InitialSpark {
                         name: name.clone(),
-                        id: self.spark_counter,
+                        id: self.context.spark_counter,
                         spark_type: var_data.clone().variable_type,
                         expr_body: _spark_content,
                         is_mut: var_data.is_mut,
@@ -109,7 +109,7 @@ impl Analyzer {
                 // FE004, нельзя затенить спарк
                 if let Some(value) = self.scope.variables.get(&name) {
                     if value.is_spark { 
-                        self.errors.push(compile_error_spanned(
+                        self.context.errors.push(compile_error_spanned(
                             &i.pat,
                             SPARK_UNIQUE_NAME_ERROR,
                         ));

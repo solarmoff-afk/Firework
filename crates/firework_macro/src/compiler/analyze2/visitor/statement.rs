@@ -19,18 +19,18 @@ impl<'ast> Analyzer {
         if should_push {
             // Span добавляется в стейтемент только если это не элемент. Для элемента
             // своя логика
-            self.statement.string = i.to_token_stream().to_string();
-            self.statement.span = i.span();
+            self.context.statement.string = i.to_token_stream().to_string();
+            self.context.statement.span = i.span();
         } else {
             // Имя макроса не включает восклицательный знак поэтому он добавляется
             // вручнуб в вызове format
-            self.statement.string = format!("{}! {{", layout_name);
+            self.context.statement.string = format!("{}! {{", layout_name);
         }
 
         // println!("STATEMENT: {}", self.statement_index);
         if let Some(_root_id) = self.reactive_block {
             // println!("Statement {} is reactive, start: {}", self.statement_index, root_id.0);
-            self.statement.is_reactive_block = true;
+            self.context.statement.is_reactive_block = true;
         }
         
         visit::visit_stmt(self, i); 
@@ -40,13 +40,13 @@ impl<'ast> Analyzer {
         if should_push {
             // Если это лайаут блок то клонирование области видимости и пуш уже
             // были и клонировать второй раз нет смысла
-             self.statement.screen_index = self.scope.screen_index;
-            self.statement.depth = self.scope.depth;
-            self.ir.statements.push(self.statement.clone());
+            self.context.statement.screen_index = self.scope.screen_index;
+            self.context.statement.depth = self.scope.depth;
+            self.context.ir.statements.push(self.context.statement.clone());
         }
         
-        self.statement.index = self.statement_index;
-        self.statement.action = FireworkAction::DefaultCode;
-        self.statement.is_reactive_block = false;
+        self.context.statement.index = self.statement_index;
+        self.context.statement.action = FireworkAction::DefaultCode;
+        self.context.statement.is_reactive_block = false;
     }
 }
