@@ -147,8 +147,7 @@ impl Analyzer {
 
         // Текущее состояние
         let state = self.reactive_block;
-        let condition_has_spark = !sparks.is_empty();
-        
+                
         // Стейтемент для открытия реактивного блока чтобы кодогенератор мог правильно
         // сгенерировать реактивный блок
         let mut open_statement = self.context.statement.clone();
@@ -158,7 +157,9 @@ impl Analyzer {
         // создать код который выполняется только при билде и навигации, а Event или
         // Reactive флэши его не трогают
         let mut is_null_effect = false;
+        let condition_has_spark = !sparks.is_empty();
         
+        // Если это эффект
         if let FireworkAction::ReactiveBlock(FireworkReactiveBlock::Effect, vec) = &action {
             // Нулевой эффект должен быть пустым
             is_null_effect = vec.is_empty();
