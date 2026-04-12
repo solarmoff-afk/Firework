@@ -1,9 +1,8 @@
 // Часть проекта Firework с открытым исходным кодом.
 // Лицензия EPL 2.0. Copyright (c) 2026 Firework
 
-use proc_macro2::{TokenStream, TokenTree, Span, Group};
-
-use std::collections::HashMap;
+use proc_macro2::{TokenStream, Span};
+use quote::quote;
 
 /// Контйнер для хранения строк с привязкой к спанам. Спан это место в исходном файле
 /// где находится эта строка которая была взята из стейтемента
@@ -52,65 +51,17 @@ impl ChunkStore {
 
     /// Метод для преобразования чанка в TokenStreen для инлайна на место макроса
     pub fn generate_code(&self) -> TokenStream {
-        let mut full_code = String::new();
-        let mut span_map = HashMap::new();
+        let code: String = self.chunks.iter().map(|(s, _)| s.as_str()).collect();
+        
+        match code.parse() {
+            Ok(ts) => ts,
+            Err(_) => {
+                let fallback = quote! {
+                    ::core::compile_error!(concat!("Failed to parse generated code: ", #code));
+                };
 
-        for (idx, (text, span)) in self.chunks.iter().enumerate() {
-            let marker_id = format!("__fw_span_idx_{}__", idx);
-            
-            // Добавление маркера и пробела чтобы токены не слиплись
-            full_code.push_str(" ");
-            full_code.push_str(&marker_id);
-            full_code.push_str(" ");
-            full_code.push_str(text);
-            
-            span_map.insert(marker_id, *span);
-        }
-
-        // Парсинг всей строки целиком
-        let ts: TokenStream = full_code.parse().expect("Failed to parse generated code");
-
-        let mut current_active_span = Span::call_site();
-        self.apply_spans_and_filter(ts, &span_map, &mut current_active_span)
-    }
-
-    fn apply_spans_and_filter(
-        &self, 
-        token_stream: TokenStream, 
-        span_map: &HashMap<String, Span>,
-        current_span: &mut Span
-    ) -> TokenStream {
-        let mut output = TokenStream::new();
-
-        for token in token_stream {
-            match token {
-                TokenTree::Group(group) => {
-                    let inner = self.apply_spans_and_filter(group.stream(), span_map, current_span);
-                    let mut new_group = Group::new(group.delimiter(), inner);
-                    new_group.set_span(*current_span);
-
-                    output.extend(std::iter::once(TokenTree::Group(new_group)));
-                },
-
-                TokenTree::Ident(id) => {
-                    let name = id.to_string();
-
-                    if let Some(new_span) = span_map.get(&name) {
-                        *current_span = *new_span;
-                    } else {
-                        let mut new_id = id.clone();
-                        new_id.set_span(*current_span);
-                        output.extend(std::iter::once(TokenTree::Ident(new_id)));
-                    }
-                },
-
-                mut other => {
-                    other.set_span(*current_span);
-                    output.extend(std::iter::once(other));
-                },
+                fallback
             }
         }
-
-        output
     }
 }
