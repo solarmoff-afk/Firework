@@ -257,7 +257,7 @@ impl<'ast> Visit<'ast> for Analyzer {
             variable_type: self.current_type.clone(),
             is_mut: i.mutability.is_some(),
             is_spark: false,
-            spark_id: 0, // HARDCODE
+            spark_id: 0, // HARDCOD
         }));
 
         // На всякий случай

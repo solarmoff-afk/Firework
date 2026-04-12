@@ -60,6 +60,7 @@ impl<'ast> Analyzer {
         // Любой код в функции реактивный
         self.context.statement.reactive_loop = true;
 
+        self.add_field_to_struct("_fwc_null".to_string(), "u8".to_string());
         syn::visit::visit_item_fn(self, node);
 
         // После парсинга функции нужно добавить стейтемент который уведомит
