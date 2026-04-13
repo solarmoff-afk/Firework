@@ -188,7 +188,7 @@ impl Analyzer {
         } 
 
         // Открывающий стейтемент реактивного блока
-        self.context.ir.statements.push(open_statement);
+        self.context.ir.push(open_statement);
         self.statement_index += 1;
         
         // let _saved_action = self.statement.action.clone();
@@ -220,7 +220,7 @@ impl Analyzer {
         let drop_statements = self.lifetime_manager.update_scope(scope, set_scope, &base_stmt);
         
         for stmt in drop_statements {
-            self.context.ir.statements.push(stmt);
+            self.context.ir.push(stmt);
             self.statement_index += 1;
         }
     }
@@ -390,7 +390,8 @@ pub fn prepare_tokens(tokens: Vec<TokenTree>, _id: u64) -> (proc_macro2::TokenSt
     analyzer.visit_file(&file); 
 
     #[cfg(feature = "debug_output")]
-    println!("IR len: {}, IR: {:#?}", analyzer.context.ir.statements.len(), analyzer.context.ir);
+    println!("IR len: {}, IR: {:#?}",
+        analyzer.context.ir.snapshot.statements.len(), analyzer.context.ir);
     
     if !analyzer.context.errors.is_empty() {
         let mut final_error = analyzer.context.errors[0].clone();

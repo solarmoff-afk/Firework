@@ -4,8 +4,9 @@
 #![allow(dead_code)]
 
 use proc_macro2::Span;
-
 use std::collections::HashMap;
+
+use super::snapshot::{Snapshot, SpanKey};
 
 /// Какой это конкретно реактивный блок
 #[derive(Debug, Clone)]
@@ -115,6 +116,11 @@ pub struct FireworkIR {
     // Айди элемента в векторе это номер statement
     pub statements: Vec<FireworkStatement>,
 
+    pub snapshot: Snapshot,
+
+    // Последний спан который был задан. Используется чтобы разместить 
+    pub last_span: Option<SpanKey>,
+
     // Соотвествие экрана (название функции) и структуры экрана в формате вектора
     // кортежей (Имя поля, тип) для структуры
     pub screen_structs: HashMap<String, Vec<(String, String)>>,
@@ -131,6 +137,72 @@ pub struct FireworkIR {
     // Структуры, трейты и так далее которые определены на верхнем уровне вызова
     // процедурного макроса, нужны для вставки в кодогенерации
     pub items: Vec<String>, 
+}
+
+impl FireworkIR {
+    pub fn new() -> Self {
+        Self {
+            statements: Vec::new(),
+            snapshot: Snapshot::new(),
+            last_span: None,
+            screen_structs: HashMap::new(),
+            screens: Vec::new(),
+            screen_sparks: HashMap::new(),
+            items: Vec::new(),
+        }
+    }
+    
+    pub fn push(&mut self, stmt: FireworkStatement) {
+        let span_key = SpanKey::from_span(stmt.span);
+        self.last_span = Some(span_key.clone());
+        
+        // Теперь просто вставляем, без Vec
+        self.snapshot
+            .statements
+            .entry(span_key.clone())
+            .or_insert_with(Vec::new)
+            .push(stmt.clone());
+        
+        self.statements.push(stmt);
+        
+        if !self.snapshot.order.contains(&span_key) {
+            self.snapshot.order.push(span_key);
+        }
+    }
+    
+    pub fn set_span(&mut self, span: Span) {
+        self.last_span = Some(SpanKey::from_span(span));
+    }
+
+    pub fn get_current_span(&self) -> Option<&SpanKey> {
+        self.last_span.as_ref()
+    }
+
+    pub fn get_current_statements(&self) -> Option<&Vec<FireworkStatement>> {
+        if let Some(span_key) = &self.last_span {
+            self.snapshot.statements.get(span_key)
+        } else {
+            None
+        }
+    }
+
+    pub fn get_current_statements_mut(&mut self) -> Option<&mut Vec<FireworkStatement>> {
+        if let Some(span_key) = &self.last_span {
+            self.snapshot.statements.get_mut(span_key)
+        } else {
+            None
+        }
+    }
+
+    pub fn get_statements_by_span(&self, span: Span) -> Option<&Vec<FireworkStatement>> {
+        let key = SpanKey::from_span(span);
+        self.snapshot.statements.get(&key)
+    }
+
+    pub fn get_statements_by_span_mut(&mut self, span: Span) -> Option<&mut Vec<FireworkStatement>> {
+        let key = SpanKey::from_span(span);
+        self.snapshot.statements.get_mut(&key)
+    }
 }
 
 /// Поле виджета в Widget DSL, полем считается отдельная часть общей настройки

@@ -3,4 +3,6 @@
 
 pub mod actions;
 pub mod generator;
+pub mod transform;
 pub mod consts;
+pub mod snapshot;

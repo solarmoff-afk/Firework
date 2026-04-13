@@ -51,13 +51,7 @@ impl AnalyzeContext {
                 span: Span::call_site(),
             },
             
-            ir: FireworkIR {
-                statements: Vec::new(),
-                screen_structs: HashMap::new(),
-                screens: Vec::new(),
-                screen_sparks: HashMap::new(),
-                items: Vec::new(),
-            },
+            ir: FireworkIR::new(),
             
             // Счётчики
             widget_counter: 0,

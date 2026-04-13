@@ -42,7 +42,7 @@ impl<'ast> Analyzer {
             // были и клонировать второй раз нет смысла
             self.context.statement.screen_index = self.lifetime_manager.scope.screen_index;
             self.context.statement.depth = self.lifetime_manager.scope.depth;
-            self.context.ir.statements.push(self.context.statement.clone());
+            self.context.ir.push(self.context.statement.clone());
         }
         
         self.context.statement.index = self.statement_index;

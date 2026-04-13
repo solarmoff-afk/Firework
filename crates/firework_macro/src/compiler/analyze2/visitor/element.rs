@@ -70,7 +70,7 @@ impl<'ast> Analyzer {
                 
                 self.context.statement.screen_index = self.lifetime_manager.scope.screen_index;
                 self.context.statement.depth = self.lifetime_manager.scope.depth;
-                self.context.ir.statements.push(self.context.statement.clone());
+                self.context.ir.push(self.context.statement.clone());
 
                 self.lifetime_manager.scope.depth += 1;
                 self.context.statement.depth += 1;
@@ -91,7 +91,7 @@ impl<'ast> Analyzer {
                 self.context.statement.string = "}".to_string();
                 self.statement_index += 1;
 
-                self.context.ir.statements.push(self.context.statement.clone()); 
+                self.context.ir.push(self.context.statement.clone()); 
             } else {
                 // FE008, невалидный синтаксис в лайауте. Как уже было сказанно ранее,
                 // лайаут требует полностью валидный раст синтаксис
@@ -179,7 +179,7 @@ impl<'ast> Analyzer {
                 has_microruntime,
                 self.context.widget_counter,
             );
-            self.context.ir.statements.push(self.context.statement.clone());
+            self.context.ir.push(self.context.statement.clone());
             self.statement_index += 1;
 
             self.context.widget_counter += 1;

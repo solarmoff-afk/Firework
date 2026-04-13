@@ -130,7 +130,7 @@ impl<'ast> Analyzer {
                     // statement это клон
                     statement.is_reactive_block = true;
 
-                    this.context.ir.statements.push(statement);
+                    this.context.ir.push(statement);
                 }
             ); 
         }

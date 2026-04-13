@@ -42,22 +42,7 @@ pub fn ui(input: TokenStream) -> TokenStream {
     // Парсинг кода макроса в абстрактно синтаксическое дерево
     let ast = parse_macro_input!(input as FireworkAst);
 
-    // Генерация раст кода, если компилятор вернул ошибку (Err) то оборачиваем
-    // её в красивую ошибку компиляции
-    // let generated_rust_code_string = match run_firework_compiler(ast, id) {
-    //    Ok(code_string) => code_string,
-    //    Err(err_msg) => {
-    //        let err = syn::Error::new(proc_macro2::Span::call_site(), err_msg);
-    //        return err.to_compile_error().into();
-    //    }
-    // };
-
-    // Отправка созданной компилятором Firework строки в rustc
-    // let output_tokens: TokenStream2 = generated_rust_code_string
-    //    .parse()
-    //    .expect("FATAL: Firework compiler generated_code is invalid");
-
-    let (token_stream, error_tokens) = run_firework_compiler_temp(ast, id);
+    let (token_stream, error_tokens) = run_firework_compiler(ast, id);
     
     let mut output: proc_macro2::TokenStream = token_stream.into();
     

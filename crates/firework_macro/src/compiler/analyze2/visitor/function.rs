@@ -60,7 +60,10 @@ impl<'ast> Analyzer {
         // Любой код в функции реактивный
         self.context.statement.reactive_loop = true;
 
-        self.add_field_to_struct("_fwc_null".to_string(), "u8".to_string());
+        // HACK: Быстрый фикс проблемы с тем, что если в экране не используются спарки
+        // то структура не генерируется. Всегда добавляется _fwc_null на u8 (1 байт)
+        self.add_field_to_struct("_fwc_screen_id".to_string(), "u8".to_string());
+
         syn::visit::visit_item_fn(self, node);
 
         // После парсинга функции нужно добавить стейтемент который уведомит
@@ -72,7 +75,7 @@ impl<'ast> Analyzer {
         // Больше не часть цикла реактивности
         statement.reactive_loop = false;
 
-        self.context.ir.statements.push(statement);
+        self.context.ir.push(statement);
         self.context.ir.screen_sparks.insert(self.lifetime_manager.scope.screen_index, self.context.spark_counter);
 
         // Нужно сгенерировать индекс после анализации функции чтобы id экземпляра

@@ -23,7 +23,6 @@ pub(crate) fn static_declaration(instance_name: &str, struct_name: &str, fields:
             output.push_str(format!("\t{}: None,\n", field_name).as_str());
         }
         
-        output.push_str("\t_fwc_screen_id: None,\n");
         output.push_str("};\n\n");
     }
     
