@@ -297,5 +297,16 @@ mod tests {
         // String 
         assert_eq!(is_mutable_method("String", "push"), true);
         assert_eq!(is_mutable_method("String", "push_str"), true);
+        assert_eq!(is_mutable_method("String", "as_str"), false);
+    }
+
+    #[test]
+    fn test_check_mut_box_deref() {
+        assert_eq!(is_mutable_method("Box<Vec<i32>>", "push"), true);
+        assert_eq!(is_mutable_method("Box<String>", "push_str"), true);
+        assert_eq!(is_mutable_method("Rc<Vec<i32>>", "push"), true);
+        assert_eq!(is_mutable_method("Rc<String>", "push_str"), true);
+        assert_eq!(is_mutable_method("Arc<Vec<i32>>", "push"), true);
+        assert_eq!(is_mutable_method("Arc<String>", "push_str"), true);
     }
 }

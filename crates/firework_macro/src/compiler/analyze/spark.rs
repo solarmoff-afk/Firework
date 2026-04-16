@@ -128,3 +128,115 @@ pub fn get_root_variable_name(expr: &Expr) -> Option<String> {
         _ => None
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::compiler::analyze::lifetime_manager::Variable; 
+    use syn::parse_quote;
+
+    #[test]
+    fn test_spark_validator_counts_spark_macros() {
+        let mut validator = SparkValidator {
+            spark_count: 0,
+            spark_tokens: None,
+            spark_expr: None,
+        };
+
+        let expr: Expr = parse_quote! {
+            spark!(5 + 3)
+        };
+
+        validator.visit_expr(&expr);
+
+        assert_eq!(validator.spark_count, 1);
+        assert!(validator.spark_tokens.is_some());
+        assert!(validator.spark_expr.is_some());
+    }
+
+    #[test]
+    fn test_spark_validator_counts_multiple_sparks() {
+        let mut validator = SparkValidator {
+            spark_count: 0,
+            spark_tokens: None,
+            spark_expr: None,
+        };
+
+        let expr: Expr = parse_quote! {
+            spark!(10) + spark!(20)
+        };
+
+        validator.visit_expr(&expr);
+
+        assert_eq!(validator.spark_count, 2);
+    }
+
+    #[test]
+    fn test_spark_validator_ignores_other_macros() {
+        let mut validator = SparkValidator {
+            spark_count: 0,
+            spark_tokens: None,
+            spark_expr: None,
+        };
+
+        let expr: Expr = parse_quote! {
+            println!("hello") + spark!(42)
+        };
+
+        validator.visit_expr(&expr);
+
+        assert_eq!(validator.spark_count, 1);
+    }
+
+    #[test]
+    fn test_spark_finder_detects_spark_variables() {
+        let mut scope = Scope::new();
+        let spark_var = Variable {
+            variable_type: "i32".to_string(),
+            is_spark: true,
+            is_mut: false,
+            spark_id: 1,
+        };
+        scope.variables.insert("my_spark".to_string(), spark_var);
+
+        let mut found = Vec::new();
+        let mut finder = SparkFinder {
+            scope: &scope,
+            found: &mut found,
+        };
+
+        let expr: Expr = parse_quote! {
+            my_spark + 10
+        };
+
+        finder.visit_expr(&expr);
+
+        assert_eq!(found, vec!["my_spark"]);
+    }
+
+    #[test]
+    fn test_spark_finder_with_id_detects_spark_with_id() {
+        let mut scope = Scope::new();
+        let spark_var = Variable {
+            variable_type: "String".to_string(),
+            is_spark: true,
+            is_mut: true,
+            spark_id: 99,
+        };
+        scope.variables.insert("reactive_var".to_string(), spark_var);
+
+        let mut found = Vec::new();
+        let mut finder = SparkFinderWithId {
+            scope: &scope,
+            found: &mut found,
+        };
+
+        let expr: Expr = parse_quote! {
+            reactive_var.field.subfield
+        };
+
+        finder.visit_expr(&expr);
+
+        assert_eq!(found, vec![("reactive_var".to_string(), 99)]);
+    }
+}

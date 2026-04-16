@@ -170,3 +170,319 @@ impl<'ast> Analyzer {
         target_scope
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::compiler::codegen::actions::{FireworkAction, FireworkStatement};
+    use proc_macro2::Span;
+
+    #[test]
+    fn test_lifetime_checker_update_scope_drops_single_spark() {
+        let mut lifetime_manager = LifetimeManager::new();
+        
+        let old_scope = Scope::new();
+        
+        let spark_var = Variable {
+            variable_type: "i32".to_string(),
+            is_spark: true,
+            is_mut: false,
+            spark_id: 1,
+        };
+        lifetime_manager.scope.variables.insert("test_spark".to_string(), spark_var);
+        
+        let base_stmt = FireworkStatement {
+            action: FireworkAction::DefaultCode,
+            is_reactive_block: false,
+            index: 0,
+            screen_name: String::from(""),
+            string: String::from("original"),
+            parent_widget_id: None,
+            reactive_loop: false,
+            depth: 0,
+            screen_index: 0,
+            span: Span::call_site(),
+        };
+        
+        let result = lifetime_manager.update_scope(old_scope, false, &base_stmt);
+        
+        assert_eq!(result.len(), 1);
+        
+        match &result[0].action {
+            FireworkAction::DropSpark { name, id } => {
+                assert_eq!(name, "test_spark");
+                assert_eq!(*id, 1);
+            }
+            _ => panic!("Expected DropSpark action"),
+        }
+        
+        assert_eq!(result[0].string, "");
+    }
+
+    #[test]
+    fn test_lifetime_checker_update_scope_drops_multiple_sparks() {
+        let mut lifetime_manager = LifetimeManager::new();
+        
+        let old_scope = Scope::new();
+        
+        let spark_var1 = Variable {
+            variable_type: "i32".to_string(),
+            is_spark: true,
+            is_mut: false,
+            spark_id: 1,
+        };
+        
+        let spark_var2 = Variable {
+            variable_type: "String".to_string(),
+            is_spark: true,
+            is_mut: true,
+            spark_id: 2,
+        };
+
+        let spark_var3 = Variable {
+            variable_type: "bool".to_string(),
+            is_spark: true,
+            is_mut: false,
+            spark_id: 3,
+        };
+        
+        lifetime_manager.scope.variables.insert("spark1".to_string(), spark_var1);
+        lifetime_manager.scope.variables.insert("spark2".to_string(), spark_var2);
+        lifetime_manager.scope.variables.insert("spark3".to_string(), spark_var3);
+        
+        let base_stmt = FireworkStatement {
+            action: FireworkAction::DefaultCode,
+            is_reactive_block: false,
+            index: 0,
+            screen_name: String::from(""),
+            string: String::from(""),
+            parent_widget_id: None,
+            reactive_loop: false,
+            depth: 0,
+            screen_index: 0,
+            span: Span::call_site(),
+        };
+        
+        let result = lifetime_manager.update_scope(old_scope, false, &base_stmt);
+        
+        assert_eq!(result.len(), 3);
+        
+        let mut spark_ids: Vec<usize> = result.iter().map(|stmt| {
+            match &stmt.action {
+                FireworkAction::DropSpark { id, .. } => *id,
+                _ => panic!("Expected DropSpark action"),
+            }
+        }).collect();
+        
+        spark_ids.sort();
+        assert_eq!(spark_ids, vec![1, 2, 3]);
+    }
+
+    #[test]
+    fn test_lifetime_checker_update_scope_ignores_non_spark_variables() {
+        let mut lifetime_manager = LifetimeManager::new();
+        
+        let old_scope = Scope::new();
+        
+        let normal_var = Variable {
+            variable_type: "i32".to_string(),
+            is_spark: false,
+            is_mut: true,
+            spark_id: 0,
+        };
+        
+        lifetime_manager.scope.variables.insert("normal".to_string(), normal_var);
+        
+        let base_stmt = FireworkStatement {
+            action: FireworkAction::DefaultCode,
+            is_reactive_block: false,
+            index: 0,
+            screen_name: String::from(""),
+            string: String::from(""),
+            parent_widget_id: None,
+            reactive_loop: false,
+            depth: 0,
+            screen_index: 0,
+            span: Span::call_site(),
+        };
+        
+        let result = lifetime_manager.update_scope(old_scope, false, &base_stmt);
+        
+        assert_eq!(result.len(), 0);
+    }
+
+    #[test]
+    fn test_lifetime_checker_update_scope_mixed_variables() {
+        let mut lifetime_manager = LifetimeManager::new();
+        
+        let old_scope = Scope::new();
+        
+        let spark_var = Variable {
+            variable_type: "i32".to_string(),
+            is_spark: true,
+            is_mut: false,
+            spark_id: 100,
+        };
+        
+        let normal_var = Variable {
+            variable_type: "f64".to_string(),
+            is_spark: false,
+            is_mut: false,
+            spark_id: 0,
+        };
+        
+        lifetime_manager.scope.variables.insert("spark".to_string(), spark_var);
+        lifetime_manager.scope.variables.insert("normal".to_string(), normal_var);
+        
+        let base_stmt = FireworkStatement {
+            action: FireworkAction::DefaultCode,
+            is_reactive_block: false,
+            index: 0,
+            screen_name: String::from(""),
+            string: String::from(""),
+            parent_widget_id: None,
+            reactive_loop: false,
+            depth: 0,
+            screen_index: 0,
+            span: Span::call_site(),
+        };
+        
+        let result = lifetime_manager.update_scope(old_scope, false, &base_stmt);
+        
+        assert_eq!(result.len(), 1);
+        
+        match &result[0].action {
+            FireworkAction::DropSpark { name, id } => {
+                assert_eq!(name, "spark");
+                assert_eq!(*id, 100);
+            }
+            _ => panic!("Expected DropSpark action"),
+        }
+    }
+
+    #[test]
+    fn test_lifetime_checker_update_scope_preserves_existing_variables() {
+        let mut lifetime_manager = LifetimeManager::new();
+        
+        let mut old_scope = Scope::new();
+        let existing_var = Variable {
+            variable_type: "i32".to_string(),
+            is_spark: true,
+            is_mut: false,
+            spark_id: 999,
+        };
+        old_scope.variables.insert("existing".to_string(), existing_var);
+        
+        let spark_var = Variable {
+            variable_type: "String".to_string(),
+            is_spark: true,
+            is_mut: false,
+            spark_id: 1,
+        };
+        lifetime_manager.scope.variables.insert("new_spark".to_string(), spark_var);
+        
+        let base_stmt = FireworkStatement {
+            action: FireworkAction::DefaultCode,
+            is_reactive_block: false,
+            index: 0,
+            screen_name: String::from(""),
+            string: String::from(""),
+            parent_widget_id: None,
+            reactive_loop: false,
+            depth: 0,
+            screen_index: 0,
+            span: Span::call_site(),
+        };
+        
+        let result = lifetime_manager.update_scope(old_scope, false, &base_stmt);
+        
+        assert_eq!(result.len(), 1);
+        
+        match &result[0].action {
+            FireworkAction::DropSpark { name, id } => {
+                assert_eq!(name, "new_spark");
+                assert_eq!(*id, 1);
+            }
+            _ => panic!("Expected DropSpark action"),
+        }
+    }
+
+    #[test]
+    fn test_lifetime_checker_update_scope_with_set_scope_true() {
+        let mut lifetime_manager = LifetimeManager::new();
+        
+        let mut new_scope = Scope::new();
+        let test_var = Variable {
+            variable_type: "bool".to_string(),
+            is_spark: false,
+            is_mut: false,
+            spark_id: 0,
+        };
+        new_scope.variables.insert("existing_var".to_string(), test_var);
+        new_scope.depth = 5;
+        new_scope.is_cycle = true;
+        new_scope.label = Some("loop_label".to_string());
+        new_scope.screen_index = 12345;
+        
+        let base_stmt = FireworkStatement {
+            action: FireworkAction::DefaultCode,
+            is_reactive_block: false,
+            index: 0,
+            screen_name: String::from(""),
+            string: String::from(""),
+            parent_widget_id: None,
+            reactive_loop: false,
+            depth: 0,
+            screen_index: 0,
+            span: Span::call_site(),
+        }; 
+        
+        let result = lifetime_manager.update_scope(new_scope, true, &base_stmt);
+        
+        assert_eq!(lifetime_manager.scope.depth, 5);
+        assert_eq!(lifetime_manager.scope.is_cycle, true);
+        assert_eq!(lifetime_manager.scope.label, Some("loop_label".to_string()));
+        assert_eq!(lifetime_manager.scope.screen_index, 12345);
+        assert!(lifetime_manager.scope.variables.contains_key("existing_var"));
+        
+        assert_eq!(result.len(), 0);
+    }
+
+    #[test]
+    fn test_lifetime_checker_update_scope_no_drops_when_variables_match() {
+        let mut lifetime_manager = LifetimeManager::new();
+        
+        let mut old_scope = Scope::new();
+        let spark_var = Variable {
+            variable_type: "i32".to_string(),
+            is_spark: true,
+            is_mut: false,
+            spark_id: 1,
+        };
+        old_scope.variables.insert("same_spark".to_string(), spark_var);
+        
+        lifetime_manager.scope.variables.insert("same_spark".to_string(), Variable {
+            variable_type: "i32".to_string(),
+            is_spark: true,
+            is_mut: false,
+            spark_id: 1,
+        });
+        
+        let base_stmt = FireworkStatement {
+            action: FireworkAction::DefaultCode,
+            is_reactive_block: false,
+            index: 0,
+            screen_name: String::from(""),
+            string: String::from(""),
+            parent_widget_id: None,
+            reactive_loop: false,
+            depth: 0,
+            screen_index: 0,
+            span: Span::call_site(),
+        };
+        
+        let result = lifetime_manager.update_scope(old_scope, false, &base_stmt);
+        
+        assert_eq!(result.len(), 0);
+    }
+}
