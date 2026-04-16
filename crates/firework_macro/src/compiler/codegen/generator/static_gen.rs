@@ -29,6 +29,7 @@ pub(crate) fn static_declaration(instance_name: &str, struct_name: &str, fields:
     output
 }
 
+/// Для безопасной многопоточности
 #[cfg(feature = "safety-multithread")]
 pub(crate) fn static_declaration(instance_name: &str, struct_name: &str, fields: &[(String, String)]) -> String {
     let mut output = String::new();
@@ -72,8 +73,7 @@ pub(crate) fn init_instance(instance_name: &str, struct_name: &str, fields: &[(S
     for (field_name, _) in fields {
         output.push_str(format!("\t\t{}: None,\n", field_name).as_str());
     }
-    
-    output.push_str("\t\t_fwc_screen_id: None,\n");
+
     output.push_str("\t})).lock().unwrap();\n");
     
     output.push_str("\tif instance._fwc_screen_id.is_none() {\n");

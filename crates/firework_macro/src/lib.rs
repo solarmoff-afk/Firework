@@ -35,8 +35,8 @@ impl Parse for FireworkAst {
     }
 }
 
-#[proc_macro]
-pub fn ui(input: TokenStream) -> TokenStream {
+#[proc_macro_attribute]
+pub fn ui(_args: proc_macro::TokenStream,input: TokenStream) -> TokenStream {
     let id = BLOCK_COUNTER.fetch_add(1, Ordering::Relaxed);
 
     // Парсинг кода макроса в абстрактно синтаксическое дерево

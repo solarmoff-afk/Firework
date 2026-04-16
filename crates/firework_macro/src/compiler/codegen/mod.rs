@@ -3,6 +3,7 @@
 
 pub mod actions;
 pub mod generator;
+pub mod code_builder;
 pub mod transform;
 pub mod consts;
 pub mod snapshot;

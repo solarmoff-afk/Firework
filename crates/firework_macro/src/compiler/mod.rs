@@ -1,17 +1,15 @@
 // Часть проекта Firework с открытым исходным кодом.
 // Лицензия EPL 2.0, подробнее в файле LICENSE. Copyright (c) 2026 Firework
 
-mod analyze2;
+mod analyze;
 mod utils;
 mod error;
 mod codegen;
 
-use analyze2::prepare_tokens;
+use analyze::prepare_tokens;
 use codegen::transform::CodegenVisitor;
 
 use proc_macro2::TokenTree;
-use quote::quote;
-use syn::parse_quote;
 use syn::visit_mut::VisitMut;
 
 #[cfg(feature = "debug_output")]

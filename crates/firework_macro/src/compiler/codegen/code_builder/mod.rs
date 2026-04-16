@@ -1,0 +1,120 @@
+// Часть проекта Firework с открытым исходным кодом.
+// Лицензия EPL 2.0, подробнее в файле LICENSE. Copyright (c) 2026 Firework
+
+mod nodes;
+
+use proc_macro2::{TokenStream, Span};
+use quote::{format_ident, quote, quote_spanned};
+use syn::spanned::Spanned;
+
+use super::actions::{FireworkAction, FireworkStatement};
+use super::generator::static_gen;
+use super::generator::bitmask_gen::*;
+use super::transform::traits::{ToStmt, ToExpr};
+use super::consts::CHECK_NAVIGATE;
+
+pub struct CodeBuilder;
+
+impl CodeBuilder {
+    pub fn new() -> Self {
+        Self
+    }
+
+    pub fn convert_string_to_syn(code: &str) -> TokenStream {
+        code.parse().unwrap()
+    }
+
+    /// Сборка токенов из реального стейтемента и набора семантических меток. Через quote 
+    /// генерируется набор токенов и возвращается после чего вставляется на место стейтемента.
+    /// Ноды сами решают использовать ли оригинальный стейтемент
+    pub fn build(
+        &mut self, stmt: &syn::Stmt, statements: &[FireworkStatement], 
+        processed_body: TokenStream,
+    ) -> TokenStream {
+        // Спан нужен для того чтобы вставить код в нужное место для правильных ошибок
+        // rustc
+        let span = stmt.span();
+        
+        // Финальный набор токенов куда добавляется результат каждой ноды
+        let mut final_tokens = TokenStream::new();
+        let mut is_body_handled = false;
+
+        // Может быть несколько семантических меток на стейтемент, чаще всего это
+        // DropSpark или терминаторы. Они привязаны к спану оригинального стейтемента,
+        // но выполняют функцию дополнения
+        for statement in statements {
+            // Имя структуры экрана
+            let struct_name = format!("ApplicationUiBlockStruct{}", statement.screen_index);
+
+            match &statement.action {
+                FireworkAction::ReactiveBlock(..) => {
+                    is_body_handled = true;
+                },
+
+                FireworkAction::UpdateSpark(..) => {
+                    let need_condition = !statement.is_reactive_block
+                        && statement.parent_widget_id.is_none();
+                    
+                    if need_condition {
+                        is_body_handled = true;
+                    }
+                },
+
+                _ => {}
+            }
+
+            // Узлы обрабатывают виртуальный стейтемент и генерируют токены в final_tokens
+            // обрабатывая семантическую метку
+            
+            // Узел инициализации реактивной переменной
+            self.node_initial_spark(
+                span, struct_name.clone(), &mut final_tokens, &statement);
+            
+            // Узел возврата владения в статическую память
+            self.node_drop_spark(
+                span, struct_name.clone(), &mut final_tokens, &statement);
+            
+            // Узел реактивного блока
+            self.node_reactive_block(
+                span, &mut final_tokens, &statement, &processed_body, statements);
+            
+            // Узел обновления реактивной переменной
+            self.node_update_spark(span, &mut final_tokens, &statement, &processed_body);
+
+            // Для DefaultCode нет отдельного узла так как он просто отправляет свой вход
+            // на выход
+            match &statement.action {
+                // Другой случай который либо не реализован, либо DefaultCode (код без
+                // семантической метки)
+                FireworkAction::DefaultCode => {
+                    if !is_body_handled {
+                        final_tokens.extend(quote_spanned!(span=> 
+                            #processed_body 
+                        ));
+
+                        is_body_handled = true;
+                    }
+                }, 
+
+                // Другие метки игнорируются
+                _ => {},
+            }
+        }
+
+        final_tokens
+    }
+
+    pub(crate) fn generate_check_spark_bit(&self, code: &mut String, id: usize) {
+        // Получение маски на основе айди спарка
+        let mask = get_spark_mask(id);
+        let id_in_mask = normalize_bit_index(id);
+
+        code.push_str(check_flag(
+            // Имя маски
+            format!("_fwc_bitmask{}_clone", mask).as_str(),
+            
+            // Индекс внутри этой маски
+            id_in_mask,
+        ).as_str());
+    }
+}

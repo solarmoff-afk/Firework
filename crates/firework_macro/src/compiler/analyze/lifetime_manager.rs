@@ -3,6 +3,9 @@
 
 use std::collections::HashMap;
 use rand::Rng;
+use syn::Lifetime;
+
+pub use super::*;
 
 use crate::compiler::codegen::actions::FireworkAction;
 use crate::compiler::codegen::actions::FireworkStatement;
@@ -102,7 +105,7 @@ impl LifetimeManager {
     /// области видимости, алгоритм сравнения найдёт отсуствие переменной и сгенерирует
     /// семантическую метку для IR DropSpark, оно означает что нужно вернуть владение
     /// обратно в BSS так как локальная переменная которая арендовала значение из BSS
-    /// мертва и чтобы не было UB нужно вернуть значение обратно в BSS память со стэка.
+    /// мертва и чтобы не было паники нужно вернуть значение обратно в BSS память со стэка.
     /// Так как мы делаем push в IR до обработки следующего statement то в IR сначала
     /// будет возврат в этой же области видимости
     ///
@@ -135,5 +138,35 @@ impl LifetimeManager {
         }
         
         statements
+    }
+}
+
+impl<'ast> Analyzer {
+    /// Этот метод используется в break и continue чтобы найти последнюю область
+    /// видимости которая явлется циклом, label нужен для циклов с именем, принимает
+    /// опциональный Lifetime от syn, а возвращает область видимости которая была
+    /// найдена в стэке
+    pub(crate) fn get_target_scope(&mut self, label: &Option<Lifetime>) -> Scope {
+        // Получение последней области видимости в стэке
+        let target_scope = if let Some(label_break) = label {
+            // Имя цикла который нужно остановить
+            let label_name = label_break.ident.to_string();
+
+            // Поиск цикла с таким именем по стэку областей видимости
+            self.lifetime_manager.old_scope.iter()
+                .rev()
+                .find(|s| s.label.as_ref() == Some(&label_name))
+                .cloned()
+                .unwrap_or_else(|| Scope::new())
+        } else {
+            // Если нет имени цикла в break {'имя} <- вот тут
+            self.lifetime_manager.old_scope.iter()
+                .rev()
+                .find(|s| s.is_cycle)
+                .cloned()
+                .unwrap_or_else(|| Scope::new())
+        };
+
+        target_scope
     }
 }

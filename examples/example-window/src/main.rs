@@ -15,20 +15,19 @@ thread_local! {
     static MOUSE_BUTTON_DOWN: RefCell<bool> = RefCell::new(false);
 }
 
-ui! {
-    fn test_screen() { 
-        let mut spark1 = spark!(0u32);
-        let mut spark2 = spark!(0u32);
+#[ui]
+fn test_screen() { 
+    let mut spark1 = spark!(0u32);
+    let mut spark2 = spark!(0u32);
         
-        spark1 += spark2;
-
-        effect!(spark1, {
-            println!("Update spark1: {}", spark1);
-            spark2 = 10;
-        });
-
+    spark1 += spark2;
+    
+    effect!(spark1, {
+        println!("Update spark1: {}", spark1);
         spark2 = 10;
-    }
+    });
+    
+    spark2 = 10;
 }
 
 fn my_adapter(command: AdapterCommand) -> AdapterResult {

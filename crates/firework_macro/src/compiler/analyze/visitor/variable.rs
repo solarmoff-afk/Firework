@@ -10,6 +10,9 @@ impl<'ast> Analyzer {
         self.pending_vars.clear();
         visit::visit_pat(self, &i.pat);
 
+        // Spark 
+        //  Синтаксис: spark!(value)
+        //  Что делает: Создаёт реактивную переменную которую отслеживает анализатор
         self.spark_marker(i);
     }
 

@@ -9,7 +9,6 @@ pub const SCREEN_HEADER: &str = "
 
 /// Константа для определения ивента
 pub const CHECK_EVENT: &str = "
-\tlet mut _fwc_event = firework_ui::LifeCycle::Zero;
 \tif _fwc_id == firework_ui::get_focus_id() && !_fwc_build {
 \t\t_fwc_event = firework_ui::LifeCycle::Event;
 \t} else {

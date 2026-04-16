@@ -128,6 +128,15 @@ error[FE012]: effect!() requires a body block as the last argument
 //   = note: for more information, see: [WORK IN PROGRESS]
 // ";
 
+/// Запрещено инициализировать спарк в ветках match или if без использования блока
+pub const SPARK_BLOCK_REQUIRED_ERROR: &str = "\
+error[FE014]: spark!() cannot be initialized in a simple expression arm
+   = note: reactive variables require an explicit block scope `{ ... }` for lifetime tracking
+   = help: wrap the branch body in curly braces and use a let binding
+   = help: example: `0 => { let mut a = spark!(0); }`
+   = note: for more information, see: [WORK IN PROGRESS]
+";
+
 pub fn compile_error_spanned<T: quote::ToTokens>(tokens: T, msg: &str) -> Error {
     Error::new_spanned(tokens, msg)
 }

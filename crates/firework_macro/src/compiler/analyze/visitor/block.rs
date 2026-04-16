@@ -55,8 +55,8 @@ impl<'ast> Analyzer {
             FireworkAction::ReactiveBlock(FireworkReactiveBlock::ReactiveIf, sparks),
             |this| {
                 // Основное тело условия
-                visit::visit_block(this, &i.then_branch);
-            
+                this.analyze_block(&i.then_branch);
+
                 // При наличии else блока
                 if let Some((_, else_branch)) = &i.else_branch {
                     match &**else_branch {
@@ -74,7 +74,7 @@ impl<'ast> Analyzer {
                                     FireworkReactiveBlock::ReactiveIf, else_if_sparks,
                                 ),
                                 |inner_this| {
-                                    visit::visit_block(inner_this, &else_if.then_branch);
+                                    inner_this.analyze_block(&else_if.then_branch);
                                     
                                     // Вложенные else/else if
                                     if let Some((_, inner_else_branch)) = &else_if.else_branch {
@@ -127,7 +127,10 @@ impl<'ast> Analyzer {
             true,
             format!("while {} {{", condition_code),
             FireworkAction::ReactiveBlock(FireworkReactiveBlock::ReactiveWhile, sparks.clone()),
-            |this| visit::visit_expr_while(this, i),
+            |this| {
+                visit::visit_expr(this, &i.cond);
+                this.analyze_block(&i.body);
+            }
         );
     }
     
@@ -148,7 +151,10 @@ impl<'ast> Analyzer {
             true,
             format!("for {} in {} {{", pattern_code, expr_code),
             FireworkAction::ReactiveBlock(FireworkReactiveBlock::ReactiveFor, sparks.clone()),
-            |this| visit::visit_expr_for_loop(this, i),
+            |this| {
+                visit::visit_expr(this, &i.expr);
+                this.analyze_block(&i.body);
+            }
         );
     }
     
@@ -162,7 +168,42 @@ impl<'ast> Analyzer {
             false,
             format!("match {} {{", expr_code),
             FireworkAction::ReactiveBlock(FireworkReactiveBlock::ReactiveMatch, sparks.clone()),
-            |this| visit::visit_expr_match(this, i),
+            |this| {
+                for arm in &i.arms {
+                    if let Some((_, guard)) = &arm.guard {
+                        visit::visit_expr(this, guard);
+                    }
+
+                    // Анализируем тело ветки
+                    match &*arm.body {
+                        // Блок variant => { ... },
+                        Expr::Block(expr_block) => {
+                            this.analyze_block(&expr_block.block);
+                        },
+
+                        // variant => 10,
+                        _ => {
+                            let mut validator = SparkValidator {
+                                spark_count: 0,
+                                spark_tokens: None,
+                                spark_expr: None,
+                            };
+                            validator.visit_expr(&arm.body);
+
+                            if validator.spark_count > 0 {
+                                // [FE014]
+                                // Спарки нельзя создавать условно в матче
+                                this.context.errors.push(compile_error_spanned(
+                                    &arm.body,
+                                    SPARK_BLOCK_REQUIRED_ERROR,
+                                ));
+                            } else {
+                                visit::visit_expr(this, &arm.body);
+                            }
+                        }
+                    }
+                }
+            },
         );
     }
 
@@ -179,7 +220,9 @@ impl<'ast> Analyzer {
             true,
             "loop {".to_string(),
             FireworkAction::DefaultCode,
-            |this| visit::visit_expr_loop(this, i),
+            |this| {
+                this.analyze_block(&i.body);
+            }
         );
     }
 
@@ -216,33 +259,5 @@ impl<'ast> Analyzer {
         self.update_scope(target_scope, false);
         
         visit::visit_expr_return(self, i);
-    }
-
-    /// Этот метод используется в break и continue чтобы найти последнюю область
-    /// видимости которая явлется циклом, label нужен для циклов с именем, принимает
-    /// опциональный Lifetime от syn, а возвращает область видимости которая была
-    /// найдена в стэке
-    fn get_target_scope(&mut self, label: &Option<Lifetime>) -> Scope {
-        // Получение последней области видимости в стэке
-        let target_scope = if let Some(label_break) = label {
-            // Имя цикла который нужно остановить
-            let label_name = label_break.ident.to_string();
-
-            // Поиск цикла с таким именем по стэку областей видимости
-            self.lifetime_manager.old_scope.iter()
-                .rev()
-                .find(|s| s.label.as_ref() == Some(&label_name))
-                .cloned()
-                .unwrap_or_else(|| Scope::new())
-        } else {
-            // Если нет имени цикла в break {'имя} <- вот тут
-            self.lifetime_manager.old_scope.iter()
-                .rev()
-                .find(|s| s.is_cycle)
-                .cloned()
-                .unwrap_or_else(|| Scope::new())
-        };
-
-        target_scope
-    }
+    } 
 }
