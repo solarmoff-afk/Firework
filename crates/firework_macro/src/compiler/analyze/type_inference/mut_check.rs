@@ -266,3 +266,36 @@ fn check_type_mutable(type_name: &str, method: &str) -> bool {
         _ => false,
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_check_mut_primitive() {
+        assert_eq!(is_mutable_method("i32", "push"), false);
+        assert_eq!(is_mutable_method("i64", "push"), false);
+        assert_eq!(is_mutable_method("f32", "push"), false);
+        assert_eq!(is_mutable_method("f64", "push"), false);
+        assert_eq!(is_mutable_method("u32", "push"), false);
+    }
+
+    #[test]
+    fn test_check_mut_option() {
+        assert_eq!(is_mutable_method("Option<i32>", "take"), true); 
+    }
+
+    #[test]
+    fn test_check_mut_containers() {
+        assert_eq!(is_mutable_method("Vec<i32>", "push"), true);
+        assert_eq!(is_mutable_method("Vec<i32>", "pop"), true);
+        assert_eq!(is_mutable_method("Vec<i32>", "remove"), true);
+        assert_eq!(is_mutable_method("Vec<i32>", "sort"), true);
+        assert_eq!(is_mutable_method("Vec<i32>", "last"), false);
+        assert_eq!(is_mutable_method("Vec<i32>", "iter"), false);
+
+        // String 
+        assert_eq!(is_mutable_method("String", "push"), true);
+        assert_eq!(is_mutable_method("String", "push_str"), true);
+    }
+}

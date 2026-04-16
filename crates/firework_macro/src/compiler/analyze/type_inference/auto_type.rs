@@ -158,3 +158,67 @@ pub fn guess_type_from_expr(expr: &Expr) -> Option<String> {
         _ => None,
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    use syn::parse_str;
+
+    fn convert_to_expr(string: &str) -> Expr {
+        parse_str(string).unwrap()
+    }
+
+    fn guess_type(string: &str) -> Option<String> {
+        guess_type_from_expr(&convert_to_expr(string))
+    }
+
+    #[test]
+    fn test_type_inference_primitive() {
+        assert_eq!(guess_type("10"), Some("i32".to_string()));
+        assert_eq!(guess_type("0.5"), Some("f64".to_string()));
+        assert_eq!(guess_type("true"), Some("bool".to_string()));
+        assert_eq!(guess_type("false"), Some("bool".to_string()));
+        assert_eq!(guess_type("'a'"), Some("char".to_string()));
+
+        // Нельзя угадать тип
+        assert_eq!(guess_type("eifwepofkew"), None);
+    }
+
+    #[test]
+    fn test_type_inference_with_suffix() {
+        assert_eq!(guess_type("10u32"), Some("u32".to_string()));
+        assert_eq!(guess_type("10.5f32"), Some("f32".to_string())); 
+    }
+
+    #[test]
+    fn test_type_inference_construct() {
+        assert_eq!(guess_type("Some(10)"), Some("Option<i32>".to_string()));
+        assert_eq!(guess_type("Some(10u32)"), Some("Option<u32>".to_string()));
+        assert_eq!(guess_type("Some(Some(10u32))"), Some("Option<Option<u32>>".to_string()));
+    }
+
+    #[test]
+    fn test_type_inference_string() {
+        assert_eq!(guess_type("String::new()"), Some("String".to_string()));
+        assert_eq!(guess_type("String::from(\"Hello\")"), Some("String".to_string()));
+        assert_eq!(guess_type("Some(String::new())"), Some("Option<String>".to_string()));
+        assert_eq!(guess_type("\"Hello\""), Some("&'static str".to_string())); 
+    }
+
+    #[test]
+    fn test_type_inference_smart_pointers() {
+        assert_eq!(guess_type("Box::new(10)"), Some("Box<i32>".to_string()));
+        assert_eq!(guess_type("Box::new(Some(10))"), Some("Box<Option<i32>>".to_string()));
+        assert_eq!(guess_type("Rc::new(10)"), Some("Rc<i32>".to_string()));
+        assert_eq!(guess_type("Rc::new(Some(10))"), Some("Rc<Option<i32>>".to_string()));
+        assert_eq!(guess_type("Arc::new(10)"), Some("Arc<i32>".to_string()));
+        assert_eq!(guess_type("Arc::new(Some(10))"), Some("Arc<Option<i32>>".to_string()));
+    }
+
+    #[test]
+    fn test_type_inference_struct() {
+        assert_eq!(guess_type("MyFunc { field: 10, }"), Some("MyFunc".to_string()));
+        assert_eq!(guess_type("MyFunc::<i32> {field: 10}"), Some("MyFunc::<i32>".to_string()));
+    }
+}
