@@ -36,12 +36,12 @@ impl<'ast> Analyzer {
                     } 
 
                     self.context.statement.action = FireworkAction::UpdateSpark(
-                        root_name, variable.spark_id,
+                        root_name.clone(), variable.spark_id,
                     ); 
 
                     // Клоинрование стейтемента перед передачей нужно для того чтобы
                     // сохранилась семантическая метка (FireworkAction)
-                    self.compute_spark(&i.right, self.context.statement.clone());
+                    self.compute_spark(&i.right, self.context.statement.clone(), &root_name);
                 }
             }
         }
@@ -74,10 +74,10 @@ impl<'ast> Analyzer {
                         }
                         
                         self.context.statement.action = FireworkAction::UpdateSpark(
-                            root_name, variable.spark_id,
+                            root_name.clone(), variable.spark_id,
                         );
 
-                        self.compute_spark(&i.right, self.context.statement.clone());
+                        self.compute_spark(&i.right, self.context.statement.clone(), &root_name);
                     }
                 }
             }
@@ -117,8 +117,12 @@ impl<'ast> Analyzer {
     /// спарки которые используются в варажении. Позволяет писать spark1 = spark2 + spark3
     /// без обёрток (как effect!(..., {})) и делать код интутивно понятным. Второй аргумент
     /// это стейтемент который будет вставлен в IR как внутрянка эффекта
-    pub(crate) fn compute_spark(&mut self, right: &'ast Expr, mut statement: FireworkStatement) {
-        let effect_sparks = self.get_sparks(&right);
+    pub(crate) fn compute_spark(&mut self, right: &'ast Expr, mut statement: FireworkStatement, name: &String) {
+        let mut effect_sparks = self.get_sparks(&right);
+ 
+        // Если в спарках есть корневая переменная то удаление из вектора, эффект не
+        // будет создан если спарков не будет в выражении
+        effect_sparks.retain(|(s, _)| s != name);
         
         if effect_sparks.len() > 0 {
             self.handle_reactive_block(
