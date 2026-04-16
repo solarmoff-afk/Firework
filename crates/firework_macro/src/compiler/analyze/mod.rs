@@ -20,8 +20,8 @@ use widget::{is_widget, is_layout, map_skin, WidgetArgs};
 use spark::{SparkValidator, SparkFinder, SparkFinderWithId, get_root_variable_name};
 use context::AnalyzeContext;
 use lifetime_manager::{Variable, Scope, LifetimeManager};
+use type_inference::mut_check::is_mutable_method;
 
-use crate::compiler::utils::is_mutable_method;
 use crate::compiler::codegen::actions::{
     FireworkIR, FireworkStatement, FireworkAction, FireworkWidgetField, FireworkReactiveBlock,
 };
