@@ -11,6 +11,9 @@ mod linter;
 mod context;
 mod lifetime_manager;
 
+#[cfg(test)]
+mod tests;
+
 use proc_macro2::{TokenTree, TokenStream, Span};
 use syn::*;
 use syn::visit::Visit;
@@ -168,12 +171,12 @@ impl Analyzer {
             is_null_effect = vec.is_empty();
         }
         
-        // Если в условии есть спарки ИЛИ это нулевой эффект и мы сейчас не в реактивном
-        // блоке то мы входим в реактивный блок. Реактивные блоки в реактивных блоках не
-        // работают. То есть реактивный блок будет создан если в условии есть спарки или
-        // если это эффект без спарков. Если это эффект у которого есть спарки то это
-        // сделает true condition_has_spark, а если это эффект без спарков то is_null_effect
-        if (condition_has_spark || is_null_effect) && self.reactive_block.is_none() {
+        // Если в условии есть спарки то мы входим в реактивный блок. Реактивные блоки
+        // в реактивных блоках не работают. То есть реактивный блок будет создан если в
+        // условии есть спарки или если это эффект без спарков. Если это эффект у которого
+        // есть спарки то это сделает true condition_has_spark, а если это эффект без спарков
+        // то is_null_effect
+        if condition_has_spark || is_null_effect {
             open_statement.action = action;
             open_statement.is_reactive_block = true;
 

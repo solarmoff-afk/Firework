@@ -9,7 +9,7 @@ use std::collections::HashMap;
 use super::snapshot::{Snapshot, SpanKey};
 
 /// Какой это конкретно реактивный блок
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum FireworkReactiveBlock {
     // Условие
     ReactiveIf,
@@ -27,7 +27,7 @@ pub enum FireworkReactiveBlock {
     Effect,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum FireworkAction {
     // Инициализация реактивной переменной (спарка) в области видимости. Первое значение
     // это имя реактивной переменной, а второе это айдишник переменно, третье это
@@ -113,6 +113,9 @@ pub struct FireworkStatement {
 
 #[derive(Debug, Clone)]
 pub struct FireworkIR {
+    // Айди элемента в векторе это номер statement
+    pub statements: Vec<FireworkStatement>,
+
     pub snapshot: Snapshot,
 
     // Последний спан который был задан. Используется чтобы разместить 
@@ -129,17 +132,18 @@ pub struct FireworkIR {
     )>,
 
     // Хэшмап для хранения id экрана -> количество спарков
-    pub screen_sparks: HashMap<u128, usize>,
+    pub screen_sparks: HashMap<u128, usize>,  
 }
 
 impl FireworkIR {
     pub fn new() -> Self {
-        Self { 
+        Self {
+            statements: Vec::new(),
             snapshot: Snapshot::new(),
             last_span: None,
             screen_structs: HashMap::new(),
             screens: Vec::new(),
-            screen_sparks: HashMap::new(), 
+            screen_sparks: HashMap::new(),
         }
     }
     
@@ -153,6 +157,8 @@ impl FireworkIR {
             .entry(span_key.clone())
             .or_insert_with(Vec::new)
             .push(stmt.clone());
+        
+        self.statements.push(stmt);
         
         if !self.snapshot.order.contains(&span_key) {
             self.snapshot.order.push(span_key);
@@ -201,7 +207,7 @@ impl FireworkIR {
 ///
 /// Необходимо для кодогенерации, так как виджеты это чистая compile-time сущность,
 /// в реалтайме есть только скины
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct FireworkWidgetField {
     // Какие спарки используются в поле
     pub sparks: Vec<String>,
