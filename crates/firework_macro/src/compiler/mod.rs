@@ -33,7 +33,7 @@ pub fn run_firework_compiler(ast: FireworkAst, id: u64) -> (proc_macro2::TokenSt
         let mut visitor = CodegenVisitor::new(&mut ir);
         visitor.visit_file_mut(&mut file);
 
-        let codegen_output = quote::quote! { #file };
+        let mut codegen_output = quote::quote! { #file };
 
         #[cfg(feature = "debug_output")]
         {
@@ -45,6 +45,8 @@ pub fn run_firework_compiler(ast: FireworkAst, id: u64) -> (proc_macro2::TokenSt
 
             println!("{}", codegen_string);
         }
+
+        codegen_output.extend(output.0);
 
         return (codegen_output, output.1);
     }

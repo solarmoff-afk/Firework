@@ -1,6 +1,6 @@
 [package]
 name = "firework_macro"
-version = "0.8.0"
+version = "0.9.0"
 edition = "2024"
 
 [lib]
@@ -17,3 +17,5 @@ quote = "1.0"
 proc-macro2 = "1.0"
 rand = "0.8"
 prettyplease = "0.2"
+petgraph = "0.7"
+proc-macro-warning = "1.84.1"

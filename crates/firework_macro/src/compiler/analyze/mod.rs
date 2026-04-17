@@ -6,6 +6,7 @@ mod spark;
 mod widget;
 mod visitor;
 mod type_inference;
+mod linter;
 
 mod context;
 mod lifetime_manager;
@@ -21,6 +22,7 @@ use spark::{SparkValidator, SparkFinder, SparkFinderWithId, get_root_variable_na
 use context::AnalyzeContext;
 use lifetime_manager::{Variable, Scope, LifetimeManager};
 use type_inference::mut_check::is_mutable_method;
+use linter::FireworkLinter;
 
 use crate::compiler::codegen::actions::{
     FireworkIR, FireworkStatement, FireworkAction, FireworkWidgetField, FireworkReactiveBlock,
@@ -36,8 +38,8 @@ pub const NO_TYPE: &str = "NO TYPE";
 /// валидировать правильное использование спарков
 pub struct Analyzer {
     pub context: AnalyzeContext,
-
     pub lifetime_manager: LifetimeManager,
+    pub linter: FireworkLinter,
 
     // Statement это блок кода от начала до ; фигурных скобок или в некоторых случаях
     // запятой. Нужно точно знать на каком statement мы сейчас. На старте это 1, поэтому
@@ -74,6 +76,7 @@ impl Analyzer {
         Self {
             context: AnalyzeContext::new(),
             lifetime_manager: LifetimeManager::new(),
+            linter: FireworkLinter::new(),
 
             // Нулевая команда
             statement_index: 0,
@@ -326,54 +329,12 @@ impl<'ast> Visit<'ast> for Analyzer {
         self.analyze_expr_return(i);
     }
 
-    fn visit_item_struct(&mut self, node: &'ast ItemStruct) {
-        self.context.ir.items.push(node.to_token_stream().to_string());
-        self.context.output.extend(node.to_token_stream());
+    fn visit_item_struct(&mut self, _i: &'ast ItemStruct) { 
+        // self.context.output.extend(node.to_token_stream());
     }
-    
-    fn visit_item_enum(&mut self, node: &'ast ItemEnum) {
-        self.context.ir.items.push(node.to_token_stream().to_string());
-        self.context.output.extend(node.to_token_stream());
-    }
-    
-    fn visit_item_type(&mut self, node: &'ast ItemType) {
-        self.context.ir.items.push(node.to_token_stream().to_string());
-        self.context.output.extend(node.to_token_stream());
-    }
-    
-    fn visit_item_trait(&mut self, node: &'ast ItemTrait) {
-        self.context.ir.items.push(node.to_token_stream().to_string());
-        self.context.output.extend(node.to_token_stream());
-    }
-    
-    fn visit_item_impl(&mut self, node: &'ast ItemImpl) {
-        self.context.ir.items.push(node.to_token_stream().to_string());
-        self.context.output.extend(node.to_token_stream());
-    }
-    
-    fn visit_item_mod(&mut self, node: &'ast ItemMod) {
-        self.context.ir.items.push(node.to_token_stream().to_string());
-        self.context.output.extend(node.to_token_stream());
-    }
-    
-    fn visit_item_use(&mut self, node: &'ast ItemUse) {
-        self.context.ir.items.push(node.to_token_stream().to_string());
-        self.context.output.extend(node.to_token_stream());
-    }
-    
-    fn visit_item_extern_crate(&mut self, node: &'ast ItemExternCrate) {
-        self.context.ir.items.push(node.to_token_stream().to_string());
-        self.context.output.extend(node.to_token_stream());
-    }
-    
-    fn visit_item_foreign_mod(&mut self, node: &'ast ItemForeignMod) {
-        self.context.ir.items.push(node.to_token_stream().to_string());
-        self.context.output.extend(node.to_token_stream());
-    }
-    
-    fn visit_item_macro(&mut self, node: &'ast ItemMacro) {
-        self.context.ir.items.push(node.to_token_stream().to_string());
-        self.context.output.extend(node.to_token_stream());
+
+    fn visit_item_impl(&mut self, _i: &'ast ItemImpl) {
+        // self.context.output.extend(node.to_token_stream());
     }
 }
 
@@ -387,7 +348,11 @@ pub fn prepare_tokens(tokens: Vec<TokenTree>, _id: u64) -> (proc_macro2::TokenSt
     
     let mut analyzer = Analyzer::new();
     analyzer.lifetime_manager.scope.screen_index_generate();
-    analyzer.visit_file(&file); 
+    analyzer.visit_file(&file);
+
+    for warn_tokens in &analyzer.linter.warnings {
+        analyzer.context.output.extend(warn_tokens.clone());
+    }
 
     #[cfg(feature = "debug_output")]
     println!("IR len: {}, IR: {:#?}",

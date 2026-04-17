@@ -1,6 +1,8 @@
 // Часть проекта Firework с открытым исходным кодом.
 // Лицензия EPL 2.0, подробнее в файле LICENSE. Copyright (c) 2026 Firework
 
+use syn::spanned::Spanned;
+
 pub use super::super::*;
 
 impl<'ast> Analyzer {
@@ -41,7 +43,10 @@ impl<'ast> Analyzer {
 
                     // Клоинрование стейтемента перед передачей нужно для того чтобы
                     // сохранилась семантическая метка (FireworkAction)
-                    self.compute_spark(&i.right, self.context.statement.clone(), &root_name);
+                    self.compute_spark(
+                        &i.right, self.context.statement.clone(),
+                        (&root_name, variable.spark_id),
+                    );
                 }
             }
         }
@@ -77,7 +82,10 @@ impl<'ast> Analyzer {
                             root_name.clone(), variable.spark_id,
                         );
 
-                        self.compute_spark(&i.right, self.context.statement.clone(), &root_name);
+                        self.compute_spark(
+                            &i.right, self.context.statement.clone(),
+                            (&root_name, variable.spark_id),
+                        );
                     }
                 }
             }
@@ -117,12 +125,16 @@ impl<'ast> Analyzer {
     /// спарки которые используются в варажении. Позволяет писать spark1 = spark2 + spark3
     /// без обёрток (как effect!(..., {})) и делать код интутивно понятным. Второй аргумент
     /// это стейтемент который будет вставлен в IR как внутрянка эффекта
-    pub(crate) fn compute_spark(&mut self, right: &'ast Expr, mut statement: FireworkStatement, name: &String) {
+    pub(crate) fn compute_spark(&mut self, right: &'ast Expr, mut statement: FireworkStatement, root: (&String, usize)) {
         let mut effect_sparks = self.get_sparks(&right);
  
         // Если в спарках есть корневая переменная то удаление из вектора, эффект не
         // будет создан если спарков не будет в выражении
-        effect_sparks.retain(|(s, _)| s != name);
+        effect_sparks.retain(|(s, _)| s != root.0);
+
+        for (_, id) in effect_sparks.iter() {
+            self.linter.depend_spark(root.1, *id, right.to_token_stream().span());
+        }
         
         if effect_sparks.len() > 0 {
             self.handle_reactive_block(

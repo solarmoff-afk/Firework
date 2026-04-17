@@ -96,10 +96,13 @@ impl Analyzer {
                         spark_type,
                     ));
                     
-                    var_data.spark_id = self.context.spark_counter;
+                    let id = self.context.spark_counter;
+                    var_data.spark_id = id;
+                    self.linter.add_spark(id, name.clone(), i.to_token_stream().to_string());
+
                     self.context.statement.action = FireworkAction::InitialSpark {
                         name: name.clone(),
-                        id: self.context.spark_counter,
+                        id,
                         spark_type: var_data.clone().variable_type,
                         expr_body: _spark_content,
                         is_mut: var_data.is_mut,

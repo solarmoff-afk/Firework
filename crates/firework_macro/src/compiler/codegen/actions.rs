@@ -113,9 +113,6 @@ pub struct FireworkStatement {
 
 #[derive(Debug, Clone)]
 pub struct FireworkIR {
-    // Айди элемента в векторе это номер statement
-    pub statements: Vec<FireworkStatement>,
-
     pub snapshot: Snapshot,
 
     // Последний спан который был задан. Используется чтобы разместить 
@@ -132,23 +129,17 @@ pub struct FireworkIR {
     )>,
 
     // Хэшмап для хранения id экрана -> количество спарков
-    pub screen_sparks: HashMap<u128, usize>, 
-   
-    // Структуры, трейты и так далее которые определены на верхнем уровне вызова
-    // процедурного макроса, нужны для вставки в кодогенерации
-    pub items: Vec<String>, 
+    pub screen_sparks: HashMap<u128, usize>,
 }
 
 impl FireworkIR {
     pub fn new() -> Self {
-        Self {
-            statements: Vec::new(),
+        Self { 
             snapshot: Snapshot::new(),
             last_span: None,
             screen_structs: HashMap::new(),
             screens: Vec::new(),
-            screen_sparks: HashMap::new(),
-            items: Vec::new(),
+            screen_sparks: HashMap::new(), 
         }
     }
     
@@ -162,8 +153,6 @@ impl FireworkIR {
             .entry(span_key.clone())
             .or_insert_with(Vec::new)
             .push(stmt.clone());
-        
-        self.statements.push(stmt);
         
         if !self.snapshot.order.contains(&span_key) {
             self.snapshot.order.push(span_key);

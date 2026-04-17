@@ -32,15 +32,6 @@ impl<'ast> Analyzer {
 
         function_head.push_str(format!("{}", signature).as_str());
 
-        let mut fn_stub = node.clone();
-        fn_stub.block = syn::parse2(quote::quote! {
-            {}
-        }).expect("Failed to parse item"); 
-        
-        self.context.output.extend(quote::quote! {
-            #fn_stub
-        });
-
         // Добавление всех аргументов в область видимости как переменных
         for input in &node.sig.inputs {
             self.visit_fn_arg(input);
@@ -84,7 +75,8 @@ impl<'ast> Analyzer {
 
         // Обнуление счётчика реактивных переменных чтобы можно было считать что индекс
         // реактивной переменной это бит в битовой маске
-        self.context.spark_counter = 0; 
+        self.context.spark_counter = 0;
+        self.linter.reset();
     }
 
     pub(crate) fn analyze_fn_arg(&mut self, i: &'ast FnArg) {
