@@ -332,6 +332,10 @@ impl<'ast> Visit<'ast> for Analyzer {
         self.analyze_expr_return(i);
     }
 
+    fn visit_expr_closure(&mut self, i: &'ast ExprClosure) {
+        self.analyze_expr_closure(i)
+    }
+
     fn visit_item_struct(&mut self, _i: &'ast ItemStruct) { 
         // self.context.output.extend(node.to_token_stream());
     }

@@ -273,6 +273,36 @@ fn test_analyze_effect() {
     assert_ir_equal(&ir.statements, &expected);
 }
 
+#[test]
+fn test_closure_return_does_not_drop_outer_sparks() {
+    let tokens = quote::quote! {
+        fn screen() {
+            let mut a = spark!(10);
+            
+            let closure = || {
+                return;
+            };
+            
+            closure();
+            
+            a += 1;
+        }
+    };
+
+    let ir = extract_ir(tokens);
+    
+    let expected = [
+        create_initial_spark("a", 1, "i32", "10", true),
+        FireworkAction::DefaultCode, // let closure = || { ... };
+        FireworkAction::DefaultCode, // closure();
+        FireworkAction::UpdateSpark("a".to_string(), 1),
+        create_drop_spark("a", 1),
+        FireworkAction::Terminator,
+    ];
+
+    assert_ir_equal(&ir.statements, &expected);
+}
+
 fn create_effect_test_pattern() -> Vec<FireworkAction> {
     vec![
         create_initial_spark("a", 1, "i32", "10", true), 

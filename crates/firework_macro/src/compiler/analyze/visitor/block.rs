@@ -259,5 +259,19 @@ impl<'ast> Analyzer {
         self.update_scope(target_scope, false);
         
         visit::visit_expr_return(self, i);
-    } 
+    }
+
+    /// Замыкание
+    pub(crate) fn analyze_expr_closure(&mut self, i: &'ast ExprClosure) {
+        // Сохранение текущего состояния менеджера времён жизни переменных
+        let old_manager = std::mem::replace(&mut self.lifetime_manager, LifetimeManager::new());
+
+        self.lifetime_manager = LifetimeManager::new();
+        visit::visit_expr(self, &i.body);
+        
+        // После анализа делается замена пустого менеджера на старый, это нужно
+        // чтобы return в замыканиях не вернул всё реактивные переменные в статику
+        // (не сгенерировал DropSpark в замыкании)
+        self.lifetime_manager = old_manager;
+    }
 }
