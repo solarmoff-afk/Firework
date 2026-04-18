@@ -8,7 +8,7 @@ mod codegen;
 use analyze::prepare_tokens;
 use codegen::transform::CodegenVisitor;
 
-use proc_macro2::TokenTree;
+use proc_macro2::TokenStream;
 use syn::visit_mut::VisitMut;
 
 #[cfg(feature = "debug_output")]
@@ -20,16 +20,12 @@ use prettyplease::unparse;
 use crate::FireworkAst;
 
 pub fn run_firework_compiler(ast: FireworkAst, id: u64) -> (proc_macro2::TokenStream, Option<proc_macro2::TokenStream>) {
-    // Компилятор должен в любом случае вернуть заглушки чтобы не было ошибок с тем
-    // что функция экрана не найдена в обоасти видимости. prepare_tokens генерирует
-    // эти заглушки на случай если компиляция упадёт
-    let tokens: Vec<TokenTree> = ast.tokens.clone().into_iter().collect();
-    let output = prepare_tokens(tokens, id);
+    let token_stream: TokenStream = ast.tokens.into();
+    let mut file: syn::File = syn::parse2(token_stream).unwrap();
+
+    let output = prepare_tokens(file.clone(), id);
 
     if let Some(mut ir) = output.2 {
-        let token_stream: proc_macro2::TokenStream = ast.tokens.into();
-        let mut file: syn::File = syn::parse2(token_stream).unwrap();
-
         let mut visitor = CodegenVisitor::new(&mut ir);
         visitor.visit_file_mut(&mut file);
 

@@ -22,8 +22,9 @@ fn assert_ir_equal(actual: &[FireworkStatement], expected: &[FireworkAction]) {
 }
 
 fn extract_ir(tokens: proc_macro2::TokenStream) -> FireworkIR {
-    let tokens_vec: Vec<_> = tokens.into_iter().collect();
-    prepare_tokens(tokens_vec, 0).2.expect("IR not found")
+    // let tokens_vec: Vec<_> = tokens.into_iter().collect(); 
+    let file: File = syn::parse2(tokens.into()).unwrap();
+    prepare_tokens(file, 0).2.expect("IR not found")
 }
 
 fn create_initial_spark(

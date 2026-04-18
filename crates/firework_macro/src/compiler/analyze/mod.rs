@@ -14,7 +14,7 @@ mod lifetime_manager;
 #[cfg(test)]
 mod tests;
 
-use proc_macro2::{TokenTree, TokenStream, Span};
+use proc_macro2::{TokenStream, Span};
 use syn::*;
 use syn::visit::Visit;
 use std::collections::HashMap;
@@ -345,14 +345,7 @@ impl<'ast> Visit<'ast> for Analyzer {
     }
 }
 
-pub fn prepare_tokens(tokens: Vec<TokenTree>, _id: u64) -> (proc_macro2::TokenStream, Option<proc_macro2::TokenStream>, Option<FireworkIR>) {
-    let token_stream: proc_macro2::TokenStream = tokens.into_iter().collect();
-    
-    let file = match syn::parse2::<File>(token_stream) {
-        Ok(file) => file,
-        Err(e) => return (proc_macro2::TokenStream::new(), Some(e.to_compile_error()), None),
-    };
-    
+pub fn prepare_tokens(file: File, _id: u64) -> (proc_macro2::TokenStream, Option<proc_macro2::TokenStream>, Option<FireworkIR>) {
     let mut analyzer = Analyzer::new();
     analyzer.lifetime_manager.scope.screen_index_generate();
     analyzer.visit_file(&file);
