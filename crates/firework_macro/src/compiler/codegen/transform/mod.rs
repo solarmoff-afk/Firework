@@ -3,6 +3,7 @@
 
 pub mod traits;
 mod visitor;
+mod reactive;
 
 use syn::visit_mut::VisitMut;
 use syn::spanned::Spanned;
