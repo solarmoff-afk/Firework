@@ -4,6 +4,7 @@
 pub mod traits;
 mod visitor;
 mod reactive;
+mod flash_pass;
 
 use syn::visit_mut::VisitMut;
 use syn::spanned::Spanned;

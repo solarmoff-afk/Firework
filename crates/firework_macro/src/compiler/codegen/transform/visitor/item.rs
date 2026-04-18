@@ -82,44 +82,8 @@ impl CodegenVisitor<'_> {
                     // парсинг обычного пустого блока чтобы заменить на него оригинал, а
                     // оригинальые данные забрать сюда чтобы избежать клонирования
                     let original_block = std::mem::replace(&mut item_fn.block, parse_quote!({}));
-                    let screen_name = &function_name;
-                    
-                    let mut output = String::new();
-                    
-                    // Чтобы вставить несколько стейтементов нужно использовать Block, а для
-                    // того чтобы спарсить строку в блок нужно обернуть её в фигурные скобки
-                    output.push('{');
-                    output.push_str(&is_first_call(id)); 
-                    
-                    if let Some(fields) = self.ir.screen_structs.get(&struct_name_raw) {
-                        output.push_str(&init_instance(&instance_name, &struct_name_raw, fields));
-                    } else {
-                        output.push_str(&init_instance(&instance_name, &struct_name_raw, &[]));
-                    }
-                    
-                    // [FLASH PASS]
-                    // Flash pass это форма функции или метода которая позволяет использовать
-                    // одну функцию для нескольких вариантов цикла жизни. Если id экрана не
-                    // совпадает с айди который сохранён в фреймворке и экран не был построен
-                    // до этого то это фаза Build, если id не совпадает, но экран был построен
-                    // то это Navigate, если совпадает то это Event, если была итерация
-                    // реактивного цикла то Reactive, изначально Zero. Все контексты:
-                    //  - Build: Первый старт экрана или компонента, инициализируется
-                    //    состояние. Выполняется только один раз
-                    //  - Navigate: Переход с одного экрана на другой. Виджеты удаляются
-                    //    (Как и при navigate) и всё создаётся с нуля
-                    //  - Event: Какой либо ивент
-                    //  - Reactive: Пустышка чтобы обновление спарков не запустилось снова без
-                    //    явной причины. (Детальнее в ../code_builder/nodes/update_spark.rs)
-                    output.push_str(CHECK_EVENT);
-                    output.push_str(SET_FOCUS);
-                    output.push_str(&format!("\tfirework_ui::set_focus({});\n", screen_name));
-                    
-                    // Код пользователя и реактивный цикл
-                    output.push_str("\n\t// Phase 2: Navigate/Build code\n");
-                    output.push('}');
 
-                    let flash_pass_block: Block = parse_str(&output).unwrap();
+                    let flash_pass_block = self.generate_flash_pass(id, &function_name);
                     let reactive_generated = self.generate_reactive(id);
 
                     let bitmask_statements = reactive_generated.bitmask_statements;
