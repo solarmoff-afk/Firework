@@ -54,6 +54,32 @@ pub enum AdapterCommand {
     },
 
     Render,
+
+    NewRect {
+        layout: u16,
+    },
+
+    /// Позиции в логических координатах, здесь указывается левый верхний угол
+    SetPosition(usize, (i32, i32)),
+
+    SetSize(usize, (i32, i32)),
+
+    /// R, G, B, A цвет от 0 до 255
+    SetColor(usize, (u8, u8, u8, u8)),
+
+    SetZ(usize, i32),
+
+    SetVisible(usize, bool),
+
+    Remove(usize),
+
+    /// Принимает хит группу и x, y, w (ширина), h (высота), после чего находит примитив
+    /// который попадает в такой квадрат (AABB) и возвращает хэндл примитива с самым большим
+    /// Z индексом. Используется для кликов
+    ResolveHit(u16, (i32, i32, i32, i32)),
+
+    /// Устанавливает примитиву хит группу для отслеживания коллизий
+    SetHitGroup(usize, u16),
 }
 
 /// > ENG: Enumeration for implementing an abstraction over the EventLoop event. In your 
@@ -112,4 +138,5 @@ pub enum AdapterClickPhase {
 pub enum AdapterResult {
     Void,
     Fail,
+    Handle(usize),
 }

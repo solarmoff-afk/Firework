@@ -157,7 +157,22 @@ impl<'ast> Analyzer {
                 fields_map.insert(prop_name, this_field);
             }
 
-            if let Some(skin) = map_skin(&name) {
+            // Если в инициализации виджета есть поле skin то это должна быть структура с
+            // методом build
+            let mut _skin_struct: Option<String> = None;
+            
+            if let Some(skin) = fields_map.get("skin") {
+                _skin_struct = Some(skin.string.clone());
+            } else {
+                // Иначе нужно использовать метод чтобы получить стандартную структуру
+                // для скина этого виджета
+                _skin_struct = map_skin(&name);
+            }
+
+            // Только если в skin_struct была добавлена структура нужно добавить поле
+            // в структуру экрана. Если поля нет то это функциональный виджет который
+            // не получил скин через поле skin
+            if let Some(skin) = _skin_struct {
                 self.add_field_to_struct(
                     format!("widget_object_{}", self.context.widget_counter),
                     skin,
