@@ -18,6 +18,9 @@ impl<'ast> Analyzer {
         self.spark_marker(i);
 
         // Spark Ref 
+        //  Синтаксис: spark_ref!(имя)
+        //  Что делает: Создаёт ссылку на данные shared! {} блока по имени которое было
+        //   указанно в сегменте state! {}
         self.spark_ref_marker(i);
     }
 
