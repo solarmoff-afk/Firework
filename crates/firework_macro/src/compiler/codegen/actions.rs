@@ -235,4 +235,5 @@ pub struct FireworkSharedState {
     pub spark_type: String,
     pub init: String,
     pub span: Span,
+    pub id: usize,
 }

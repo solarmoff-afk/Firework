@@ -20,8 +20,8 @@ impl CodeBuilder {
         Self
     }
 
-    pub fn convert_string_to_syn(code: &str) -> TokenStream {
-        code.parse().unwrap()
+    pub fn convert_string_to_syn(code: &str) -> TokenStream { 
+        code.parse().expect(format!("Invalid syntax: {}", code).as_str())
     }
 
     /// Сборка токенов из реального стейтемента и набора семантических меток. Через quote 

@@ -3,6 +3,7 @@
 
 use proc_macro2::Span;
 use quote::quote;
+use syn::parse_quote;
 
 pub use super::super::*;
 
@@ -38,6 +39,9 @@ impl CodegenVisitor<'_> {
                     let struct_name_raw = format!("ApplicationUiBlockStruct{}", id);
                     let struct_name = format_ident!("ApplicationUiBlockStruct{}", id);
                     
+                    // Только для shared
+                    let build_name = format_ident!("_fwc_fn_build{}", id);
+                    
                     let mut fields: Vec<Field> = Vec::new();
                     let fields_data = self.generate_fields(id, &mut fields, span);
 
@@ -55,10 +59,30 @@ impl CodegenVisitor<'_> {
                             #(#fields),*
                         }
                     );
-                   
+                  
+                    // Проверка можно ли генерировать структуру сейчас, в Shared режиме
+                    // компиляции нужна только одна структура так как состояние глобальное
+                    // поэтому после первой генерации в Shared режиме генерировать структуру
+                    // и экземпляр больше нельзя
                     if self.should_generate_struct() {
                         new_items.push(struct_def);
                         new_items.push(instance_item);
+                        
+                        if matches!(self.flags.compile_type, CompileType::Shared) {
+                            let build_statements = self.generate_shared_build(id);
+                            let tokens = quote! {
+                                fn #build_name () {
+                                    #(#build_statements)*
+                                }
+                            };
+                            
+                            // SAFETY: Код явлется абсолютно валидным, build_statements в
+                            // случае синтаксической ошибки были бы отбракованы на этапе
+                            // generate_shared_build через функцию из CodeBuilder из-за чего
+                            // unwrap здесь безопасен
+                            let item: Item = syn::parse2(tokens).unwrap();
+                            new_items.push(item);
+                        }
                     }
                     
                     // Оригинальное тело функции (уже трансформированное), так как block
@@ -131,7 +155,7 @@ impl CodegenVisitor<'_> {
         let default = Vec::new();
         let fields_data = self.ir.screen_structs
             .get(&format!("ApplicationUiBlockStruct{}", id))
-            .unwrap_or(&default); 
+            .unwrap_or(&default);
 
         // Проход по всем сырым полям чтобы сгенерировать field через quote 
         // с сохранением спана (для ошибок)

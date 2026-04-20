@@ -17,6 +17,14 @@ impl<'ast> Analyzer {
         // объявление глобального состояния для shared блока
         if matches!(self.context.flags.compile_type, CompileType::Shared) {
             if i.mac.path.is_ident("state") {
+                // Снапшот текущего имени функции
+                let old_function_name = self.function_name.clone();
+
+                // Чтобы добавление полей прошло проверку на наличие какой-то структуры
+                // нужно вписать в поле которое отвечает за имя текущей функции заглушку,
+                // для state внутри shared используется _fwc_shared_build
+                self.function_name = Some("_fwc_shared_build".to_string());
+                
                 let parser = Punctuated::<GlobalState, Token![,]>::parse_terminated;
                 
                 if let Ok(fields) = i.mac.parse_body_with(parser) {
@@ -37,15 +45,19 @@ impl<'ast> Analyzer {
                             spark_type: spark_type.clone(),
                             init,
                             span: field.span,
-                        });
-
+                            id: self.context.spark_counter,
+                        }); 
+                        
                         self.add_field_to_struct(
                             format!("spark_{}", self.context.spark_counter),
                             spark_type,
                         );
-                        self.context.spark_counter += 1;
+                        self.context.spark_counter += 1; 
                     }
                 }
+
+                // Возврат старого имени
+                self.function_name = old_function_name;
             }
         }
 
