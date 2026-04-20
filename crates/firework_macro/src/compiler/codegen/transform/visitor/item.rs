@@ -164,7 +164,10 @@ impl CodegenVisitor<'_> {
                         item_fn.block = parse_quote_spanned!(span=> {
                             let mut _fwc_event = firework_ui::LifeCycle::Navigate;
                             #init_code
-                            #original_block
+                            
+                            #(#bitmask_statements)*
+                            #(#bitmask_clone_statements)*
+                            #original_block 
                         });
                     }
                 }

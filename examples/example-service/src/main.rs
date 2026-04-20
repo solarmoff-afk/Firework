@@ -7,6 +7,11 @@ shared! {
 
     pub fn get_theme() -> u8 {
         let theme = spark_ref!(theme);
+        
+        if *theme > 5 {
+            println!("Hi");
+        }
+
         *theme
     }
 
