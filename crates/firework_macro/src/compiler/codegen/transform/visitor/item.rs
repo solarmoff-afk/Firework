@@ -109,6 +109,7 @@ impl CodegenVisitor<'_> {
                         }
                     });
                 }
+
                 new_items.push(Item::Fn(item_fn));
             } else {
                 let mut other_item = item;

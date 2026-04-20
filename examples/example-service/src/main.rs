@@ -2,6 +2,10 @@ use firework_ui::shared;
 
 // Service
 shared! {
+    state! {
+        counter: i32 = 0,
+    }
+
     pub fn example(value: i32) {
         println!("Hello world: {}", value);
     }

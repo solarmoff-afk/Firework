@@ -344,6 +344,10 @@ impl<'ast> Visit<'ast> for Analyzer {
     fn visit_item_impl(&mut self, _i: &'ast ItemImpl) {
         // self.context.output.extend(node.to_token_stream());
     }
+
+    fn visit_item_macro(&mut self, i: &'ast ItemMacro) {
+        self.analyze_item_macro(i);
+    }
 }
 
 pub fn prepare_tokens(

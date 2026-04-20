@@ -2,6 +2,7 @@
 // Лицензия EPL 2.0, подробнее в файле LICENSE. Copyright (c) 2026 Firework
 
 use syn::*;
+use syn::parse::{Parse, ParseStream};
 use syn::visit::Visit;
 use quote::ToTokens;
 use proc_macro2::TokenStream;
@@ -126,6 +127,33 @@ pub fn get_root_variable_name(expr: &Expr) -> Option<String> {
 
         // Корень не найден
         _ => None
+    }
+}
+
+/// Структура для храненеия глобального спарка для shared! {} 
+#[derive(Debug)]
+pub struct GlobalState {
+    pub name: Ident,
+    pub spark_type: Type,
+    pub init: Expr,
+}
+
+/// Парсер глобального состояния в state! {} для shared юнитов
+impl Parse for GlobalState {
+    fn parse(input: ParseStream) -> syn::Result<Self> {
+        let name: Ident = input.parse()?;
+        let _: Token![:] = input.parse()?;
+        
+        let spark_type: Type = input.parse()?;
+        let _: Token![=] = input.parse()?;
+        
+        let init: Expr = input.parse()?;
+        
+        Ok(GlobalState {
+            name,
+            spark_type,
+            init
+        })
     }
 }
 
