@@ -5,7 +5,7 @@ use syn::*;
 use syn::parse::{Parse, ParseStream};
 use syn::visit::Visit;
 use quote::ToTokens;
-use proc_macro2::TokenStream;
+use proc_macro2::{TokenStream, Span};
 
 use super::Scope;
 
@@ -136,11 +136,14 @@ pub struct GlobalState {
     pub name: Ident,
     pub spark_type: Type,
     pub init: Expr,
+    pub span: Span,
 }
 
 /// Парсер глобального состояния в state! {} для shared юнитов
 impl Parse for GlobalState {
     fn parse(input: ParseStream) -> syn::Result<Self> {
+        let span = input.span();
+
         let name: Ident = input.parse()?;
         let _: Token![:] = input.parse()?;
         
@@ -152,7 +155,8 @@ impl Parse for GlobalState {
         Ok(GlobalState {
             name,
             spark_type,
-            init
+            init,
+            span,
         })
     }
 }

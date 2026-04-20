@@ -3,6 +3,7 @@ use firework_ui::shared;
 shared! {
     state! {
         counter: i32 = 0,
+        counter2: i32 = 0,
     }
 
     pub fn example(value: i32) {

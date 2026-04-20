@@ -116,7 +116,12 @@ pub struct FireworkIR {
     // Айди элемента в векторе это номер statement
     pub statements: Vec<FireworkStatement>,
 
+    // Карта Спан -> Виртуальный стейтемент
     pub snapshot: Snapshot,
+
+    // Для shared блоков IR содержит вектор состояний которые были объявлены в state! чтобы
+    // сгенерировать build функцию для shared блока
+    pub shared_state: Vec<FireworkSharedState>,
 
     // Последний спан который был задан. Используется чтобы разместить 
     pub last_span: Option<SpanKey>,
@@ -140,6 +145,7 @@ impl FireworkIR {
         Self {
             statements: Vec::new(),
             snapshot: Snapshot::new(),
+            shared_state: Vec::new(),
             last_span: None,
             screen_structs: HashMap::new(),
             screens: Vec::new(),
@@ -214,4 +220,19 @@ pub struct FireworkWidgetField {
     
     // Полная строка поля
     pub string: String,
+}
+
+/// Поле разделяемого состояния в shared! {} блоке
+/// shared! {
+///  state! {
+///   my_own: i32 = 10,
+///   [name] [type] [init]
+///  }
+/// }
+#[derive(Debug, Clone)]
+pub struct FireworkSharedState {
+    pub name: String,
+    pub spark_type: String,
+    pub init: String,
+    pub span: Span,
 }

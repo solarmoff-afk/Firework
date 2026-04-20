@@ -8,6 +8,7 @@ pub use super::super::*;
 use super::super::spark::GlobalState;
 
 use crate::CompileType;
+use crate::compiler::codegen::actions::FireworkSharedState;
 
 impl<'ast> Analyzer {
     /// Анализ макросов на верхнем уровне
@@ -31,6 +32,10 @@ impl<'ast> Analyzer {
                         let init = quote!(#raw_init).to_string();
                         
                         println!("Name: {}, type: {}, init: {}", name, spark_type, init);
+                        self.context.ir.shared_state.push(FireworkSharedState {
+                            name, spark_type, init,
+                            span: field.span,
+                        });
                     }
                 }
             }
