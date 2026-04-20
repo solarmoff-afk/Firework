@@ -114,7 +114,7 @@ impl CodegenVisitor<'_> {
             } else {
                 let mut other_item = item;
 
-                syn::visit_mut::visit_item_mut(self, &mut other_item);
+                self.visit_item_mut(&mut other_item);
                 
                 new_items.push(other_item);
             }

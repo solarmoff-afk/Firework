@@ -1,6 +1,5 @@
 use firework_ui::shared;
 
-// Service
 shared! {
     state! {
         counter: i32 = 0,

@@ -83,5 +83,9 @@ impl<'a> VisitMut for CodegenVisitor<'a> {
 
     fn visit_block_mut(&mut self, i: &mut Block) {
         self.analyze_block_mut(i);
-    } 
+    }
+
+    fn visit_item_mut(&mut self, i: &mut Item) {
+        self.analyze_item_mut(i);
+    }
 }
