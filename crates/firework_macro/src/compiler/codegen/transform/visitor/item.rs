@@ -133,20 +133,7 @@ impl CodegenVisitor<'_> {
                         quote! {
                             #build_name();
                         }
-                    };
-
-                    // Только если эта функция в Shared и она имеет возвращаемый тип нужно
-                    // сгенерировать панику в конце
-                    let function_end = if is_shared && has_return {
-                        // Чтобы return не вызывал предупреждение
-                        item_fn.attrs.push(parse_quote!(#[allow(unreachable_code)]));
-
-                        quote! {
-                            unreachable!("Loop should have returned a value");
-                        }
-                    } else {
-                        quote! {}
-                    };
+                    }; 
 
                     // Если цикл совершил более 64 итераций (хардкод )то происходит выход
                     // из него это делается после добавления единицы к итерациям чтобы не
@@ -154,26 +141,32 @@ impl CodegenVisitor<'_> {
                     // (64 - 1 = 63) от максимального количества итераций, так как:
                     //  - Нулевой шаг, +1, 1 итерация
                     //  - Первый шаг,  +1, 2 итерация
-                    //  - 63 шаг, +1,  +1, 64 итерация, условие сработало 
-                    item_fn.block = parse_quote_spanned!(span=> {
-                        let mut _fwc_event = firework_ui::LifeCycle::Navigate;
-                        #init_code
-
-                        let mut _fwc_guard: u8 = 0;
-                        #(#bitmask_statements)*
-
-                        loop {
-                            #(#bitmask_clone_statements)*
+                    //  - 63 шаг, +1,  +1, 64 итерация, условие сработало
+                    if !has_return {
+                        item_fn.block = parse_quote_spanned!(span=> {
+                            let mut _fwc_event = firework_ui::LifeCycle::Navigate;
+                            #init_code
+                            
+                            let mut _fwc_guard: u8 = 0;
+                            #(#bitmask_statements)*
+                            
+                            loop {
+                                #(#bitmask_clone_statements)*
+                                #original_block
+                                
+                                if #bitmask_check_expr { break; }
+                                _fwc_guard += 1;
+                                _fwc_event = firework_ui::LifeCycle::Reactive;
+                                if _fwc_guard > 64 { break; }
+                            }
+                        });
+                    } else {
+                        item_fn.block = parse_quote_spanned!(span=> {
+                            let mut _fwc_event = firework_ui::LifeCycle::Navigate;
+                            #init_code
                             #original_block
-
-                            if #bitmask_check_expr { break; }
-                            _fwc_guard += 1;
-                            _fwc_event = firework_ui::LifeCycle::Reactive;
-                            if _fwc_guard > 64 { break; }
-                        }
-
-                        #function_end
-                    }); 
+                        });
+                    }
                 }
 
                 new_items.push(Item::Fn(item_fn));
