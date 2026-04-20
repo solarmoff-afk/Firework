@@ -33,9 +33,17 @@ impl<'ast> Analyzer {
                         
                         println!("Name: {}, type: {}, init: {}", name, spark_type, init);
                         self.context.ir.shared_state.push(FireworkSharedState {
-                            name, spark_type, init,
+                            name,
+                            spark_type: spark_type.clone(),
+                            init,
                             span: field.span,
                         });
+
+                        self.add_field_to_struct(
+                            format!("spark_{}", self.context.spark_counter),
+                            spark_type,
+                        );
+                        self.context.spark_counter += 1;
                     }
                 }
             }
