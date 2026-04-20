@@ -44,7 +44,8 @@ impl CodeBuilder {
                     condition.push_str(" ||");
                 }
                 
-                // Дополнительное условие что контекст Build или Navigate
+                // Дополнительное условие что контекст Build или Navigate (Более привычный
+                // синоним это монтирование)
                 condition.push_str(format!(" {} ", CHECK_NAVIGATE).as_str());
                 
                 let condition_statement = condition.to_expr().unwrap();

@@ -21,6 +21,20 @@ impl CodegenVisitor<'_> {
         for item in items {
             // Любая функция это экран
             if let Item::Fn(mut item_fn) = item {
+                // Возвращает ли что-то функция, это нужно чтобы понять нужно ли сгенерировать 
+                // панику в конце цикла чтобы избежать ошибки
+                let has_return = match &item_fn.sig.output {
+                    ReturnType::Default => false,
+
+                    ReturnType::Type(_, ty) => { 
+                        match ty.as_ref() {
+                            Type::Tuple(tuple) if tuple.elems.is_empty() => false,
+                            Type::Never(_) => false,
+                            _ => true,
+                        }
+                    }
+                };
+
                 self.functions_count += 1;
                 let function_name = item_fn.sig.ident.to_string();
                 
@@ -121,6 +135,19 @@ impl CodegenVisitor<'_> {
                         }
                     };
 
+                    // Только если эта функция в Shared и она имеет возвращаемый тип нужно
+                    // сгенерировать панику в конце
+                    let function_end = if is_shared && has_return {
+                        // Чтобы return не вызывал предупреждение
+                        item_fn.attrs.push(parse_quote!(#[allow(unreachable_code)]));
+
+                        quote! {
+                            unreachable!("Loop should have returned a value");
+                        }
+                    } else {
+                        quote! {}
+                    };
+
                     // Если цикл совершил более 64 итераций (хардкод )то происходит выход
                     // из него это делается после добавления единицы к итерациям чтобы не
                     // отнимать единицу
@@ -144,7 +171,9 @@ impl CodegenVisitor<'_> {
                             _fwc_event = firework_ui::LifeCycle::Reactive;
                             if _fwc_guard > 64 { break; }
                         }
-                    });
+
+                        #function_end
+                    }); 
                 }
 
                 new_items.push(Item::Fn(item_fn));

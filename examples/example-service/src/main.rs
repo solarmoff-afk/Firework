@@ -2,25 +2,21 @@ use firework_ui::shared;
 
 shared! {
     state! {
-        counter: i32 = 0,
-        counter2: i32 = 0,
+        theme: u8 = 0,
     }
 
-    pub fn example(value: i32) {
-        let mut local_counter = spark_ref!(counter2);
-        *local_counter = 1;
-
-        effect!({
-            println!("Hello world: {}", value);
-        });
+    pub fn get_theme() -> u8 {
+        let theme = spark_ref!(theme);
+        *theme
     }
 
-    pub fn example2(value: i32) {
-        println!("Hello world 2: {}", value * 2);
+    fn set_theme(new_theme: u8) {
+        let mut theme = spark_ref!(theme);
+        *theme = new_theme;
     }
 }
 
 fn main() {
-    example(1);
-    example2(10);
+    set_theme(1);
+    println!("{}", get_theme());
 }
