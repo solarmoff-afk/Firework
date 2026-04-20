@@ -11,6 +11,7 @@ use syn::parse::{Parse, ParseStream};
 use syn::{parse_macro_input, Result};
 use std::sync::atomic::{AtomicU64, Ordering};
 use compiler::*;
+use compiler::flags::{CompileFlags, CompileType};
 
 // TODO:
 //  - Начать писать генератор FIREWORK-IR в prepare 
@@ -36,33 +37,34 @@ impl Parse for FireworkAst {
 }
 
 #[proc_macro]
+pub fn shared(input: TokenStream) -> TokenStream {
+    process_macro(input, CompileType::Shared, false)
+}
+
+#[proc_macro]
 pub fn ui_block(input: TokenStream) -> TokenStream {
-    let id = BLOCK_COUNTER.fetch_add(1, Ordering::Relaxed);
-
-    // Парсинг кода макроса в абстрактно синтаксическое дерево
-    let ast = parse_macro_input!(input as FireworkAst);
-
-    let (token_stream, error_tokens) = run_firework_compiler(ast, id);
-    
-    let mut output: proc_macro2::TokenStream = token_stream.into();
-    
-    // Если есть ошибки компиляции - добавляем их к выходному потоку
-    // Каждая ошибка уже содержит правильный спан через compile_error! макрос
-    if let Some(err_tokens) = error_tokens {
-        output.extend(err_tokens);
-    }
-    
-    output.into()
+    process_macro(input, CompileType::Screen, true)
 }
 
 #[proc_macro_attribute]
 pub fn ui(_args: proc_macro::TokenStream, input: TokenStream) -> TokenStream {
-    let id = BLOCK_COUNTER.fetch_add(1, Ordering::Relaxed);
+    process_macro(input, CompileType::Screen, true)
+}
 
-    // Парсинг кода макроса в абстрактно синтаксическое дерево
+fn process_macro(input: TokenStream, compile_type: CompileType, use_counter: bool) -> TokenStream {
     let ast = parse_macro_input!(input as FireworkAst);
-
-    let (token_stream, error_tokens) = run_firework_compiler(ast, id);
+    
+    let flags = CompileFlags {
+        compile_type,
+    };
+    
+    let id = if use_counter {
+        BLOCK_COUNTER.fetch_add(1, Ordering::Relaxed)
+    } else {
+        0
+    };
+    
+    let (token_stream, error_tokens) = run_firework_compiler(ast, flags, id);
     
     let mut output: proc_macro2::TokenStream = token_stream.into();
     

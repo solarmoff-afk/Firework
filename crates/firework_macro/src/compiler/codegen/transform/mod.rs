@@ -20,6 +20,8 @@ use super::consts::{CHECK_EVENT, SET_FOCUS};
 use super::actions::{FireworkIR, FireworkStatement};
 use super::code_builder::CodeBuilder;
 
+use crate::CompileFlags;
+
 pub struct CodegenVisitor<'a> {
     // IR от анализатора, содержит плоские семантические метки для каждого стейтемента,
     // а также содержит снапшот (Мапинг спан -> метка стейтемента)
@@ -34,6 +36,9 @@ pub struct CodegenVisitor<'a> {
     pub builder: CodeBuilder,
     
     pub mask_count: HashMap<u128, u8>,
+
+    flags: CompileFlags,
+    functions_count: u16,
 }
 
 impl<'a> CodegenVisitor<'a> {
@@ -43,7 +48,13 @@ impl<'a> CodegenVisitor<'a> {
             ui_id: None,
             builder: CodeBuilder::new(),
             mask_count: HashMap::new(),
+            flags: CompileFlags::new(),
+            functions_count: 0,
         }
+    }
+
+    pub fn set_flags(&mut self, flags: CompileFlags) {
+        self.flags = flags;
     }
 
     pub fn generate_code(&mut self, stmt: &Stmt, statements: &[FireworkStatement], body: TokenStream) -> TokenStream {

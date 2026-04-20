@@ -31,6 +31,7 @@ use crate::compiler::codegen::actions::{
     FireworkIR, FireworkStatement, FireworkAction, FireworkWidgetField, FireworkReactiveBlock,
 };
 use crate::compiler::error::*;
+use crate::compiler::CompileFlags;
 
 /// Нельзя хранить String поэтому используется &str, при использовании нужно использовать
 /// String::from, но это позволяет не тянуть lazy_static или другой крейт
@@ -345,9 +346,14 @@ impl<'ast> Visit<'ast> for Analyzer {
     }
 }
 
-pub fn prepare_tokens(file: File, _id: u64) -> (proc_macro2::TokenStream, Option<proc_macro2::TokenStream>, Option<FireworkIR>) {
+pub fn prepare_tokens(
+    file: File,
+    flags: CompileFlags,
+    _id: u64
+) -> (proc_macro2::TokenStream, Option<proc_macro2::TokenStream>, Option<FireworkIR>) {
     let mut analyzer = Analyzer::new();
     analyzer.lifetime_manager.scope.screen_index_generate();
+    analyzer.context.flags = flags;
     analyzer.visit_file(&file);
 
     for warn_tokens in &analyzer.linter.warnings {

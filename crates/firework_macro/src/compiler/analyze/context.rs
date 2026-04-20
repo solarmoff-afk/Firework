@@ -25,6 +25,12 @@ pub struct AnalyzeContext {
 
     // Определяет первый ли это лайаут в дереве
     pub layouts_count: usize,
+
+    pub flags: CompileFlags,
+
+    // При добавлении функции сюда долбавляется 1, это нужно чтобы определить явлется ли это
+    // первой функцией чтобы не генерировать поле лишний раз в компиляции shared юнита
+    pub functions_count: u16,
 }
 
 impl AnalyzeContext {
@@ -57,6 +63,9 @@ impl AnalyzeContext {
             widget_counter: 0,
             spark_counter: 0,
             layouts_count: 0,
+
+            flags: CompileFlags::new(),
+            functions_count: 0,
         }
     }
 }

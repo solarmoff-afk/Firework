@@ -3,12 +3,15 @@
 
 pub use super::super::*;
 
+use crate::CompileType;
+
 impl<'ast> Analyzer {
     /// Генерирует заглушки для функций чтобы компилятор не выдал ошибку "функция отсуствует"
     /// вероятно это временное решение. Также собирает сигнатуру функции для кодогенератора
     pub(crate) fn analyze_item_fn(&mut self, node: &'ast ItemFn) {
         self.lifetime_manager.item_scope = self.lifetime_manager.scope.clone();
         self.context.layouts_count = 0;
+        self.context.functions_count += 1;
 
         let mut function_head = String::from("");
         for attr in &node.attrs {
@@ -51,9 +54,7 @@ impl<'ast> Analyzer {
         // Любой код в функции реактивный
         self.context.statement.reactive_loop = true;
 
-        // HACK: Быстрый фикс проблемы с тем, что если в экране не используются спарки
-        // то структура не генерируется. Всегда добавляется _fwc_null на u8 (1 байт)
-        self.add_field_to_struct("_fwc_screen_id".to_string(), "u8".to_string());
+        self.generate_screen_id_field();
 
         syn::visit::visit_item_fn(self, node);
 
@@ -67,16 +68,21 @@ impl<'ast> Analyzer {
         statement.reactive_loop = false;
 
         self.context.ir.push(statement);
-        self.context.ir.screen_sparks.insert(self.lifetime_manager.scope.screen_index, self.context.spark_counter);
+        self.context.ir.screen_sparks.insert(
+            self.lifetime_manager.scope.screen_index, self.context.spark_counter);
 
-        // Нужно сгенерировать индекс после анализации функции чтобы id экземпляра
-        // был синхронизирован внутри блоков ir для одного экрана
-        self.lifetime_manager.scope.screen_index_generate();
-
-        // Обнуление счётчика реактивных переменных чтобы можно было считать что индекс
-        // реактивной переменной это бит в битовой маске
-        self.context.spark_counter = 0;
-        self.linter.reset();
+        // Сбрасывание нужно только если это не компиляция shared! {}, так как shared
+        // это множество функций с общим состоянием, поэтому им нужна одна структура
+        if !matches!(self.context.flags.compile_type, CompileType::Shared) {
+            // Нужно сгенерировать индекс после анализации функции чтобы id экземпляра
+            // был синхронизирован внутри блоков ir для одного экрана
+            self.lifetime_manager.scope.screen_index_generate();
+            
+            // Обнуление счётчика реактивных переменных чтобы можно было считать что индекс
+            // реактивной переменной это бит в битовой маске
+            self.context.spark_counter = 0;
+            self.linter.reset();
+        }
     }
 
     pub(crate) fn analyze_fn_arg(&mut self, i: &'ast FnArg) {
@@ -95,5 +101,22 @@ impl<'ast> Analyzer {
 
             self.current_type = String::from(NO_TYPE);
         }
+    }
+
+    /// Генерирует поле в структуре экрана/shared чтобы в ней всегда было одно поле
+    /// даже если нет состояния
+    fn generate_screen_id_field(&mut self) {
+        // Если это компиляция shared юнита то у него должно быть только одно поле
+        // _fwc_screen_id так как структура одна, это обеспечивается выходом из
+        // генерации поля если количество функций которые были инициализированы
+        // больше 1, то есть одна функция уже инициализировала это поле
+        if matches!(self.context.flags.compile_type, CompileType::Shared)
+                && self.context.functions_count > 1 {
+            return;
+        }
+
+        // HACK: Быстрый фикс проблемы с тем, что если в экране не используются спарки
+        // то структура не генерируется. Всегда добавляется _fwc_null на u8 (1 байт)
+        self.add_field_to_struct("_fwc_screen_id".to_string(), "u8".to_string());
     }
 }
