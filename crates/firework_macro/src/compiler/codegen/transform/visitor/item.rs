@@ -69,10 +69,17 @@ impl CodegenVisitor<'_> {
                         new_items.push(instance_item);
                         
                         if matches!(self.flags.compile_type, CompileType::Shared) {
-                            let build_statements = self.generate_shared_build(id);
+                            let (build_statements, build_check) = self.generate_shared_build(id);
+
                             let tokens = quote! {
                                 fn #build_name () {
-                                    #(#build_statements)*
+                                    let mut _fwc_build = false;
+
+                                    #build_check
+
+                                    if _fwc_build {
+                                        #(#build_statements)*
+                                    }
                                 }
                             };
                             

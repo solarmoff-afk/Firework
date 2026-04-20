@@ -6,7 +6,7 @@ use super::*;
 use crate::compiler::codegen::generator::static_gen;
 
 impl CodegenVisitor<'_> {
-    pub(crate) fn generate_shared_build(&self, id: u128) -> Vec<TokenStream> {
+    pub(crate) fn generate_shared_build(&self, id: u128) -> (Vec<TokenStream>, TokenStream) {
         let struct_name = format!("ApplicationUiBlockStruct{}", id);
         
         let mut statements: Vec<TokenStream> = Vec::new();
@@ -18,6 +18,9 @@ impl CodegenVisitor<'_> {
             statements.push(CodeBuilder::convert_string_to_syn(&set_field_str));
         }
 
-        statements
+        let build_check = static_gen::init_instance(&struct_name.to_uppercase(), "", &[]);
+        let build_check_statemtn = CodeBuilder::convert_string_to_syn(&build_check);
+
+        (statements, build_check_statemtn)
     }
 }
