@@ -5,3 +5,4 @@ pub mod initial_spark;
 pub mod update_spark;
 pub mod reactive_block;
 pub mod drop_spark;
+pub mod spark_ref;

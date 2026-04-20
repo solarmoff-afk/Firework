@@ -16,6 +16,9 @@ impl<'ast> Analyzer {
         //  Синтаксис: spark!(value)
         //  Что делает: Создаёт реактивную переменную которую отслеживает анализатор
         self.spark_marker(i);
+
+        // Spark Ref 
+        self.spark_ref_marker(i);
     }
 
     // Обновление переменной, например:
@@ -39,7 +42,7 @@ impl<'ast> Analyzer {
 
                     self.context.statement.action = FireworkAction::UpdateSpark(
                         root_name.clone(), variable.spark_id,
-                    ); 
+                    );
 
                     // Клоинрование стейтемента перед передачей нужно для того чтобы
                     // сохранилась семантическая метка (FireworkAction)

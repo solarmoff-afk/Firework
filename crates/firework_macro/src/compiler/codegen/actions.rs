@@ -47,6 +47,15 @@ pub enum FireworkAction {
         id: usize,
     },
 
+    // Использование маркера spark_ref!(global_state), создвёт ссылку (мутабельность зависит
+    // от наличия mut) на поле в state! {} сегменте shared!, если использовать в обычном
+    // экране, а не в шейдере то должна быть ошибка компиляции
+    SparkRef {
+        name: String,
+        id: usize,
+        is_mut: bool,
+    },
+
     // Реактивный блок. Первое значение это вектор с названиями реактивных
     // переменных (спарков) которые используются в блоке и их айди
     ReactiveBlock(FireworkReactiveBlock, Vec<(String, usize)>),

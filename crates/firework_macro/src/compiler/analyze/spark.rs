@@ -125,6 +125,11 @@ pub fn get_root_variable_name(expr: &Expr) -> Option<String> {
         // Ссылки
         Expr::Reference(reference) => get_root_variable_name(&reference.expr),
 
+        // Deref (*name)
+        Expr::Unary(unary_expr) if matches!(unary_expr.op, UnOp::Deref(_)) => {
+            get_root_variable_name(&unary_expr.expr)
+        },
+
         // Корень не найден
         _ => None
     }

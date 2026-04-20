@@ -129,7 +129,7 @@ impl CodegenVisitor<'_> {
                     //  - Первый шаг,  +1, 2 итерация
                     //  - 63 шаг, +1,  +1, 64 итерация, условие сработало 
                     item_fn.block = parse_quote_spanned!(span=> {
-                        let mut _fwc_event = firework_ui::LifeCycle::Zero;
+                        let mut _fwc_event = firework_ui::LifeCycle::Navigate;
                         #init_code
 
                         let mut _fwc_guard: u8 = 0;

@@ -6,3 +6,4 @@
 // код без угадываний
 
 pub mod spark;
+pub mod spark_ref;

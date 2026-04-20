@@ -144,3 +144,45 @@ pub(crate) fn block_ref(instance_name: &str) -> String {
         instance_name,
     )
 }
+
+/// Хелпер для получения неизменяемой ссылки на значение поля структуры шейреда
+#[cfg(not(feature = "safety-multithread"))]
+pub(crate) fn get_field_ref(instance_name: &str, field_name: &str, var_name: &str) -> String {
+    let instance_name_upper = instance_name.to_uppercase();
+    
+    format!(
+        "let {} = unsafe {{ (*::core::ptr::addr_of!({}_INSTANCE)).{}.as_ref().unwrap() }};",
+        var_name, instance_name_upper, field_name,
+    )
+}
+
+#[cfg(feature = "safety-multithread")]
+pub(crate) fn get_field_ref(instance_name: &str, field_name: &str, var_name: &str) -> String {
+    let instance_name_upper = instance_name.to_uppercase();
+    
+    format!(
+        "let {} = {}_INSTANCE.get().unwrap().lock().unwrap().{}.as_ref().unwrap();",
+        var_name, instance_name_upper, field_name,
+    )
+}
+
+/// Хелпер для получения изменяемой ссылки на значение поля структуры шейдера
+#[cfg(not(feature = "safety-multithread"))]
+pub(crate) fn get_field_ref_mut(instance_name: &str, field_name: &str, var_name: &str) -> String {
+    let instance_name_upper = instance_name.to_uppercase();
+    
+    format!(
+        "let mut {} = unsafe {{ (*::core::ptr::addr_of_mut!({}_INSTANCE)).{}.as_mut().unwrap() }};",
+        var_name, instance_name_upper, field_name,
+    )
+}
+
+#[cfg(feature = "safety-multithread")]
+pub(crate) fn get_field_ref_mut(instance_name: &str, field_name: &str, var_name: &str) -> String {
+    let instance_name_upper = instance_name.to_uppercase();
+    
+    format!(
+        "let mut {} = {}_INSTANCE.get().unwrap().lock().unwrap().{}.as_mut().unwrap();",
+        var_name, instance_name_upper, field_name,
+    )
+}

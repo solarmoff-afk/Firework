@@ -81,6 +81,10 @@ impl CodeBuilder {
             // Узел обновления реактивной переменной
             self.node_update_spark(span, &mut final_tokens, &statement, &processed_body);
 
+            // Узел взятия ссылки на глобальный спарк шейред блока
+            self.node_spark_ref(
+                span, struct_name.clone(), &mut final_tokens, &statement);
+
             // Для DefaultCode нет отдельного узла так как он просто отправляет свой вход
             // на выход
             match &statement.action {

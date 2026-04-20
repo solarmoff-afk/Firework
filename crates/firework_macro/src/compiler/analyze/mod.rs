@@ -264,8 +264,9 @@ impl<'ast> Visit<'ast> for Analyzer {
             variable_type: self.current_type.clone(),
             is_mut: i.mutability.is_some(),
             is_spark: false,
-            spark_id: 0, // HARDCOD
-        }));
+            spark_id: 0,
+            is_spark_ref: false,
+        })); 
 
         // На всякий случай
         visit::visit_pat_ident(self, i);

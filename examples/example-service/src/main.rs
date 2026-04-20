@@ -7,7 +7,12 @@ shared! {
     }
 
     pub fn example(value: i32) {
-        println!("Hello world: {}", value);
+        let mut local_counter = spark_ref!(counter2);
+        *local_counter = 1;
+
+        effect!({
+            println!("Hello world: {}", value);
+        });
     }
 
     pub fn example2(value: i32) {

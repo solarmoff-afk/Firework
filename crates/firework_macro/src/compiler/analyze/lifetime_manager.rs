@@ -34,6 +34,9 @@ pub struct Variable {
     // Айди спарка (если это спарк, иначе 0) в качестве которого используется счётчик
     // spark_counter
     pub spark_id: usize,
+
+    // Явлется ли это ссылкой на спарк (только для shared)
+    pub is_spark_ref: bool,
 }
 
 /// Текущая область видимости, хранить всю таблицу символов для этой области. Начинается
@@ -135,7 +138,10 @@ impl LifetimeManager {
         let mut statements = Vec::new();
         
         for (name, value) in &self.scope.variables {
-            if !scope.variables.contains_key(name) && value.is_spark {
+            // DropSpark не должен быть сгенерирован если is_spark_ref это true, то есть
+            // переменная является ссылкой на состояние в shared, а не владением. Генерация
+            // возврата не нужна
+            if !scope.variables.contains_key(name) && value.is_spark && !value.is_spark_ref {
                 let mut stmt = base_statement.clone();
                 stmt.string = "".to_string();
                 stmt.action = FireworkAction::DropSpark {

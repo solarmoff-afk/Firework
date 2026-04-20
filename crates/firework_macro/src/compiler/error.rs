@@ -137,6 +137,48 @@ error[FE014]: spark!() cannot be initialized in a simple expression arm
    = note: for more information, see: [WORK IN PROGRESS]
 ";
 
+/// Spark_ref можно использовать только в контексте shared
+pub const SPARK_REF_CONTEXT_ERROR: &str = "\
+error[FE015]: spark_ref!() can only be used inside a shared! {} block
+   = note: shared! blocks provide global state that can be accessed across multiple functions
+   = note: for local references, use `&` on a regular spark!() variable instead
+   = help: move this spark_ref!() call inside a shared! block
+   = help: or replace with `&spark!()` for local reactive variables
+   = note: for more information, see: [WORK IN PROGRESS]
+";
+
+/// Синтаксис spark_ref только имя значения в сегменте state! {} внутри shared! {} блока
+pub const SPARK_REF_SYNTAX_ERROR: &str = "\
+error[FE016]: spark_ref!() expects a single state name, not an expression
+   = note: syntax: `spark_ref!(state_name)`
+   = note: the state name must be declared in a state! {} block inside the shared! block
+   = help: remove any extra syntax like field access, method calls, or arithmetic
+   = help: example: `spark_ref!(counter)` instead of `spark_ref!(counter + 1)`
+   = note: for more information, see: [WORK IN PROGRESS]
+";
+
+/// Spark_ref нельзя использовать в сложных выражениях
+pub const SPARK_REF_COMPLEX_ERROR: &str = "\
+error[FE017]: spark_ref!() cannot be used in complex expressions
+   = note: spark_ref!() is a single-purpose macro that only returns a reference
+   = help: assign the result to a variable first, then use that variable
+   = help: example:
+         let mut ref = spark_ref!(counter);
+         *ref = new_value;
+   = note: for more information, see: [WORK IN PROGRESS]
+";
+
+/// Такое глобальное состояние не найдено в state сегменте при попытке использовать в
+/// вызове spark_ref
+pub const SPARK_REF_NOT_FOUND_ERROR: &str = "\
+error[FE018]: state name `{}` not found in state! segment
+   = note: spark_ref!() can only reference names declared in a state! {} block
+   = help: check that the state! {} block appears BEFORE the shared! block containing spark_ref!()
+   = help: verify the spelling of the state name matches the declaration
+   = note: state declaration example: `state! { counter: i32 = 0, }`
+   = note: for more information, see: [WORK IN PROGRESS]
+";
+
 pub fn compile_error_spanned<T: quote::ToTokens>(tokens: T, msg: &str) -> Error {
     Error::new_spanned(tokens, msg)
 }
