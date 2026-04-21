@@ -5,13 +5,16 @@ use super::super::*;
 
 impl CodeBuilder { 
     pub fn node_widget_block(
-        &self, span: Span, _struct_name: String, final_tokens: &mut TokenStream,
+        &self, span: Span, struct_name: String, final_tokens: &mut TokenStream,
         statement: &FireworkStatement, 
     ) {
         match &statement.action {
             FireworkAction::WidgetBlock(
-                _widget_type, fields, _is_functional, _id, _has_microruntime, skin,
+                _widget_type, fields, _is_functional, id, _has_microruntime, skin,
             ) => {
+                let instance_ident_upper = format_ident!("{}_INSTANCE", struct_name.to_uppercase());
+                let field_ident = format_ident!("widget_object_{}", id);
+
                 let skin_path: syn::Path = syn::parse_str(skin)
                     .expect(format!("Invalid skin name: {}", skin).as_str());
 
@@ -60,9 +63,26 @@ impl CodeBuilder {
 
                 println!("Output: {}", widget_init);
 
+                // Безопасный режим с Mutex
+                #[cfg(feature = "safety-multithread")]
                 final_tokens.extend(quote_spanned!(span=>
                     if #condition_statement {
-                        #widget_init; 
+                        #instance_ident_upper.get()
+                            .expect("Instance not initialized")
+                            .lock()
+                            .unwrap()
+                            .#field_ident = Some(#widget_init);
+                    }
+                ));
+
+                // Обычный режим
+                #[cfg(not(feature = "safety-multithread"))]
+                final_tokens.extend(quote_spanned!(span=>
+                    if #condition_statement {
+                        unsafe {
+                            (*::core::ptr::addr_of_mut!(#instance_ident_upper)).#field_ident
+                                = Some(#widget_init);
+                        }
                     }
                 ));
             },
