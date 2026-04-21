@@ -8,7 +8,14 @@ use adapter::egui_adapter;
 fn test_screen() { 
     let mut spark1 = spark!(0u32);
     let mut spark2 = spark!(0u32);
+
+    rect! {
+        position: (10, 10),
+        size: (100, 100),
+        color: (255, 0, 0),
+    }
     
+    /*
     effect!({
         let rect = firework_ui::skins::DefaultRectSkin::new(1)
             .unwrap()
@@ -19,6 +26,7 @@ fn test_screen() {
             .visible(true)
             .hit_group(1);
     });
+    */
 
     spark1 += spark2;
     

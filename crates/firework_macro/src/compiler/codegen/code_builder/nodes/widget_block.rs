@@ -5,12 +5,12 @@ use super::super::*;
 
 impl CodeBuilder { 
     pub fn node_widget_block(
-        &self, span: Span, struct_name: String, final_tokens: &mut TokenStream,
+        &self, span: Span, _struct_name: String, final_tokens: &mut TokenStream,
         statement: &FireworkStatement, 
     ) {
         match &statement.action {
             FireworkAction::WidgetBlock(
-                widget_type, fields, _is_functional, id, has_microruntime, skin,
+                _widget_type, fields, _is_functional, _id, _has_microruntime, skin,
             ) => {
                 let skin_path: syn::Path = syn::parse_str(skin)
                     .expect(format!("Invalid skin name: {}", skin).as_str());
@@ -22,6 +22,11 @@ impl CodeBuilder {
 
                 // Обход всех полей
                 for (name, field) in fields {
+                    // Поле с именем skin нужно пропустить, так как оно явлется задающим
+                    if name == "skin" {
+                        return;
+                    }
+
                     // Название метода берётся из названия поля
                     let method_ident = format_ident!("{}", name);
 
@@ -45,13 +50,20 @@ impl CodeBuilder {
                     widget_init.extend(quote! {
                         .#method_ident(#field_value)
                     });
-                } 
+                }
+
+                // Сборка условия на инициализацию виджета
+                let condition = String::from(CHECK_NAVIGATE); 
+
+                // SAFETY: CHECK_NAVIGATE всегда является валидным раст кодом
+                let condition_statement = condition.to_expr().unwrap();
 
                 println!("Output: {}", widget_init);
 
                 final_tokens.extend(quote_spanned!(span=>
-                    #widget_init;
-                    println!("Widget");
+                    if #condition_statement {
+                        #widget_init; 
+                    }
                 ));
             },
 
