@@ -14,7 +14,7 @@ fn test_screen() {
     spark2 = 20;
 
     rect! {
-        position: (10, 10),
+        position: (10, a),
     }
 }
 

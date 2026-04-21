@@ -12,14 +12,22 @@ impl CodeBuilder {
             FireworkAction::WidgetBlock(
                 widget_type, fields, _is_functional, id, has_microruntime, skin,
             ) => {
-                let mut widget_init = "".to_string();
+                let skin_path: syn::Path = syn::parse_str(skin)
+                    .expect(format!("Invalid skin name: {}", skin).as_str());
 
                 // При навигации нужно сгенерировать конструкцию виджета на основе скина
-                //                              [id лайаута]
-                widget_init.push_str(format!("{}::new(1).unwrap()", skin).as_str());
+                let mut widget_init = quote_spanned! { span=>
+                    #skin_path::new(1).unwrap()
+                };
 
                 // Обход всех полей
                 for (name, field) in fields {
+                    // Название метода берётся из названия поля
+                    let method_ident = format_ident!("{}", name);
+
+                    // Поле в формате TokenStream для сохранения спанов при ошибках
+                    let field_value = &field.token_stream;
+
                     // Генерируется установка значения по билдер паттерну. Через точку
                     // вызывается метод, имя метода должено соотвестовать названию
                     // поля. Внутрь метода пробрасывается само значение
@@ -34,18 +42,15 @@ impl CodeBuilder {
                     //  .position((10, 10)) // Имя поля становится вызовом метода
                     //                       // а вторая часть выражения становится
                     //                       // аргументов этого метода
-                    widget_init.push_str(format!(".{}({})", name, field.string).as_str());
-                }
-
-                // Точка с запятой закрывает стейтемент
-                widget_init.push(';');
+                    widget_init.extend(quote! {
+                        .#method_ident(#field_value)
+                    });
+                } 
 
                 println!("Output: {}", widget_init);
 
-                let widget_init_statement = Self::convert_string_to_syn(&widget_init);
-
                 final_tokens.extend(quote_spanned!(span=>
-                    #widget_init_statement
+                    #widget_init;
                     println!("Widget");
                 ));
             },

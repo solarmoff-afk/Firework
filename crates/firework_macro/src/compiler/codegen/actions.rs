@@ -3,7 +3,7 @@
 
 #![allow(dead_code)]
 
-use proc_macro2::Span;
+use proc_macro2::{Span, TokenStream};
 use std::collections::HashMap;
 
 use super::snapshot::{Snapshot, SpanKey};
@@ -27,7 +27,7 @@ pub enum FireworkReactiveBlock {
     Effect,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone)]
 pub enum FireworkAction {
     // Инициализация реактивной переменной (спарка) в области видимости. Первое значение
     // это имя реактивной переменной, а второе это айдишник переменно, третье это
@@ -224,13 +224,16 @@ impl FireworkIR {
 ///
 /// Необходимо для кодогенерации, так как виджеты это чистая compile-time сущность,
 /// в реалтайме есть только скины
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone)]
 pub struct FireworkWidgetField {
     // Какие спарки используются в поле
     pub sparks: Vec<String>,
     
-    // Полная строка поля
+    // Полная строка выражения поля
     pub string: String,
+
+    // Выражение (правая часть) поля в формате TokenStream с оригинальными спанами
+    pub token_stream: TokenStream,
 
     // Является ли это замыканием
     pub is_fn: bool,

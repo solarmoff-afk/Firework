@@ -139,6 +139,7 @@ impl<'ast> Analyzer {
                 let mut this_field = FireworkWidgetField {
                     sparks: Vec::new(),
                     string: prop.value.to_token_stream().to_string(),
+                    token_stream: prop.value.to_token_stream(),
                     
                     // Изначально это не замыкание
                     is_fn: false,
