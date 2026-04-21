@@ -16,7 +16,7 @@ impl CodeBuilder {
 
                 // При навигации нужно сгенерировать конструкцию виджета на основе скина
                 //                              [id лайаута]
-                widget_init.push_str(format!("{}::new(1)", skin).as_str());
+                widget_init.push_str(format!("{}::new(1).unwrap()", skin).as_str());
 
                 // Обход всех полей
                 for (name, field) in fields {
@@ -30,7 +30,7 @@ impl CodeBuilder {
                     //
                     // Превращается в
                     // // Структура скина и айди лайаута в аргументах
-                    // [SKIN]::new(1)
+                    // [SKIN]::new(1).unwrap()
                     //  .position((10, 10)) // Имя поля становится вызовом метода
                     //                       // а вторая часть выражения становится
                     //                       // аргументов этого метода
@@ -42,7 +42,10 @@ impl CodeBuilder {
 
                 println!("Output: {}", widget_init);
 
-                final_tokens.extend(quote_spanned!(span=> 
+                let widget_init_statement = Self::convert_string_to_syn(&widget_init);
+
+                final_tokens.extend(quote_spanned!(span=>
+                    #widget_init_statement
                     println!("Widget");
                 ));
             },
