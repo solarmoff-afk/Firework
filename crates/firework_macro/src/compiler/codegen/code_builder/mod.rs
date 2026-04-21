@@ -85,6 +85,10 @@ impl CodeBuilder {
             self.node_spark_ref(
                 span, struct_name.clone(), &mut final_tokens, &statement);
 
+            // Узел инициализации виджета
+            self.node_widget_block(
+                span, struct_name.clone(), &mut final_tokens, &statement);
+
             // Для DefaultCode нет отдельного узла так как он просто отправляет свой вход
             // на выход
             match &statement.action {

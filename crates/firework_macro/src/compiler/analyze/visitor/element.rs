@@ -37,6 +37,12 @@ impl<'ast> Analyzer {
             
             return;
         }
+
+        // Микрорантайм это специальный тип данных 
+        let mut has_microruntime = false;
+        if let Some((_start, need_microruntime)) = self.reactive_block {
+            has_microruntime = need_microruntime;
+        }
        
         // Лайаут это конструкция layout_name! { // Обычный раст код }; все токены
         // внутри нужно распарсить как обычный раст код через block (Не file и не expr)
@@ -57,12 +63,7 @@ impl<'ast> Analyzer {
                 // До входа в новый лайаут блок снимает флаг чтобы при конфигурации
                 // нового лайаута не было FE009, делаем это до прохода по командам
                 // внутри лайаут блока
-                self.descript_layout = false;
-
-                let mut has_microruntime = false;
-                if let Some((_start, need_microruntime)) = self.reactive_block {
-                    has_microruntime = need_microruntime;
-                } 
+                self.descript_layout = false; 
 
                 self.context.statement.action = FireworkAction::LayoutBlock(
                     name.clone(), has_microruntime,
@@ -193,6 +194,7 @@ impl<'ast> Analyzer {
                 fields_map,
                 has_microruntime,
                 self.context.widget_counter,
+                has_microruntime,
             );
             self.context.ir.push(self.context.statement.clone());
             self.statement_index += 1;

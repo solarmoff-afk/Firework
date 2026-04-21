@@ -80,7 +80,8 @@ pub enum FireworkAction {
     //  3 (bool)    - Явлется ли это функциональным виджетом (Который не имеет визуального
     //                представления)
     //  4 (usize)   - Айди виджета
-    WidgetBlock(String, HashMap<String, FireworkWidgetField>, bool, usize),
+    //  5 (bool)    - Нужен ли микрорантайм
+    WidgetBlock(String, HashMap<String, FireworkWidgetField>, bool, usize, bool),
 
     // Просто код для инлайна
     DefaultCode,

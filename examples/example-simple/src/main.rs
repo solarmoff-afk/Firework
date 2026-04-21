@@ -11,7 +11,11 @@ fn test_screen() {
         println!("Больше 0, {}", my_spark);
     }
 
-    spark2 = 20; 
+    spark2 = 20;
+
+    rect! {
+        position: (10, 10),
+    }
 }
 
 fn main() {
