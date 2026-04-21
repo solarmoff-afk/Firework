@@ -8,6 +8,7 @@ mod runtime_errors;
 pub use firework_macro::{ui, shared, component};
 pub use firework_adapter::{AdapterCommand, AdapterEvent, AdapterClickPhase, AdapterResult};
 pub use runtime_errors::RENDER_ADAPTER_MISSING_ERROR;
+pub use skins::DefaultRectSkin;
 
 /// A simpler implementation of the matches macro separate from STD for use in
 /// generated code

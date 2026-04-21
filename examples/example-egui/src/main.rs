@@ -10,13 +10,14 @@ fn test_screen() {
     let mut spark2 = spark!(0u32);
     
     effect!({
-        let result = egui_adapter(AdapterCommand::NewRect { layout: 0 });
-
-        if let AdapterResult::Handle(id) = result { 
-            egui_adapter(AdapterCommand::SetPosition(id, (100, 100)));
-            egui_adapter(AdapterCommand::SetSize(id, (200, 50)));
-            egui_adapter(AdapterCommand::SetColor(id, (0, 0, 255, 255))); 
-        }
+        let rect = firework_ui::DefaultRectSkin::new(1)
+            .unwrap()
+            .position(10, 10)
+            .size(100, 100)
+            .color(255, 0, 0)
+            .z(5)
+            .visible(true)
+            .hit_group(1);
     });
 
     spark1 += spark2;
