@@ -10,7 +10,7 @@ fn test_screen() {
     let mut spark2 = spark!(0u32);
     
     effect!({
-        let rect = firework_ui::DefaultRectSkin::new(1)
+        let rect = firework_ui::skins::DefaultRectSkin::new(1)
             .unwrap()
             .position(10, 10)
             .size(100, 100)

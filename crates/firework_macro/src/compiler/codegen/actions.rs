@@ -81,7 +81,8 @@ pub enum FireworkAction {
     //                представления)
     //  4 (usize)   - Айди виджета
     //  5 (bool)    - Нужен ли микрорантайм
-    WidgetBlock(String, HashMap<String, FireworkWidgetField>, bool, usize, bool),
+    //  6 (String)  - Какой скин используется
+    WidgetBlock(String, HashMap<String, FireworkWidgetField>, bool, usize, bool, String),
 
     // Просто код для инлайна
     DefaultCode,
@@ -230,6 +231,9 @@ pub struct FireworkWidgetField {
     
     // Полная строка поля
     pub string: String,
+
+    // Является ли это замыканием
+    pub is_fn: bool,
 }
 
 /// Поле разделяемого состояния в shared! {} блоке

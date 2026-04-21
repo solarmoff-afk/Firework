@@ -6,6 +6,8 @@ use syn::spanned::Spanned;
 
 pub use super::super::*;
 
+use crate::compiler::analyze::widget::is_functional_widget;
+
 impl<'ast> Analyzer {
     /// Макрос который используются не в выражении, а как отдельный statement (команда)
     pub(crate) fn analyze_macro(&mut self, i: &'ast Macro) {
@@ -137,6 +139,9 @@ impl<'ast> Analyzer {
                 let mut this_field = FireworkWidgetField {
                     sparks: Vec::new(),
                     string: prop.value.to_token_stream().to_string(),
+                    
+                    // Изначально это не замыкание
+                    is_fn: false,
                 };
                 
                 let mut finder = SparkFinder {
@@ -149,10 +154,13 @@ impl<'ast> Analyzer {
                 if let Expr::Closure(closure) = &prop.value { 
                     let saved_parent = self.context.statement.parent_widget_id;
                     
-                    self.context.statement.parent_widget_id = Some(self.context.widget_counter);
+                    self.context.statement.parent_widget_id =
+                        Some(self.context.widget_counter);
                     self.visit_expr(&closure.body);
-                    
                     self.context.statement.parent_widget_id = saved_parent;
+
+                    // Если выражение это Closure то поле является замыканием
+                    this_field.is_fn = true;
                 }
 
                 fields_map.insert(prop_name, this_field);
@@ -173,10 +181,10 @@ impl<'ast> Analyzer {
             // Только если в skin_struct была добавлена структура нужно добавить поле
             // в структуру экрана. Если поля нет то это функциональный виджет который
             // не получил скин через поле skin
-            if let Some(skin) = _skin_struct {
+            if let Some(ref skin) = _skin_struct {
                 self.add_field_to_struct(
                     format!("widget_object_{}", self.context.widget_counter),
-                    skin,
+                    skin.to_string(),
                 );
             }
             
@@ -192,9 +200,13 @@ impl<'ast> Analyzer {
             self.context.statement.action = FireworkAction::WidgetBlock(
                 name.clone(),
                 fields_map,
-                has_microruntime,
+                is_functional_widget(&name),
                 self.context.widget_counter,
                 has_microruntime,
+
+                // У функциональных виджетов нет скина, а если поле _skin_struct пустое
+                // то значит это функиональный виджет
+                _skin_struct.unwrap_or("".to_string()),
             );
             self.context.ir.push(self.context.statement.clone());
             self.statement_index += 1;

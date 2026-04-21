@@ -23,26 +23,26 @@ impl DefaultRectSkin {
     }
 
     /// Устанавливает позицию прямоугольника (левый верхний угол)
-    pub fn position(self, x: i32, y: i32) -> Self {
-        let _ = adapter_command(AdapterCommand::SetPosition(self.handle, (x, y)));
+    pub fn position(self, position: (i32, i32)) -> Self {
+        let _ = adapter_command(AdapterCommand::SetPosition(self.handle, position));
         self
     }
 
     /// Устанавливает размер прямоугольника
-    pub fn size(self, width: i32, height: i32) -> Self {
-        let _ = adapter_command(AdapterCommand::SetSize(self.handle, (width, height)));
+    pub fn size(self, size: (i32, i32)) -> Self {
+        let _ = adapter_command(AdapterCommand::SetSize(self.handle, size));
         self
     }
 
     /// Устанавливает цвет прямоугольника
-    pub fn color(self, r: u8, g: u8, b: u8) -> Self {
-        let _ = adapter_command(AdapterCommand::SetColor(self.handle, (r, g, b, 255)));
+    pub fn color(self, color: (u8, u8, u8)) -> Self {
+        let _ = adapter_command(AdapterCommand::SetColor(self.handle, (color.0, color.1, color.2, 255)));
         self
     }
 
     /// Устанавливает цвет прямоугольника с альфа-каналом
-    pub fn color_alpha(self, r: u8, g: u8, b: u8, a: u8) -> Self {
-        let _ = adapter_command(AdapterCommand::SetColor(self.handle, (r, g, b, a)));
+    pub fn color_alpha(self, color: (u8, u8, u8, u8)) -> Self {
+        let _ = adapter_command(AdapterCommand::SetColor(self.handle, color));
         self
     }
 
@@ -62,14 +62,5 @@ impl DefaultRectSkin {
     pub fn hit_group(self, group: u16) -> Self {
         let _ = adapter_command(AdapterCommand::SetHitGroup(self.handle, group));
         self
-    }
-
-    /// Возвращает хэндл объекта
-    pub fn handle(&self) -> usize {
-        self.handle
     } 
-
-    pub fn remove(self) {
-        let _ = adapter_command(AdapterCommand::Remove(self.handle));
-    }
 }
