@@ -13,11 +13,6 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use compiler::*;
 use compiler::flags::{CompileFlags, CompileType};
 
-// TODO:
-//  - Начать писать генератор FIREWORK-IR в prepare 
-
-// Система id нужна для того чтобы построить уникальную структуру в статической памяти
-// и её экземпляр
 static BLOCK_COUNTER: AtomicU64 = AtomicU64::new(1);
 
 /// Структура абстрактного синтаксического дерева. Здесь хранятся токены после
