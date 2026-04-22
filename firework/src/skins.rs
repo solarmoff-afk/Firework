@@ -7,7 +7,7 @@ use firework_adapter::{AdapterCommand, AdapterResult};
 #[derive(Debug, Clone, Copy)]
 pub struct DefaultRectSkin {
     handle: usize,
-    layout: u16,
+    _layout: u16,
 }
 
 impl DefaultRectSkin { 
@@ -15,7 +15,7 @@ impl DefaultRectSkin {
         match adapter_command(AdapterCommand::NewRect { layout }) {
             AdapterResult::Handle(handle) => Some(Self {
                 handle: handle,
-                layout,
+                _layout: layout,
             }),
 
             _ => None,

@@ -12,20 +12,7 @@ fn test_screen() {
         position: (spark1.try_into().unwrap(), 10),
         size: (100, 100),
         color: (255, 0, 0),
-    }
-    
-    /*
-    effect!({
-        let rect = firework_ui::skins::DefaultRectSkin::new(1)
-            .unwrap()
-            .position(10, 10)
-            .size(100, 100)
-            .color(255, 0, 0)
-            .z(5)
-            .visible(true)
-            .hit_group(1);
-    });
-    */
+    } 
 
     spark1 += spark2;
     

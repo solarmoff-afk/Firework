@@ -148,7 +148,10 @@ pub struct FireworkIR {
     )>,
 
     // Хэшмап для хранения id экрана -> количество спарков
-    pub screen_sparks: HashMap<u128, usize>,  
+    pub screen_sparks: HashMap<u128, usize>,
+
+    // Хэшмап для хранения id экрана -> количество виджетов
+    pub screen_widgets: HashMap<u128, usize>,
 }
 
 impl FireworkIR {
@@ -161,6 +164,7 @@ impl FireworkIR {
             screen_structs: HashMap::new(),
             screens: Vec::new(),
             screen_sparks: HashMap::new(),
+            screen_widgets: HashMap::new(),
         }
     }
     

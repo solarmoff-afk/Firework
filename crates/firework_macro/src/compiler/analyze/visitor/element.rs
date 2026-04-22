@@ -34,7 +34,7 @@ impl<'ast> Analyzer {
         if (is_layout(&name) || is_widget(&name)) && !matches!(i.delimiter, MacroDelimiter::Brace(_)) {
             self.context.errors.push(compile_error_spanned(
                 i,
-                MACRO_BRACE_ERROR
+                MACRO_BRACE_ERROR,
             ));
             
             return;

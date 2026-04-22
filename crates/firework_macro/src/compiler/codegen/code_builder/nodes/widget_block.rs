@@ -78,25 +78,9 @@ impl CodeBuilder {
                     }
                 }
 
-                // Сборка условия на инициализацию виджета
-                let condition = String::from(CHECK_NAVIGATE); 
-
-                // SAFETY: CHECK_NAVIGATE всегда является валидным раст кодом
-                let condition_statement = condition.to_expr().unwrap();
-
-                println!("Output: {}", widget_init);
-
                 // Безопасный режим с Mutex
                 #[cfg(feature = "safety-multithread")]
                 final_tokens.extend(quote_spanned!(span=>
-                    if #condition_statement {
-                        #instance_ident_upper.get()
-                            .expect("Instance not initialized")
-                            .lock()
-                            .unwrap()
-                            .#field_ident = Some(#widget_init);
-                    }
-
                     match #instance_ident_upper.get()
                         .expect("Instance not initialized").lock().unwrap().#field_ident
                     {
@@ -104,20 +88,19 @@ impl CodeBuilder {
                             #widget_reactive
                         },
 
-                        _ => {},
+                        None => {
+                            #instance_ident_upper.get()
+                                .expect("Instance not initialized")
+                                .lock()
+                                .unwrap()
+                                .#field_ident = Some(#widget_init);
+                        },
                     };
                 ));
 
                 // Обычный режим
                 #[cfg(not(feature = "safety-multithread"))]
                 final_tokens.extend(quote_spanned!(span=>
-                    if #condition_statement {
-                        unsafe {
-                            (*::core::ptr::addr_of_mut!(#instance_ident_upper)).#field_ident
-                                = Some(#widget_init);
-                        }
-                    }
-
                     match unsafe {
                         (*::core::ptr::addr_of!(#instance_ident_upper)).#field_ident
                     } {
@@ -125,7 +108,12 @@ impl CodeBuilder {
                             #widget_reactive
                         },
                         
-                        _ => {},
+                        None => {
+                            unsafe {
+                                (*::core::ptr::addr_of_mut!(#instance_ident_upper)).#field_ident
+                                    = Some(#widget_init);
+                            }
+                        },
                     };
                 ));
             },
