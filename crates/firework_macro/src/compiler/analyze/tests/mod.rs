@@ -13,10 +13,12 @@ fn assert_ir_equal(actual: &[FireworkStatement], expected: &[FireworkAction]) {
     );
     
     for (index, statement) in actual.iter().enumerate() {
-        assert_eq!(
-            statement.action, expected[index],
-            "Mismatch at index {}",
-            index
+        // FireworkAction содержит TokenStream который не реализует трейт для сравнения
+        // поэтому нужен std::mem::discriminant
+        assert!(
+            std::mem::discriminant(&statement.action) == std::mem::discriminant(&expected[index]),
+            "Mismatch at index {}: got {:?}, expected {:?}",
+            index, statement.action, expected[index]
         );
     }
 }
@@ -24,7 +26,7 @@ fn assert_ir_equal(actual: &[FireworkStatement], expected: &[FireworkAction]) {
 fn extract_ir(tokens: proc_macro2::TokenStream) -> FireworkIR {
     // let tokens_vec: Vec<_> = tokens.into_iter().collect(); 
     let file: File = syn::parse2(tokens.into()).unwrap();
-    prepare_tokens(file, 0).2.expect("IR not found")
+    prepare_tokens(file, CompileFlags::new(), 0).2.expect("IR not found")
 }
 
 fn create_initial_spark(

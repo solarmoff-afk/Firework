@@ -207,6 +207,7 @@ mod tests {
             is_spark: true,
             is_mut: false,
             spark_id: 1,
+            is_spark_ref: false,
         };
         lifetime_manager.scope.variables.insert("test_spark".to_string(), spark_var);
         
@@ -249,6 +250,7 @@ mod tests {
             is_spark: true,
             is_mut: false,
             spark_id: 1,
+            is_spark_ref: false,
         };
         
         let spark_var2 = Variable {
@@ -256,6 +258,7 @@ mod tests {
             is_spark: true,
             is_mut: true,
             spark_id: 2,
+            is_spark_ref: false,
         };
 
         let spark_var3 = Variable {
@@ -263,6 +266,7 @@ mod tests {
             is_spark: true,
             is_mut: false,
             spark_id: 3,
+            is_spark_ref: false,
         };
         
         lifetime_manager.scope.variables.insert("spark1".to_string(), spark_var1);
@@ -308,6 +312,7 @@ mod tests {
             is_spark: false,
             is_mut: true,
             spark_id: 0,
+            is_spark_ref: false,
         };
         
         lifetime_manager.scope.variables.insert("normal".to_string(), normal_var);
@@ -341,6 +346,7 @@ mod tests {
             is_spark: true,
             is_mut: false,
             spark_id: 100,
+            is_spark_ref: false,
         };
         
         let normal_var = Variable {
@@ -348,6 +354,7 @@ mod tests {
             is_spark: false,
             is_mut: false,
             spark_id: 0,
+            is_spark_ref: false,
         };
         
         lifetime_manager.scope.variables.insert("spark".to_string(), spark_var);
@@ -389,6 +396,7 @@ mod tests {
             is_spark: true,
             is_mut: false,
             spark_id: 999,
+            is_spark_ref: false,
         };
         old_scope.variables.insert("existing".to_string(), existing_var);
         
@@ -397,6 +405,7 @@ mod tests {
             is_spark: true,
             is_mut: false,
             spark_id: 1,
+            is_spark_ref: false,
         };
         lifetime_manager.scope.variables.insert("new_spark".to_string(), spark_var);
         
@@ -436,6 +445,7 @@ mod tests {
             is_spark: false,
             is_mut: false,
             spark_id: 0,
+            is_spark_ref: false,
         };
         new_scope.variables.insert("existing_var".to_string(), test_var);
         new_scope.depth = 5;
@@ -477,6 +487,7 @@ mod tests {
             is_spark: true,
             is_mut: false,
             spark_id: 1,
+            is_spark_ref: false,
         };
         old_scope.variables.insert("same_spark".to_string(), spark_var);
         
@@ -485,6 +496,7 @@ mod tests {
             is_spark: true,
             is_mut: false,
             spark_id: 1,
+            is_spark_ref: false,
         });
         
         let base_stmt = FireworkStatement {

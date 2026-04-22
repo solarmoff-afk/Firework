@@ -235,6 +235,7 @@ mod tests {
             is_spark: true,
             is_mut: false,
             spark_id: 1,
+            is_spark_ref: false,
         };
         scope.variables.insert("my_spark".to_string(), spark_var);
 
@@ -261,6 +262,7 @@ mod tests {
             is_spark: true,
             is_mut: true,
             spark_id: 99,
+            is_spark_ref: false,
         };
         scope.variables.insert("reactive_var".to_string(), spark_var);
 
