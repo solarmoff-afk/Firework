@@ -23,6 +23,8 @@ impl CodeBuilder {
                     #skin_path::new(1).unwrap()
                 };
 
+                let mut widget_reactive = quote! {};
+
                 // Обход всех полей
                 for (name, field) in fields {
                     // Поле с именем skin нужно пропустить, так как оно явлется задающим
@@ -53,6 +55,27 @@ impl CodeBuilder {
                     widget_init.extend(quote! {
                         .#method_ident(#field_value)
                     });
+
+                    if field.sparks.len() > 0 {
+                        let mut condition = String::new();
+
+                        // Генерация условия на то, что хотя-бы одна зависимость в снапшотах
+                        // битовых масках изменилась
+                        for (_, id) in field.sparks.iter() {
+                            self.generate_check_spark_bit(&mut condition, *id);
+                            condition.push_str(" ||");
+                        }
+                        
+                        // Для упрощения кодогенерации сюда добавляется false для условия
+                        condition.push_str(" false ");
+                        let condition_statement = condition.to_expr().unwrap();
+
+                        widget_reactive.extend(quote! {
+                            if #condition_statement {
+                                _fwc_wb_1.#method_ident(#field_value);
+                            }
+                        });
+                    }
                 }
 
                 // Сборка условия на инициализацию виджета
@@ -73,6 +96,16 @@ impl CodeBuilder {
                             .unwrap()
                             .#field_ident = Some(#widget_init);
                     }
+
+                    match #instance_ident_upper.get()
+                        .expect("Instance not initialized").lock().unwrap().#field_ident
+                    {
+                        Some(ref _fwc_wb_1) => {
+                            #widget_reactive
+                        },
+
+                        _ => {},
+                    };
                 ));
 
                 // Обычный режим
@@ -84,6 +117,16 @@ impl CodeBuilder {
                                 = Some(#widget_init);
                         }
                     }
+
+                    match unsafe {
+                        (*::core::ptr::addr_of!(#instance_ident_upper)).#field_ident
+                    } {
+                        Some(ref _fwc_wb_1) => {
+                            #widget_reactive
+                        },
+                        
+                        _ => {},
+                    };
                 ));
             },
 

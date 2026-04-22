@@ -145,7 +145,7 @@ impl<'ast> Analyzer {
                     is_fn: false,
                 };
                 
-                let mut finder = SparkFinder {
+                let mut finder = SparkFinderWithId {
                     scope: &self.lifetime_manager.scope,
                     found: &mut this_field.sparks,
                 };

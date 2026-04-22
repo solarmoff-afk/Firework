@@ -227,7 +227,7 @@ impl FireworkIR {
 #[derive(Debug, Clone)]
 pub struct FireworkWidgetField {
     // Какие спарки используются в поле
-    pub sparks: Vec<String>,
+    pub sparks: Vec<(String, usize)>,
     
     // Полная строка выражения поля
     pub string: String,

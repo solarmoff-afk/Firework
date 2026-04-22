@@ -21,7 +21,7 @@ use std::collections::HashMap;
 use quote::ToTokens;
 
 use widget::{is_widget, is_layout, map_skin, WidgetArgs};
-use spark::{SparkValidator, SparkFinder, SparkFinderWithId, get_root_variable_name};
+use spark::{SparkValidator, SparkFinderWithId, get_root_variable_name};
 use context::AnalyzeContext;
 use lifetime_manager::{Variable, Scope, LifetimeManager};
 use type_inference::mut_check::is_mutable_method;
