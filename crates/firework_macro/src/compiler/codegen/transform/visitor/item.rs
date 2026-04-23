@@ -182,38 +182,7 @@ impl CodegenVisitor<'_> {
             }
         }
 
-        if let Some(id) = self.ui_id && matches!(self.flags.compile_type, CompileType::Shared) {
-            for state in &self.ir.shared.state {
-                for attr in &state.attributes {
-                    let field_name = &state.name;
-                    let field_type: syn::Type = syn::parse_str(&state.spark_type).unwrap();
-                    let field_id = state.id;
-                    
-                    if attr == "read" {
-                        let getter = self.desugar_shared_read(
-                            state.span,
-                            field_id as u128,
-                            field_name,
-                            &field_type,
-                            id,
-                        );
-                        new_items.push(getter);
-                    }
-                    
-                    if attr == "write" {
-                        let setter = self.desugar_shared_write(
-                            state.span,
-                            field_id as u128,
-                            field_name,
-                            &field_type,
-                            id,
-                        );
-                        new_items.push(setter);
-                    }
-                }
-            }
-        }
-
+        self.resolve_shared_desugar_attr(&mut new_items);
         
         i.items = new_items;
     }
