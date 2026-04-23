@@ -144,13 +144,28 @@ pub struct GlobalState {
     pub spark_type: Type,
     pub init: Expr,
     pub span: Span,
+    pub attributes: Vec<String>,
 }
 
 /// Парсер глобального состояния в state! {} для shared юнитов
 impl Parse for GlobalState {
     fn parse(input: ParseStream) -> syn::Result<Self> {
         let span = input.span();
+        let attrs = input.call(Attribute::parse_outer)?;
 
+        let attributes: Vec<String> = attrs
+            .iter()
+            .filter_map(|attr| {
+                let path = &attr.path();
+                if path.segments.len() == 1 {
+                    let ident = &path.segments.first().unwrap().ident;
+                    Some(ident.to_string())
+                } else {
+                    None
+                }
+            })
+            .collect();
+        
         let name: Ident = input.parse()?;
         let _: Token![:] = input.parse()?;
         
@@ -164,6 +179,7 @@ impl Parse for GlobalState {
             spark_type,
             init,
             span,
+            attributes,
         })
     }
 }

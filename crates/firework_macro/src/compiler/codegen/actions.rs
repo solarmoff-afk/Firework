@@ -255,6 +255,7 @@ pub struct FireworkSharedState {
     pub init: String,
     pub span: Span,
     pub id: usize,
+    pub attributes: Vec<String>,
 }
 
 /// Структура для хранения информации о shared

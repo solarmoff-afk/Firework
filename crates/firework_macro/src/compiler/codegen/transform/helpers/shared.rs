@@ -1,7 +1,7 @@
 // Часть проекта Firework с открытым исходным кодом.
 // Лицензия EPL 2.0, подробнее в файле LICENSE. Copyright (c) 2026 Firework
 
-use super::*;
+use super::super::*;
 
 use crate::compiler::codegen::generator::static_gen;
 

@@ -2,11 +2,9 @@
 // Лицензия EPL 2.0, подробнее в файле LICENSE. Copyright (c) 2026 Firework
 
 pub mod traits;
+pub mod helpers;
 mod visitor;
-mod reactive;
-mod flash_pass;
 mod widgets_bitmask;
-mod shared;
 
 use syn::visit_mut::VisitMut;
 use syn::spanned::Spanned;

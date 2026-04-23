@@ -2,6 +2,7 @@ use firework_ui::{shared, effect};
 
 shared! {
     state! {
+        #[read] #[write]
         theme: u8 = 0,
     }
 

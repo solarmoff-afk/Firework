@@ -1,7 +1,7 @@
 // Часть проекта Firework с открытым исходным кодом.
 // Лицензия EPL 2.0, подробнее в файле LICENSE. Copyright (c) 2026 Firework
 
-use super::*;
+use super::super::*;
 
 impl CodegenVisitor<'_> {
     pub fn generate_flash_pass(&self, id: u128, function_name: &str) -> Block {

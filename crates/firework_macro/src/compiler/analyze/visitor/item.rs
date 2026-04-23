@@ -46,6 +46,7 @@ impl<'ast> Analyzer {
                             init,
                             span: field.span,
                             id: self.context.spark_counter,
+                            attributes: field.attributes.clone(),
                         }); 
                         
                         self.add_field_to_struct(
