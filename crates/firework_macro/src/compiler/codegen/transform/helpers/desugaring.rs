@@ -36,10 +36,10 @@ impl CodegenVisitor<'_> {
         };
         
         parse_quote_spanned!(span=> 
-            pub fn #function_name() -> #field_type {
+            pub fn #function_name() -> &'static #field_type {
                 #build_name();
                 #access_code
-                *#field_ident
+                &#field_ident
             }
         )
     }
