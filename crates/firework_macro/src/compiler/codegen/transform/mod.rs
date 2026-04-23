@@ -5,6 +5,7 @@ pub mod traits;
 mod visitor;
 mod reactive;
 mod flash_pass;
+mod widgets_bitmask;
 mod shared;
 
 use syn::visit_mut::VisitMut;
@@ -37,6 +38,7 @@ pub struct CodegenVisitor<'a> {
     pub builder: CodeBuilder,
     
     pub mask_count: HashMap<u128, u8>,
+    pub widget_mask_count: HashMap<u128, u8>,
 
     flags: CompileFlags,
     functions_count: u16,
@@ -49,6 +51,7 @@ impl<'a> CodegenVisitor<'a> {
             ui_id: None,
             builder: CodeBuilder::new(),
             mask_count: HashMap::new(),
+            widget_mask_count: HashMap::new(),
             flags: CompileFlags::new(),
             functions_count: 0,
         }
@@ -60,6 +63,7 @@ impl<'a> CodegenVisitor<'a> {
 
     pub fn generate_code(&mut self, stmt: &Stmt, statements: &[FireworkStatement], body: TokenStream) -> TokenStream {
         self.find_mask_counts();
+        self.find_widget_mask_counts();
         self.builder.build(stmt, statements, body)
     }
 
@@ -74,7 +78,15 @@ impl<'a> CodegenVisitor<'a> {
             // 1 -> 1, 19 -> 1, 64 -> 1, 67 -> 2, 98 -> 2, 128 -> 2, 136 -> 3
             self.mask_count.insert(*screen_id, get_spark_mask(*spark_count)); 
         }
-    } 
+    }
+
+    pub(crate) fn find_widget_mask_counts(&mut self) {
+        for (_screen_name, _screen_signature, screen_id) in self.ir.screens.iter() {
+            // Вычисление количества битовых масок
+            let widget_count = self.ir.screen_widgets.get(screen_id).unwrap_or(&0usize);
+            self.widget_mask_count.insert(*screen_id, get_spark_mask(*widget_count)); 
+        }
+    }
 }
 
 impl<'a> VisitMut for CodegenVisitor<'a> {

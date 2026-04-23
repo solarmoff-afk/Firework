@@ -73,16 +73,9 @@ pub enum FireworkAction {
     // ли микрорантайм
     LayoutBlock(String, bool),
 
-    // Блок декларативного описания виджета, явлется самым сложным действием
-    // Значения:
-    //  1 (String)  - Какой это виджет (text, rect, buttom и так далее)
-    //  2 (HashMap) - Соотвествие полей виджета и вектора спарков которые используются
-    //  3 (bool)    - Явлется ли это функциональным виджетом (Который не имеет визуального
-    //                представления)
-    //  4 (usize)   - Айди виджета
-    //  5 (bool)    - Нужен ли микрорантайм
-    //  6 (String)  - Какой скин используется
-    WidgetBlock(String, HashMap<String, FireworkWidgetField>, bool, usize, bool, String),
+    // Виджет, декларативное описание для скина. Виджет это compile-time концепция,
+    // скин это runtime концепция
+    WidgetBlock(WidgetDescription),
 
     // Просто код для инлайна
     DefaultCode,
@@ -257,4 +250,35 @@ pub struct FireworkSharedState {
     pub init: String,
     pub span: Span,
     pub id: usize,
+}
+
+/// Блок декларативного описания виджета, явлется самым сложным действием. Кодогенератор
+/// превращает описание виджета в конструкцию скина через Builder Pattern которые должны
+/// реализовать все скины. Каждое декларативное поле кроме исключения (skin) будет
+/// сгенерированно как вызов метода в цепочке из скина. Для полей которые имеют спарки
+/// внутри будет дополнительная генерация для реактивного обновления
+#[derive(Debug, Clone)]
+pub struct WidgetDescription {
+    /// Тип виджета (Например, rect или text)
+    pub widget_type: String,
+
+    /// Карта для полей, String -> FireworkWidgetField, FireworkWidgetField содержит
+    /// само поле и спарки которые используются внутри
+    pub fields: HashMap<String, FireworkWidgetField>,
+
+    /// Является ли этот виджет функциональным (layout!, component!)
+    pub is_functional: bool,
+    
+    /// Айди виджета
+    pub id: usize,
+
+    /// Нужен ли для виджета микрорантайм (динамический список)
+    pub has_microruntime: bool,
+
+    /// Скин который использует виджет, его можно задать используя поле skin либо он будет
+    /// выбран автоматически
+    pub skin: String,
+
+    /// Рендерится ли виджет условно
+    pub is_maybe: bool,
 }

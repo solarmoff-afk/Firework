@@ -7,6 +7,7 @@ use syn::spanned::Spanned;
 pub use super::super::*;
 
 use crate::compiler::analyze::widget::is_functional_widget;
+use crate::compiler::codegen::actions::WidgetDescription;
 
 impl<'ast> Analyzer {
     /// Макрос который используются не в выражении, а как отдельный statement (команда)
@@ -199,15 +200,19 @@ impl<'ast> Analyzer {
 
             self.context.statement.string = i.to_token_stream().to_string();
             self.context.statement.action = FireworkAction::WidgetBlock(
-                name.clone(),
-                fields_map,
-                is_functional_widget(&name),
-                self.context.widget_counter,
-                has_microruntime,
+                WidgetDescription {
+                    widget_type: name.clone(),
+                    fields: fields_map,
+                    is_functional: is_functional_widget(&name),
+                    id: self.context.widget_counter,
+                    has_microruntime,
 
-                // У функциональных виджетов нет скина, а если поле _skin_struct пустое
-                // то значит это функиональный виджет
-                _skin_struct.unwrap_or("".to_string()),
+                    // У функциональных виджетов нет скина, а если поле _skin_struct пустое
+                    // то значит это функиональный виджет
+                    skin: _skin_struct.unwrap_or("".to_string()),
+
+                    is_maybe: false,
+                }
             );
             self.context.ir.push(self.context.statement.clone());
             self.statement_index += 1;

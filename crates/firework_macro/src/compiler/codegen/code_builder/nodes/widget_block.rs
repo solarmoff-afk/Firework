@@ -9,14 +9,12 @@ impl CodeBuilder {
         statement: &FireworkStatement, 
     ) {
         match &statement.action {
-            FireworkAction::WidgetBlock(
-                _widget_type, fields, _is_functional, id, _has_microruntime, skin,
-            ) => {
+            FireworkAction::WidgetBlock(description) => {
                 let instance_ident_upper = format_ident!("{}_INSTANCE", struct_name.to_uppercase());
-                let field_ident = format_ident!("widget_object_{}", id);
+                let field_ident = format_ident!("widget_object_{}", description.id);
 
-                let skin_path: syn::Path = syn::parse_str(skin)
-                    .expect(format!("Invalid skin name: {}", skin).as_str());
+                let skin_path: syn::Path = syn::parse_str(&description.skin)
+                    .expect(format!("Invalid skin name: {}", description.skin).as_str());
 
                 // При навигации нужно сгенерировать конструкцию виджета на основе скина
                 let mut widget_init = quote_spanned! { span=>
@@ -26,7 +24,7 @@ impl CodeBuilder {
                 let mut widget_reactive = quote! {};
 
                 // Обход всех полей
-                for (name, field) in fields {
+                for (name, field) in &description.fields {
                     // Поле с именем skin нужно пропустить, так как оно явлется задающим
                     if name == "skin" {
                         return;
