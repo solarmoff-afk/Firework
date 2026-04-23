@@ -13,11 +13,17 @@ use super::generator::bitmask_gen::*;
 use super::transform::traits::{ToStmt, ToExpr};
 use super::consts::CHECK_NAVIGATE;
 
-pub struct CodeBuilder;
+use crate::compiler::codegen::actions::FireworkIR;
+
+pub struct CodeBuilder {
+    ir: FireworkIR
+}
 
 impl CodeBuilder {
-    pub fn new() -> Self {
-        Self
+    pub fn new(ir: FireworkIR) -> Self {
+        Self {
+            ir,
+        }
     }
 
     pub fn convert_string_to_syn(code: &str) -> TokenStream { 

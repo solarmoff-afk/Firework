@@ -88,10 +88,21 @@ impl CodegenVisitor<'_> {
         // выглядит как: if _fwc_bitmask0 == 0 && true { break; }
         bitmask_check_string.push_str(" true ");
 
+        // Стейтементы инициализации битовых масок (вектор)
+        //  - let mut _fwc_bitmask{} = 0u64;
         let bitmask_statements = bitmask_strings.to_token_streams().unwrap();
+        
+        // Стейтементы клонирование битовой маски (создания снапшота) и обнуления оригинала
+        // для разделения записи и чтения
+        //  - let _fwc_bitmask{}_clone = _fwc_bitmask{};
+        //  - _fwc_bitmask{} = 0;
         let bitmask_clone_statements = bitmask_clone_strings.to_token_streams().unwrap();
+        
+        // Выражение проверки всех битовых масок для условия
+        //  - _fwc_bitmask{} == 0 && true
         let bitmask_check_expr = parse_str::<Expr>(&bitmask_check_string).unwrap();
 
+        // Результат
         ReactiveGenerateOutput {
             bitmask_statements,
             bitmask_clone_statements,
@@ -100,6 +111,7 @@ impl CodegenVisitor<'_> {
     }
 }
 
+/// Компактная структура для возврата всех выражений реактивности
 pub struct ReactiveGenerateOutput {
     pub bitmask_statements: Vec<TokenStream>,
     pub bitmask_clone_statements: Vec<TokenStream>,

@@ -7,11 +7,6 @@ shared! {
 
     pub fn get_theme() -> u8 {
         let theme = spark_ref!(theme);
-        
-        if *theme > 5 {
-            println!("Hi");
-        }
-
         *theme
     }
 
@@ -21,12 +16,12 @@ shared! {
     }
 
     fn set_theme(new_theme: u8) {
-        let mut theme = spark_ref!(theme);
+        let mut theme = spark_ref!(theme); 
         *theme = new_theme;
     }
 }
 
 fn main() {
-    set_theme(1);
+    set_theme(10);
     println!("{}", get_theme());
 }

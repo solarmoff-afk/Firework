@@ -13,13 +13,14 @@ impl CodegenVisitor<'_> {
         // Чтобы вставить несколько стейтементов нужно использовать Block, а для
         // того чтобы спарсить строку в блок нужно обернуть её в фигурные скобки
         output.push('{');
-        output.push_str(&is_first_call(id)); 
-        
-        if let Some(fields) = self.ir.screen_structs.get(&struct_name_raw) {
-            output.push_str(&init_instance(&instance_name, &struct_name_raw, fields));
-        } else {
-            output.push_str(&init_instance(&instance_name, &struct_name_raw, &[]));
-        }
+        output.push_str(&is_first_call(id));
+
+        let fields = self.ir.screen_structs.get(&struct_name_raw);
+        output.push_str(&init_instance(
+            &instance_name, 
+            &struct_name_raw,
+            fields.unwrap_or(&vec![]),
+        ));
         
         // [FLASH PASS]
         // Flash pass это форма функции или метода которая позволяет использовать
@@ -35,12 +36,12 @@ impl CodegenVisitor<'_> {
         //  - Event: Какой либо ивент
         //  - Reactive: Пустышка чтобы обновление спарков не запустилось снова без
         //    явной причины. (Детальнее в ../code_builder/nodes/update_spark.rs)
+        //  Функция сама устанавливает себя как фокус (SET_FOCUS константа)
         output.push_str(CHECK_EVENT);
         output.push_str(SET_FOCUS);
         output.push_str(&format!("\tfirework_ui::set_focus({});\n", function_name));
         
-        // Код пользователя и реактивный цикл
-        output.push_str("\n\t// Phase 2: Navigate/Build code\n");
+        // Код пользователя и реактивный цикл 
         output.push('}');
 
         let flash_pass_block: Block = parse_str(&output).unwrap();

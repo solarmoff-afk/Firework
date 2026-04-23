@@ -54,6 +54,10 @@ pub enum FireworkAction {
         name: String,
         id: usize,
         is_mut: bool,
+        root: String,
+
+        // Локальный айди ссылки, а не самого состояния
+        local_id: usize,
     },
 
     // Реактивный блок. Первое значение это вектор с названиями реактивных

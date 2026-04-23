@@ -81,6 +81,8 @@ impl Analyzer {
                             name: name.clone(),
                             id: global_spark.id,
                             is_mut: var_data.is_mut,
+                            root: ref_name.clone(),
+                            local_id: id,
                         };
 
                         found_name = true;
