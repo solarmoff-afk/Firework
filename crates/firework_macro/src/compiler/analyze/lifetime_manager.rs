@@ -35,8 +35,9 @@ pub struct Variable {
     // spark_counter
     pub spark_id: usize,
 
-    // Явлется ли это ссылкой на спарк (только для shared)
-    pub is_spark_ref: bool,
+    // Явлется ли это ссылкой на состояние (только для shared) и если явлется то на какое
+    // в сегменте state
+    pub is_spark_ref: Option<String>,
 }
 
 /// Текущая область видимости, хранить всю таблицу символов для этой области. Начинается
@@ -141,7 +142,7 @@ impl LifetimeManager {
             // DropSpark не должен быть сгенерирован если is_spark_ref это true, то есть
             // переменная является ссылкой на состояние в shared, а не владением. Генерация
             // возврата не нужна
-            if !scope.variables.contains_key(name) && value.is_spark && !value.is_spark_ref {
+            if !scope.variables.contains_key(name) && value.is_spark && value.is_spark_ref.is_none() {
                 let mut stmt = base_statement.clone();
                 stmt.string = "".to_string();
                 stmt.action = FireworkAction::DropSpark {
@@ -207,7 +208,7 @@ mod tests {
             is_spark: true,
             is_mut: false,
             spark_id: 1,
-            is_spark_ref: false,
+            is_spark_ref: None,
         };
         lifetime_manager.scope.variables.insert("test_spark".to_string(), spark_var);
         
@@ -250,7 +251,7 @@ mod tests {
             is_spark: true,
             is_mut: false,
             spark_id: 1,
-            is_spark_ref: false,
+            is_spark_ref: None,
         };
         
         let spark_var2 = Variable {
@@ -258,7 +259,7 @@ mod tests {
             is_spark: true,
             is_mut: true,
             spark_id: 2,
-            is_spark_ref: false,
+            is_spark_ref: None,
         };
 
         let spark_var3 = Variable {
@@ -266,7 +267,7 @@ mod tests {
             is_spark: true,
             is_mut: false,
             spark_id: 3,
-            is_spark_ref: false,
+            is_spark_ref: None,
         };
         
         lifetime_manager.scope.variables.insert("spark1".to_string(), spark_var1);
@@ -312,7 +313,7 @@ mod tests {
             is_spark: false,
             is_mut: true,
             spark_id: 0,
-            is_spark_ref: false,
+            is_spark_ref: None,
         };
         
         lifetime_manager.scope.variables.insert("normal".to_string(), normal_var);
@@ -346,7 +347,7 @@ mod tests {
             is_spark: true,
             is_mut: false,
             spark_id: 100,
-            is_spark_ref: false,
+            is_spark_ref: None,
         };
         
         let normal_var = Variable {
@@ -354,7 +355,7 @@ mod tests {
             is_spark: false,
             is_mut: false,
             spark_id: 0,
-            is_spark_ref: false,
+            is_spark_ref: None,
         };
         
         lifetime_manager.scope.variables.insert("spark".to_string(), spark_var);
@@ -396,7 +397,7 @@ mod tests {
             is_spark: true,
             is_mut: false,
             spark_id: 999,
-            is_spark_ref: false,
+            is_spark_ref: None,
         };
         old_scope.variables.insert("existing".to_string(), existing_var);
         
@@ -405,7 +406,7 @@ mod tests {
             is_spark: true,
             is_mut: false,
             spark_id: 1,
-            is_spark_ref: false,
+            is_spark_ref: None,
         };
         lifetime_manager.scope.variables.insert("new_spark".to_string(), spark_var);
         
@@ -445,7 +446,7 @@ mod tests {
             is_spark: false,
             is_mut: false,
             spark_id: 0,
-            is_spark_ref: false,
+            is_spark_ref: None,
         };
         new_scope.variables.insert("existing_var".to_string(), test_var);
         new_scope.depth = 5;
@@ -487,7 +488,7 @@ mod tests {
             is_spark: true,
             is_mut: false,
             spark_id: 1,
-            is_spark_ref: false,
+            is_spark_ref: None,
         };
         old_scope.variables.insert("same_spark".to_string(), spark_var);
         
@@ -496,7 +497,7 @@ mod tests {
             is_spark: true,
             is_mut: false,
             spark_id: 1,
-            is_spark_ref: false,
+            is_spark_ref: None,
         });
         
         let base_stmt = FireworkStatement {

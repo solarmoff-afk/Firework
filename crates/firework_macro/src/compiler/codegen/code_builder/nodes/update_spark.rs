@@ -13,7 +13,7 @@ impl CodeBuilder {
         statement: &FireworkStatement, processed_body: &TokenStream,
     ) {
         match &statement.action {
-            FireworkAction::UpdateSpark(_, id) => {
+            FireworkAction::UpdateSpark(_, id, _) => {
                 // Реактивная переменная (спарк) обновилась то нужно изменить бит
                 // который соотвествует этому спарку. Для каждого диапазона спарков
                 // (от 0 до 64) своя битовая маска, поэтому эта строка позволяет

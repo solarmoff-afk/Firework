@@ -118,7 +118,7 @@ fn test_analyze_update_spark() {
         create_reactive_block(FireworkReactiveBlock::ReactiveIf, vec![("a".to_string(), 1)]),
         FireworkAction::DefaultCode,
         FireworkAction::ReactiveBlockTerminator,
-        FireworkAction::UpdateSpark("a".to_string(), 1),
+        FireworkAction::UpdateSpark("a".to_string(), 1, None),
         create_drop_spark("a", 1),
         FireworkAction::Terminator,
     ];
@@ -140,7 +140,7 @@ fn test_analyze_update_spark_field() {
     
     let expected = [
         create_initial_spark("a", 1, "NO TYPE", "a . clone ()", true), 
-        FireworkAction::UpdateSpark("a".to_string(), 1),
+        FireworkAction::UpdateSpark("a".to_string(), 1, None),
         create_drop_spark("a", 1),
         FireworkAction::Terminator,
     ];
@@ -233,7 +233,7 @@ fn test_analyze_compute_spark() {
         create_reactive_block(FireworkReactiveBlock::ReactiveIf, vec![("a".to_string(), 1)]),
             create_initial_spark("b", 2, "f32", "10.0", false),
             create_reactive_block(FireworkReactiveBlock::Effect, vec![("b".to_string(), 2)]),
-               FireworkAction::UpdateSpark("a".to_string(), 1),
+               FireworkAction::UpdateSpark("a".to_string(), 1, None),
             FireworkAction::ReactiveBlockTerminator,
             create_drop_spark("b", 2),
         FireworkAction::ReactiveBlockTerminator,
@@ -265,10 +265,10 @@ fn test_analyze_effect() {
     let expected = [
         create_initial_spark("a", 1, "i32", "10", true), 
         create_reactive_block(FireworkReactiveBlock::Effect, vec![("a".to_string(), 1)]),
-               FireworkAction::UpdateSpark("a".to_string(), 1),
+               FireworkAction::UpdateSpark("a".to_string(), 1, None),
                FireworkAction::DefaultCode,
         FireworkAction::ReactiveBlockTerminator,
-        FireworkAction::UpdateSpark("a".to_string(), 1),
+        FireworkAction::UpdateSpark("a".to_string(), 1, None),
         create_drop_spark("a", 1), 
         FireworkAction::Terminator,
     ];
@@ -298,7 +298,7 @@ fn test_closure_return_does_not_drop_outer_sparks() {
         create_initial_spark("a", 1, "i32", "10", true),
         FireworkAction::DefaultCode, // let closure = || { ... };
         FireworkAction::DefaultCode, // closure();
-        FireworkAction::UpdateSpark("a".to_string(), 1),
+        FireworkAction::UpdateSpark("a".to_string(), 1, None),
         create_drop_spark("a", 1),
         FireworkAction::Terminator,
     ];
@@ -310,10 +310,10 @@ fn create_effect_test_pattern() -> Vec<FireworkAction> {
     vec![
         create_initial_spark("a", 1, "i32", "10", true), 
         create_reactive_block(FireworkReactiveBlock::Effect, vec![("a".to_string(), 1)]),
-               FireworkAction::UpdateSpark("a".to_string(), 1),
+               FireworkAction::UpdateSpark("a".to_string(), 1, None),
                FireworkAction::DefaultCode,
         FireworkAction::ReactiveBlockTerminator,
-        FireworkAction::UpdateSpark("a".to_string(), 1),
+        FireworkAction::UpdateSpark("a".to_string(), 1, None),
         create_drop_spark("a", 1), 
         FireworkAction::Terminator,
     ]

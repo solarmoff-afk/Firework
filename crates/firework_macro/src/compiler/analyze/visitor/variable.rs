@@ -34,27 +34,15 @@ impl<'ast> Analyzer {
     /// обновлением состояния и требует обновления UI
     pub(crate) fn analyze_expr_assign(&mut self, i: &'ast ExprAssign) {
         if let Some(root_name) = get_root_variable_name(&i.left) {
-            if let Some(variable) = self.lifetime_manager.scope.variables.get(&root_name) {
-                if variable.is_spark {
-                    if !variable.is_mut {
-                        self.context.errors.push(compile_error_spanned(
-                            &i,
-                            SPARK_MUT_REQUIRED_ERROR,
-                        ));
-                    } 
+            let mut errors: Vec<Error> = Vec::new();
+            self.add_update_spark(root_name, || {
+                errors.push(compile_error_spanned(
+                    &i,
+                    SPARK_MUT_REQUIRED_ERROR,
+                ));
+            }, &i.right);
 
-                    self.context.statement.action = FireworkAction::UpdateSpark(
-                        root_name.clone(), variable.spark_id,
-                    );
-
-                    // Клоинрование стейтемента перед передачей нужно для того чтобы
-                    // сохранилась семантическая метка (FireworkAction)
-                    self.compute_spark(
-                        &i.right, self.context.statement.clone(),
-                        (&root_name, variable.spark_id),
-                    );
-                }
-            }
+            self.context.errors.extend(errors);
         }
 
         visit::visit_expr_assign(self, i);
@@ -75,25 +63,15 @@ impl<'ast> Analyzer {
 
         if is_mutation {
             if let Some(root_name) = get_root_variable_name(&i.left) {
-                if let Some(variable) = self.lifetime_manager.scope.variables.get(&root_name) {
-                    if variable.is_spark {
-                        if !variable.is_mut {
-                            self.context.errors.push(compile_error_spanned(
-                                &i,
-                                SPARK_MUT_REQUIRED_ERROR,
-                            ));
-                        }
-                        
-                        self.context.statement.action = FireworkAction::UpdateSpark(
-                            root_name.clone(), variable.spark_id,
-                        );
-
-                        self.compute_spark(
-                            &i.right, self.context.statement.clone(),
-                            (&root_name, variable.spark_id),
-                        );
-                    }
-                }
+                let mut errors: Vec<Error> = Vec::new();
+                self.add_update_spark(root_name, || {
+                    errors.push(compile_error_spanned(
+                        &i,
+                        SPARK_MUT_REQUIRED_ERROR,
+                    ));
+                }, &i.right);
+                
+                self.context.errors.extend(errors);
             }
         }
 
@@ -118,7 +96,7 @@ impl<'ast> Analyzer {
                     // все методы считаются мутабельными
                     if is_mutable_method(&variable.variable_type, &method_name) {
                         self.context.statement.action = FireworkAction::UpdateSpark(
-                            root_name, variable.spark_id,
+                            root_name, variable.spark_id, variable.is_spark_ref.clone(),
                         );
                     }
                 }
@@ -158,6 +136,31 @@ impl<'ast> Analyzer {
                     this.context.ir.push(statement);
                 }
             ); 
+        }
+    }
+
+    /// Добавляет UpdateSpark метку в текущий буферный виртуальныый стейтемент 
+    fn add_update_spark<F>(&mut self, root_name: String, mut mut_error: F, expr: &Expr) 
+    where
+        F: FnMut(),
+    {
+        if let Some(variable) = self.lifetime_manager.scope.variables.get(&root_name) {
+            if variable.is_spark {
+                if !variable.is_mut {
+                    mut_error();
+                } 
+
+                self.context.statement.action = FireworkAction::UpdateSpark(
+                    root_name.clone(), variable.spark_id, variable.is_spark_ref.clone(),
+                );
+
+                // Клоинрование стейтемента перед передачей нужно для того чтобы
+                // сохранилась семантическая метка (FireworkAction)
+                self.compute_spark(
+                    expr, self.context.statement.clone(),
+                    (&root_name, variable.spark_id),
+                );
+            }
         }
     }
 }

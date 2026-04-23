@@ -265,7 +265,7 @@ impl<'ast> Visit<'ast> for Analyzer {
             is_mut: i.mutability.is_some(),
             is_spark: false,
             spark_id: 0,
-            is_spark_ref: false,
+            is_spark_ref: None,
         })); 
 
         // На всякий случай

@@ -55,11 +55,11 @@ impl Analyzer {
             }
 
             for (name, mut var_data) in self.pending_vars.drain(..) {
-                var_data.is_spark_ref = true;
+                var_data.is_spark_ref = Some(name.clone());
                 var_data.is_spark = true;
 
                 if let Some(value) = self.lifetime_manager.scope.variables.get(&name) {
-                    if value.is_spark { 
+                    if value.is_spark {
                         self.context.errors.push(compile_error_spanned(
                             &i.pat,
                             SPARK_UNIQUE_NAME_ERROR,

@@ -55,7 +55,7 @@ impl CodeBuilder {
                 // реактивный цикл
                 let mut inner_masks = TokenStream::new();
                 for stmt in all_statements {
-                    if let FireworkAction::UpdateSpark(_, id) = &stmt.action {
+                    if let FireworkAction::UpdateSpark(_, id, _) = &stmt.action {
                         let mask = get_spark_mask(*id);
 
                         let update_stmt = format!("{};", set_flag(
