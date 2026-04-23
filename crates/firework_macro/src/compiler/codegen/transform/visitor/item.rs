@@ -17,7 +17,7 @@ impl CodegenVisitor<'_> {
         
         // Забираем элементы, чтобы не клонировать весь вектор сразу
         let items = std::mem::take(&mut i.items);
-
+ 
         for item in items {
             // Любая функция это экран
             if let Item::Fn(mut item_fn) = item {
@@ -47,7 +47,7 @@ impl CodegenVisitor<'_> {
 
                 visit_item_fn_mut(self, &mut item_fn);
 
-                if let Some(id) = self.ui_id {
+                if let Some(id) = self.ui_id { 
                     let span = item_fn.span();
 
                     let struct_name_raw = format!("ApplicationUiBlockStruct{}", id);
@@ -181,6 +181,39 @@ impl CodegenVisitor<'_> {
                 new_items.push(other_item);
             }
         }
+
+        if let Some(id) = self.ui_id && matches!(self.flags.compile_type, CompileType::Shared) {
+            for state in &self.ir.shared.state {
+                for attr in &state.attributes {
+                    let field_name = &state.name;
+                    let field_type: syn::Type = syn::parse_str(&state.spark_type).unwrap();
+                    let field_id = state.id;
+                    
+                    if attr == "read" {
+                        let getter = self.desugar_shared_read(
+                            state.span,
+                            field_id as u128,
+                            field_name,
+                            &field_type,
+                            id,
+                        );
+                        new_items.push(getter);
+                    }
+                    
+                    if attr == "write" {
+                        let setter = self.desugar_shared_write(
+                            state.span,
+                            field_id as u128,
+                            field_name,
+                            &field_type,
+                            id,
+                        );
+                        new_items.push(setter);
+                    }
+                }
+            }
+        }
+
         
         i.items = new_items;
     }

@@ -39,7 +39,6 @@ impl<'ast> Analyzer {
                         let spark_type = quote!(#raw_type).to_string(); 
                         let init = quote!(#raw_init).to_string();
                         
-                        println!("Name: {}, type: {}, init: {}", name, spark_type, init);
                         self.context.ir.shared.state.push(FireworkSharedState {
                             name,
                             spark_type: spark_type.clone(),

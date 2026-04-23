@@ -18,9 +18,17 @@ impl CodegenVisitor<'_> {
             statements.push(CodeBuilder::convert_string_to_syn(&set_field_str));
         }
 
-        let build_check = static_gen::init_instance(&struct_name.to_uppercase(), "", &[]);
-        let build_check_statemtn = CodeBuilder::convert_string_to_syn(&build_check);
+        let default = Vec::new();
+        let fields_data = self.ir.screen_structs
+            .get(&struct_name)
+            .unwrap_or(&default);
 
-        (statements, build_check_statemtn)
+        let build_check = static_gen::init_instance(
+            &struct_name.to_uppercase(), &struct_name, &fields_data);
+        // build_check.push(';');
+
+        let build_check_statement = CodeBuilder::convert_string_to_syn(&build_check);
+        
+        (statements, build_check_statement)
     }
 }
