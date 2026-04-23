@@ -10,9 +10,10 @@ impl CodegenVisitor<'_> {
 
         let mut bitmask_strings: Vec<String> = Vec::new();
         
-        for mask_index in 0u8..*mask_count { 
+        for mask_index in 0u8..*mask_count {
+            // Первая битовая маска позволяет проверить есть ли изменение у 
             bitmask_strings.push(format!("let mut _fwc_widget_bitmask{} = 0u64;\n",
-                mask_index + 1)); 
+                mask_index + 1));
         }
 
         let bitmask_statements = bitmask_strings.to_token_streams().unwrap();

@@ -211,7 +211,7 @@ impl<'ast> Analyzer {
                     // то значит это функиональный виджет
                     skin: _skin_struct.unwrap_or("".to_string()),
 
-                    is_maybe: false,
+                    is_maybe: self.context.is_maybe,
                 }
             );
             self.context.ir.push(self.context.statement.clone());

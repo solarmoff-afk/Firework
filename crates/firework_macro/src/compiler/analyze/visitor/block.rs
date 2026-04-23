@@ -54,6 +54,9 @@ impl<'ast> Analyzer {
             format!("if {} {{", condition_code),
             FireworkAction::ReactiveBlock(FireworkReactiveBlock::ReactiveIf, sparks),
             |this| {
+                let old_maybe = this.context.is_maybe;
+                this.context.is_maybe = true;
+
                 // Основное тело условия
                 this.analyze_block(&i.then_branch);
 
@@ -107,6 +110,8 @@ impl<'ast> Analyzer {
                         _ => {}
                     }
                 }
+
+                this.context.is_maybe = old_maybe;
             },
         );
     }
@@ -169,6 +174,9 @@ impl<'ast> Analyzer {
             format!("match {} {{", expr_code),
             FireworkAction::ReactiveBlock(FireworkReactiveBlock::ReactiveMatch, sparks.clone()),
             |this| {
+                let old_maybe = this.context.is_maybe;
+                this.context.is_maybe = true;
+
                 for arm in &i.arms {
                     if let Some((_, guard)) = &arm.guard {
                         visit::visit_expr(this, guard);
@@ -203,6 +211,8 @@ impl<'ast> Analyzer {
                         }
                     }
                 }
+
+                this.context.is_maybe = old_maybe;
             },
         );
     }

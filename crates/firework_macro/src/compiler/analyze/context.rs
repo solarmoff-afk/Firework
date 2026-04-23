@@ -14,6 +14,7 @@ pub struct AnalyzeContext {
     // Выходные токены
     pub output: TokenStream,
 
+    // Буферный стейтемент куда записываются данные и он потом пушится в IR
     pub statement: FireworkStatement,
 
     // Промежуточное представление, строки кода с добавлением семантической метки
@@ -21,6 +22,9 @@ pub struct AnalyzeContext {
 
     // Счётчики чтобы генерировать названия полей глобальной структуры экрана
     pub widget_counter: usize,
+
+    // Количество условных виджетов (в if/match)
+    pub maybe_widgets_counter: usize,
     pub spark_counter: usize,
 
     // Определяет первый ли это лайаут в дереве
@@ -31,6 +35,10 @@ pub struct AnalyzeContext {
     // При добавлении функции сюда долбавляется 1, это нужно чтобы определить явлется ли это
     // первой функцией чтобы не генерировать поле лишний раз в компиляции shared юнита
     pub functions_count: u16,
+
+    // При входе в условие или match это поле помечается как true, а при выходе как false.
+    // Если при декларации виджета это поле true то виджет становится условным
+    pub is_maybe: bool,
 }
 
 impl AnalyzeContext {
@@ -61,11 +69,14 @@ impl AnalyzeContext {
             
             // Счётчики
             widget_counter: 0,
+            maybe_widgets_counter: 0,
             spark_counter: 0,
             layouts_count: 0,
 
             flags: CompileFlags::new(),
             functions_count: 0,
+
+            is_maybe: true,
         }
     }
 }
