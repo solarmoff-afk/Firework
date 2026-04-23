@@ -121,11 +121,7 @@ pub struct FireworkIR {
     pub statements: Vec<FireworkStatement>,
 
     // Карта Спан -> Виртуальный стейтемент
-    pub snapshot: Snapshot,
-
-    // Для shared блоков IR содержит вектор состояний которые были объявлены в state! чтобы
-    // сгенерировать build функцию для shared блока
-    pub shared_state: Vec<FireworkSharedState>,
+    pub snapshot: Snapshot, 
 
     // Последний спан который был задан. Используется чтобы разместить 
     pub last_span: Option<SpanKey>,
@@ -145,19 +141,21 @@ pub struct FireworkIR {
 
     // Хэшмап для хранения id экрана -> количество виджетов
     pub screen_widgets: HashMap<u128, usize>,
+
+    pub shared: SharedData,
 }
 
 impl FireworkIR {
     pub fn new() -> Self {
         Self {
             statements: Vec::new(),
-            snapshot: Snapshot::new(),
-            shared_state: Vec::new(),
+            snapshot: Snapshot::new(), 
             last_span: None,
             screen_structs: HashMap::new(),
             screens: Vec::new(),
             screen_sparks: HashMap::new(),
             screen_widgets: HashMap::new(),
+            shared: SharedData::new()
         }
     }
     
@@ -250,6 +248,26 @@ pub struct FireworkSharedState {
     pub init: String,
     pub span: Span,
     pub id: usize,
+}
+
+/// Структура для хранения информации о shared
+#[derive(Debug, Clone)]
+pub struct SharedData {
+    // Для shared блоков IR содержит вектор состояний которые были объявлены в state! чтобы
+    // сгенерировать build функцию для shared блока
+    pub state: Vec<FireworkSharedState>,
+
+    // Разделяемое состояние (название) -> Вектор функциональных эффектов
+    pub effects: HashMap<String, Vec<String>>,
+}
+
+impl SharedData {
+    pub fn new() -> Self {
+        Self {
+            state: Vec::new(),
+            effects: HashMap::new(),
+        }
+    }
 }
 
 /// Блок декларативного описания виджета, явлется самым сложным действием. Кодогенератор

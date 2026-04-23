@@ -75,7 +75,7 @@ impl Analyzer {
                 self.linter.add_spark(id, name.clone(), i.to_token_stream().to_string());
 
                 let mut found_name = false;
-                for global_spark in &self.context.ir.shared_state { 
+                for global_spark in &self.context.ir.shared.state { 
                     if global_spark.name == ref_name {
                         self.context.statement.action = FireworkAction::SparkRef {
                             name: name.clone(),

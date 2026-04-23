@@ -40,7 +40,7 @@ impl<'ast> Analyzer {
                         let init = quote!(#raw_init).to_string();
                         
                         println!("Name: {}, type: {}, init: {}", name, spark_type, init);
-                        self.context.ir.shared_state.push(FireworkSharedState {
+                        self.context.ir.shared.state.push(FireworkSharedState {
                             name,
                             spark_type: spark_type.clone(),
                             init,

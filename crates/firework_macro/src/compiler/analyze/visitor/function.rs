@@ -1,6 +1,9 @@
 // Часть проекта Firework с открытым исходным кодом.
 // Лицензия EPL 2.0, подробнее в файле LICENSE. Copyright (c) 2026 Firework
 
+use syn::punctuated::Punctuated;
+use syn::parse::Parser;
+
 pub use super::super::*;
 
 use crate::CompileType;
@@ -13,9 +16,33 @@ impl<'ast> Analyzer {
         self.context.layouts_count = 0;
         self.context.functions_count += 1;
 
-        let mut function_head = String::from("");
+        let mut function_head = String::from(""); 
+
         for attr in &node.attrs {
             function_head.push_str(format!("{}\n", quote::quote! { #attr }).as_str());
+
+            let path = &attr.meta.path();
+            let is_effect = path.is_ident("effect") || 
+                (path.segments.len() == 2 && 
+                path.segments[0].ident == "firework_ui" && 
+                path.segments[1].ident == "effect");
+
+            let is_shared = matches!(self.context.flags.compile_type, CompileType::Shared);
+            if is_effect && matches!(&attr.meta, syn::Meta::List(_)) && is_shared {
+                if let syn::Meta::List(list) = &attr.meta { 
+                    let parser = Punctuated::<syn::Path, Token![,]>::parse_terminated;
+                    
+                    if let Ok(args) = parser.parse2(list.tokens.clone()) {
+                        for arg in args {
+                            if let Some(ident) = arg.get_ident() {
+                                self.context.ir.shared.effects.entry(ident.to_string())
+                                    .or_insert(Vec::new())
+                                    .push(node.sig.ident.to_string());
+                            }
+                        }
+                    }
+                }
+            }
         }
         
         let vis = &node.vis;

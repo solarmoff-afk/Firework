@@ -1,4 +1,4 @@
-use firework_ui::shared;
+use firework_ui::{shared, effect};
 
 shared! {
     state! {
@@ -13,6 +13,11 @@ shared! {
         }
 
         *theme
+    }
+
+    #[effect(theme)]
+    fn on_update_effect() {
+        println!("Update!");
     }
 
     fn set_theme(new_theme: u8) {

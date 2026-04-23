@@ -11,7 +11,7 @@ impl CodegenVisitor<'_> {
         
         let mut statements: Vec<TokenStream> = Vec::new();
 
-        for field in &self.ir.shared_state {
+        for field in &self.ir.shared.state {
             let field_name = format!("spark_{}", field.id);
             let set_field_str = static_gen::set_field(&struct_name, &field_name, &field.init);
 

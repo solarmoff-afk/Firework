@@ -77,3 +77,8 @@ fn process_macro(input: TokenStream, compile_type: CompileType, use_counter: boo
 pub fn component(_args: proc_macro::TokenStream, input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     input
 }
+
+#[proc_macro_attribute]
+pub fn effect(_args: proc_macro::TokenStream, input: proc_macro::TokenStream) -> proc_macro::TokenStream {
+    input
+}
