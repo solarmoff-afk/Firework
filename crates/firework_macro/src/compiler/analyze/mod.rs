@@ -2,14 +2,13 @@
 // Лицензия EPL 2.0, подробнее в файле LICENSE. Copyright (c) 2026 Firework
 
 mod marks;
-mod spark;
+mod spark_expr;
 mod widget;
-mod visitor;
+mod visitors;
 mod type_inference;
 mod linter;
-
 mod context;
-mod lifetime_manager;
+mod lifetime;
 
 #[cfg(test)]
 mod tests;
@@ -21,13 +20,13 @@ use std::collections::HashMap;
 use quote::ToTokens;
 
 use widget::{is_widget, is_layout, map_skin, WidgetArgs};
-use spark::{SparkValidator, SparkFinderWithId, get_root_variable_name};
+use spark_expr::{SparkValidator, SparkFinderWithId, get_root_variable_name};
 use context::AnalyzeContext;
-use lifetime_manager::{Variable, Scope, LifetimeManager};
+use lifetime::{Variable, Scope, LifetimeManager};
 use type_inference::mut_check::is_mutable_method;
 use linter::FireworkLinter;
 
-use crate::compiler::codegen::actions::{
+use crate::compiler::codegen::ir::{
     FireworkIR, FireworkStatement, FireworkAction, FireworkWidgetField, FireworkReactiveBlock,
 };
 use crate::compiler::error::*;

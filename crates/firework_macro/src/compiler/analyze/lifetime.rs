@@ -7,8 +7,7 @@ use syn::Lifetime;
 
 pub use super::*;
 
-use crate::compiler::codegen::actions::FireworkAction;
-use crate::compiler::codegen::actions::FireworkStatement;
+use crate::compiler::codegen::ir::{FireworkAction, FireworkStatement};
 
 /// Структура для декларации переменной в структуре области видимости
 #[derive(Debug, Clone)]

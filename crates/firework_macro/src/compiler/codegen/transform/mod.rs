@@ -3,7 +3,7 @@
 
 pub mod traits;
 pub mod helpers;
-mod visitor;
+mod visitors;
 mod widgets_bitmask;
 
 use syn::visit_mut::VisitMut;
@@ -17,7 +17,7 @@ use proc_macro2::TokenStream;
 use super::generator::static_gen::*;
 use super::generator::bitmask_gen::*;
 use super::consts::{CHECK_EVENT, SET_FOCUS};
-use super::actions::{FireworkIR, FireworkStatement};
+use super::ir::{FireworkIR, FireworkStatement};
 use super::code_builder::CodeBuilder;
 
 use crate::CompileFlags;

@@ -7,13 +7,11 @@ use proc_macro2::{TokenStream, Span};
 use quote::{format_ident, quote, quote_spanned};
 use syn::spanned::Spanned;
 
-use super::actions::{FireworkAction, FireworkStatement};
+use super::ir::{FireworkIR, FireworkAction, FireworkStatement};
 use super::generator::static_gen;
 use super::generator::bitmask_gen::*;
 use super::transform::traits::{ToStmt, ToExpr};
 use super::consts::CHECK_NAVIGATE;
-
-use crate::compiler::codegen::actions::FireworkIR;
 
 pub struct CodeBuilder {
     ir: FireworkIR

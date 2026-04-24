@@ -7,7 +7,7 @@ use syn::spanned::Spanned;
 pub use super::super::*;
 
 use crate::compiler::analyze::widget::is_functional_widget;
-use crate::compiler::codegen::actions::WidgetDescription;
+use crate::compiler::codegen::ir::WidgetDescription;
 
 impl<'ast> Analyzer {
     /// Макрос который используются не в выражении, а как отдельный statement (команда)

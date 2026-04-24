@@ -52,7 +52,7 @@ impl CodegenVisitor<'_> {
 
                     let struct_name_raw = format!("ApplicationUiBlockStruct{}", id);
                     let struct_name = format_ident!("ApplicationUiBlockStruct{}", id);
-                    let instance_ident = format_ident!("APPLICATIONUIBLOCKSTRUCT{}_INSTANCE", id);
+                    let _instance_ident = format_ident!("APPLICATIONUIBLOCKSTRUCT{}_INSTANCE", id);
                     
                     // Только для shared
                     let build_name = format_ident!("_fwc_fn_build{}", id);
@@ -110,7 +110,7 @@ impl CodegenVisitor<'_> {
                             #[cfg(feature = "safety-multithread")]
                             let tokens = quote! {
                                 fn #build_name () {
-                                    if #instance_ident.get().is_none() {
+                                    if #_instance_ident.get().is_none() {
                                         #tokens
                                     }
                                 }

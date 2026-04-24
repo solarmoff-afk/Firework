@@ -5,7 +5,7 @@ use proc_macro2::Span;
 use std::collections::HashMap;
 use std::hash::{Hash, Hasher};
 
-use super::actions::FireworkStatement;
+use super::FireworkStatement;
 
 #[derive(Debug, Clone, Eq)]
 pub struct SpanKey {
@@ -15,6 +15,9 @@ pub struct SpanKey {
 impl SpanKey {
     #[must_use]
     pub fn from_span(span: Span) -> Self {
+        // Так как спан не реалтзует хэш можно использовать хитрость и использовать Debug 
+        // вывод черех форматирование чтобы получить строку которую можно хэшировать
+        // в хэшмапе
         Self {
             inner: format!("{:?}", span),
         }
