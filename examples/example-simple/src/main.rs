@@ -22,10 +22,22 @@ fn test_screen() {
     
     rect! {
         position: (10, 10),
-    } 
+    }
+
+    if 1 == 1 {
+        rect! {
+            position: (10, 10),
+        }
+    }
 
     rect! {
         position: (10, 10),
+    }
+
+    if 1 == 1 {
+        rect! {
+            position: (10, 10),
+        }
     }
 }
 
