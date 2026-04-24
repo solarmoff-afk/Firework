@@ -52,6 +52,7 @@ impl CodegenVisitor<'_> {
 
                     let struct_name_raw = format!("ApplicationUiBlockStruct{}", id);
                     let struct_name = format_ident!("ApplicationUiBlockStruct{}", id);
+                    let instance_ident = format_ident!("APPLICATIONUIBLOCKSTRUCT{}_INSTANCE", id);
                     
                     // Только для shared
                     let build_name = format_ident!("_fwc_fn_build{}", id);
@@ -86,13 +87,31 @@ impl CodegenVisitor<'_> {
                             let (build_statements, build_check) = self.generate_shared_build(id);
 
                             let tokens = quote! {
+                                let mut _fwc_build = false;
+
+                                #build_check
+
+                                if _fwc_build {
+                                    #(#build_statements)*
+                                }
+                            };
+
+                            // В обычном режиме просто вставка токенов в функцию
+                            #[cfg(not(feature = "safety-multithread"))]
+                            let tokens = quote! {
                                 fn #build_name () {
-                                    let mut _fwc_build = false;
+                                    #tokens
+                                }
+                            };
 
-                                    #build_check
-
-                                    if _fwc_build {
-                                        #(#build_statements)*
+                            // Чтобы не было дедлока в эффектах необходимо в безопасном
+                            // режиме генерировать проверку на то что экземпляр не был
+                            // инициализирован (None)
+                            #[cfg(feature = "safety-multithread")]
+                            let tokens = quote! {
+                                fn #build_name () {
+                                    if #instance_ident.get().is_none() {
+                                        #tokens
                                     }
                                 }
                             };

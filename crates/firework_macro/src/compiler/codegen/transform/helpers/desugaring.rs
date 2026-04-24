@@ -35,13 +35,25 @@ impl CodegenVisitor<'_> {
             }
         };
         
-        parse_quote_spanned!(span=> 
+        #[cfg(not(feature = "safety-multithread"))]
+        let result = parse_quote_spanned!(span=>
             pub fn #function_name() -> &'static #field_type {
                 #build_name();
                 #access_code
                 &#field_ident
             }
-        )
+        );
+
+        #[cfg(feature = "safety-multithread")]
+        let result = parse_quote_spanned!(span=>
+            pub fn #function_name() -> #field_type {
+                #build_name();
+                #access_code
+                *#field_ident
+            }
+        );
+
+        result
     }
     
     /// Десахаризирует #[write] у разделямого состояния, генерирует сеттер под именем
