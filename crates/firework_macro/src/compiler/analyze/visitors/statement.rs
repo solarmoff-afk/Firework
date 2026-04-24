@@ -8,6 +8,8 @@ pub use super::super::*;
 impl<'ast> Analyzer {
     /// Анализация стейтемента
     pub(crate) fn analyze_stmt(&mut self, i: &'ast Stmt) {
+        self.context.statement.screen_index = self.lifetime_manager.scope.screen_index;
+
         let mut layout_name = "".to_string();
         let should_push = if let Stmt::Macro(stmt_macro) = i {
             layout_name = stmt_macro.mac.path.to_token_stream().to_string();
@@ -33,16 +35,15 @@ impl<'ast> Analyzer {
         
         visit::visit_stmt(self, i); 
         
-        self.statement_index += 1; 
+        self.statement_index += 1;
         
         if should_push {
             // Если это лайаут блок то клонирование области видимости и пуш уже
-            // были и клонировать второй раз нет смысла
-            self.context.statement.screen_index = self.lifetime_manager.scope.screen_index;
+            // были и клонировать второй раз нет смысла 
             self.context.statement.depth = self.lifetime_manager.scope.depth;
             self.context.ir.push(self.context.statement.clone());
         }
-        
+
         self.context.statement.index = self.statement_index;
         self.context.statement.action = FireworkAction::DefaultCode;
         self.context.statement.is_reactive_block = false;
