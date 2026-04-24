@@ -136,7 +136,8 @@ impl CodegenVisitor<'_> {
 
                     let bitmask_statements = reactive_output.bitmask_statements;
                     let bitmask_clone_statements = reactive_output.bitmask_clone_statements;
-                    let bitmask_check_expr = reactive_output.bitmask_check_expr; 
+                    let bitmask_check_expr = reactive_output.bitmask_check_expr;
+                    let widget_bitmask_statement = self.generate_widgets_mask(id);
 
                     let is_shared = matches!(self.flags.compile_type, CompileType::Shared);
                     let init_code = if !is_shared {
@@ -168,6 +169,7 @@ impl CodegenVisitor<'_> {
                             
                             let mut _fwc_guard: u8 = 0;
                             #(#bitmask_statements)*
+                            #(#widget_bitmask_statement)*
                             
                             loop {
                                 #(#bitmask_clone_statements)*
@@ -180,6 +182,9 @@ impl CodegenVisitor<'_> {
                             }
                         });
                     } else {
+                        // Если функция имеет возвращаемое значение то это не экран и не
+                        // компонент, а значит виджетов у неё нет, а значит переменные из
+                        // widget_bitmask_statement и так далее не нужны в этом случае
                         item_fn.block = parse_quote_spanned!(span=> {
                             let mut _fwc_event = firework_ui::LifeCycle::Navigate;
                             #init_code

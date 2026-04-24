@@ -97,8 +97,8 @@ impl<'ast> Analyzer {
         self.context.ir.push(statement);
         self.context.ir.screen_sparks.insert(
             self.lifetime_manager.scope.screen_index, self.context.spark_counter);
-        self.context.ir.screen_widgets.insert(
-            self.lifetime_manager.scope.screen_index, self.context.widget_counter);
+        self.context.ir.screen_maybe_widgets.insert(
+            self.lifetime_manager.scope.screen_index, self.context.maybe_widgets_counter);
 
         // Сбрасывание нужно только если это не компиляция shared! {}, так как shared
         // это множество функций с общим состоянием, поэтому им нужна одна структура

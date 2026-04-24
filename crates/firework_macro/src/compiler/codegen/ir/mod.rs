@@ -75,7 +75,7 @@ pub struct FireworkIR {
     pub screen_sparks: HashMap<u128, usize>,
 
     // Хэшмап для хранения id экрана -> количество виджетов
-    pub screen_widgets: HashMap<u128, usize>,
+    pub screen_maybe_widgets: HashMap<u128, usize>,
 
     pub shared: SharedData,
 }
@@ -89,11 +89,13 @@ impl FireworkIR {
             screen_structs: HashMap::new(),
             screens: Vec::new(),
             screen_sparks: HashMap::new(),
-            screen_widgets: HashMap::new(),
+            screen_maybe_widgets: HashMap::new(),
             shared: SharedData::new()
         }
     }
-    
+   
+    /// Добавляет виртуальный стейтемент в IR, использует текущий спан который устанавливается
+    /// через метод set_span как ключ в снапшоте чтобы записать туда виртуальный стейтемент
     pub fn push(&mut self, stmt: FireworkStatement) {
         let span_key = SpanKey::from_span(stmt.span);
         self.last_span = Some(span_key.clone());
@@ -112,10 +114,13 @@ impl FireworkIR {
         }
     }
     
+    /// Устанавливает спан по которому будут добавлены виртуальные стейтементы через
+    /// push после этого вызова
     pub fn set_span(&mut self, span: Span) {
         self.last_span = Some(SpanKey::from_span(span));
     }
 
+    /// Получение текущего спан ключа (Спан ключ это строка которая получена из Span)
     pub fn get_current_span(&self) -> Option<&SpanKey> {
         self.last_span.as_ref()
     }

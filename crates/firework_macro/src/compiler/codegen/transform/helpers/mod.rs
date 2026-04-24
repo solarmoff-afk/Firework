@@ -4,4 +4,5 @@
 pub mod flash_pass;
 pub mod reactive;
 pub mod shared;
+pub mod widget_bitmask;
 pub mod desugaring;

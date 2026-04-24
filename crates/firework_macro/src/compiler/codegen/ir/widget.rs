@@ -53,6 +53,7 @@ pub struct WidgetDescription {
     /// выбран автоматически
     pub skin: String,
 
-    /// Рендерится ли виджет условно
-    pub is_maybe: bool,
+    /// Рендерится ли виджет условно (Some) и если да то какой у него индекс в битовыъ масок
+    /// на основе maybe_widgets_counter
+    pub is_maybe: Option<usize>,
 }

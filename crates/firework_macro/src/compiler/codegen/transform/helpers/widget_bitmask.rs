@@ -1,8 +1,8 @@
 // Часть проекта Firework с открытым исходным кодом.
 // Лицензия EPL 2.0, подробнее в файле LICENSE. Copyright (c) 2026 Firework
 
-use super::traits::ToTokenStreams;
-use super::*;
+use super::super::traits::ToTokenStreams;
+use super::super::*;
 
 impl CodegenVisitor<'_> {
     pub fn generate_widgets_mask(&self, id: u128) -> Vec<TokenStream> {

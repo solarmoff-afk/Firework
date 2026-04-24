@@ -4,7 +4,6 @@
 pub mod traits;
 pub mod helpers;
 mod visitors_mut;
-mod widgets_bitmask;
 mod macro_resolver;
 
 use syn::visit_mut::VisitMut;
@@ -82,7 +81,7 @@ impl<'a> CodegenVisitor<'a> {
     pub(crate) fn find_widget_mask_counts(&mut self) {
         for (_screen_name, _screen_signature, screen_id) in self.ir.screens.iter() {
             // Вычисление количества битовых масок
-            let widget_count = self.ir.screen_widgets.get(screen_id).unwrap_or(&0usize);
+            let widget_count = self.ir.screen_maybe_widgets.get(screen_id).unwrap_or(&0usize);
             self.widget_mask_count.insert(*screen_id, get_spark_mask(*widget_count)); 
         }
     }

@@ -1,5 +1,6 @@
 use firework_ui::ui;
 
+/*
 #[ui]
 fn test_screen() {
     let mut my_spark = spark!(0);
@@ -12,6 +13,17 @@ fn test_screen() {
     }
 
     spark2 = 20; 
+}
+*/
+
+#[ui]
+fn test_screen() {
+    // let mut my_spark = spark!(0);
+    println!("Govno");
+
+    rect! {
+        position: (10, 10),
+    }
 }
 
 fn main() {

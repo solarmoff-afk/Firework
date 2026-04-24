@@ -27,9 +27,7 @@ impl<'ast> Analyzer {
             self.context.statement.string = format!("{}! {{", layout_name);
         }
 
-        // println!("STATEMENT: {}", self.statement_index);
-        if let Some(_root_id) = self.reactive_block {
-            // println!("Statement {} is reactive, start: {}", self.statement_index, root_id.0);
+        if let Some(_root_id) = self.reactive_block { 
             self.context.statement.is_reactive_block = true;
         }
         

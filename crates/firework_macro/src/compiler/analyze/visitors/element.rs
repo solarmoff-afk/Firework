@@ -211,13 +211,23 @@ impl<'ast> Analyzer {
                     // то значит это функиональный виджет
                     skin: _skin_struct.unwrap_or("".to_string()),
 
-                    is_maybe: self.context.is_maybe,
+                    is_maybe: if self.context.is_maybe {
+                        Some(self.context.maybe_widgets_counter)
+                    } else {
+                        None
+                    },
                 }
             );
             self.context.ir.push(self.context.statement.clone());
             self.statement_index += 1;
 
             self.context.widget_counter += 1;
+
+            // Если вызов находится в условии или паттерн матчинге (Match) то виджет является
+            // условным
+            if self.context.is_maybe {
+                self.context.maybe_widgets_counter += 1;
+            }
         } else if name == "effect" {
             let parser = punctuated::Punctuated::<Expr, syn::Token![,]>::parse_terminated;
             
