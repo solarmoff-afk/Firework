@@ -18,7 +18,11 @@ fn test_screen() {
 
 #[ui]
 fn test_screen() {
-    // let mut my_spark = spark!(0); 
+    // let mut my_spark = spark!(0);
+    
+    rect! {
+        position: (10, 10),
+    } 
 
     rect! {
         position: (10, 10),

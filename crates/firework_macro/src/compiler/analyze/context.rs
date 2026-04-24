@@ -76,7 +76,7 @@ impl AnalyzeContext {
             flags: CompileFlags::new(),
             functions_count: 0,
 
-            is_maybe: true,
+            is_maybe: false,
         }
     }
 }
