@@ -5,7 +5,7 @@ use syn::punctuated::Punctuated;
 use quote::quote;
 
 pub use super::super::*;
-use super::super::spark_expr::GlobalState;
+use super::super::expr::spark::GlobalState;
 
 use crate::CompileType;
 use crate::compiler::codegen::ir::FireworkSharedState;

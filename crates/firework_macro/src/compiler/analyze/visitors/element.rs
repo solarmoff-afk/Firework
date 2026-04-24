@@ -6,7 +6,7 @@ use syn::spanned::Spanned;
 
 pub use super::super::*;
 
-use crate::compiler::analyze::widget::is_functional_widget;
+use crate::compiler::analyze::expr::widget::is_functional_widget;
 use crate::compiler::codegen::ir::WidgetDescription;
 
 impl<'ast> Analyzer {

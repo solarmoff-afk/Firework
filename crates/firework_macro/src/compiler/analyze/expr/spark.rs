@@ -9,7 +9,7 @@ use syn::visit::Visit;
 use quote::ToTokens;
 use proc_macro2::{TokenStream, Span};
 
-use super::Scope;
+use super::super::Scope;
 
 /// Валидатор реактивных инициализаций (спарков). Собирает все инициализации спарков в
 /// выражении и заполняет spark_count (их количество) и spark_tokens, это токены внутри
