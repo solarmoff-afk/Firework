@@ -49,7 +49,7 @@ impl CodegenVisitor<'_> {
             pub fn #function_name() -> #field_type {
                 #build_name();
                 #access_code
-                *#field_ident
+                #field_ident.clone()
             }
         );
 
