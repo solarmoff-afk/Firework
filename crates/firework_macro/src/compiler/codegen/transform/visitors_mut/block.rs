@@ -1,10 +1,10 @@
 // Часть проекта Firework с открытым исходным кодом.
 // Лицензия EPL 2.0, подробнее в файле LICENSE. Copyright (c) 2026 Firework
 
-use super::macro_resolver::MacroResolver;
 use quote::quote;
 
 pub use super::super::*;
+use super::super::macro_resolver::MacroResolver;
 
 impl CodegenVisitor<'_> {
     pub(crate) fn analyze_block_mut(&mut self, i: &mut Block) {

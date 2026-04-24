@@ -4,4 +4,3 @@
 pub mod item;
 pub mod item_macro;
 pub mod block;
-mod macro_resolver;

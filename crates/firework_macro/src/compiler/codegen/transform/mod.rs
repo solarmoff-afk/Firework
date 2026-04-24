@@ -3,8 +3,9 @@
 
 pub mod traits;
 pub mod helpers;
-mod visitors;
+mod visitors_mut;
 mod widgets_bitmask;
+mod macro_resolver;
 
 use syn::visit_mut::VisitMut;
 use syn::spanned::Spanned;
