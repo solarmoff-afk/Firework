@@ -30,6 +30,7 @@ fn test_screen() {
 fn test_screen() {
     let mut rect_state = spark!(true);
 
+    
     if rect_state {
         rect! {
             position: (10, 10),
@@ -39,6 +40,7 @@ fn test_screen() {
     }
 
     rect_state = true;
+    
 }
 
 fn main() {

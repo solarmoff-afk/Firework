@@ -9,6 +9,9 @@ pub use super::super::*;
 use crate::CompileType;
 use crate::compiler::codegen::ir::MaybeWidgets;
 
+// Для того чтобы определить сколько нужео полей для снапшотов масок условных виджетов
+use crate::compiler::codegen::generator::bitmask_gen::get_spark_mask;
+
 impl<'ast> Analyzer {
     /// Генерирует заглушки для функций чтобы компилятор не выдал ошибку "функция отсуствует"
     /// вероятно это временное решение. Также собирает сигнатуру функции для кодогенератора
@@ -88,6 +91,22 @@ impl<'ast> Analyzer {
         // внутри не должны анализироваться и трансформироваться, там не ui контекст
         syn::visit::visit_item_fn(self, node);
 
+        // Для Event событий в условном рендеринге нельзя обнулять маску, поэтому нужно
+        // взять снапшот из статики на момент прошлого флэша и использовать его копию
+        // вместо 0u64
+        let mut widget_mask_count = get_spark_mask(self.context.maybe_widgets_counter);
+        
+        // Есило условных виджетов нет то генерировать поля для снапшотов масок не нужно,
+        // так как get_spark_mask всегда возвращает значение >= 1, даже когда там ноль
+        if self.context.maybe_widgets_counter == 0 {
+            widget_mask_count = 0;
+        }
+
+        for mask_index in 0..widget_mask_count {
+            self.add_field_to_struct(format!("_fwc_widget_bitmask{}", mask_index + 1),
+                "u64".to_string());
+        }
+
         // После парсинга функции нужно добавить стейтемент который уведомит
         // кодогенератор о завершении тела функции чтобы он перед этим сгенерировал
         // выход из цикла реактивности если этого ещё никто не сделал
@@ -123,6 +142,8 @@ impl<'ast> Analyzer {
             self.context.spark_counter = 0;
             self.linter.reset();
         }
+
+        self.context.maybe_widgets_counter = 0;
     }
 
     pub(crate) fn analyze_fn_arg(&mut self, i: &'ast FnArg) {

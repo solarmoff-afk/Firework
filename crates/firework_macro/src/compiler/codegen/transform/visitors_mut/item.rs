@@ -8,6 +8,7 @@ use syn::parse_quote;
 pub use super::super::*;
 
 use crate::CompileType;
+use crate::compiler::codegen::generator::static_gen;
 
 impl CodegenVisitor<'_> {
     /// Обрабатывает верхний уровень в вызове компилятора (item), функции, структуры и так
@@ -166,6 +167,27 @@ impl CodegenVisitor<'_> {
                     // можно клонировать и вставить в код
                     let post_tokens = self.builder.tokens.clone();
 
+                    // Генерация снапшота битовых масок в текущем кадре чтобы в следующем
+                    // при Event получить снапшот вместо нуля
+                    let mut widgets_gen_snapshot = TokenStream::new();
+
+                    // SAFETY: Для всех id экранов генерируется количество масок, а так как
+                    // id взят из IR то такой элемент точно есть в карте
+                    let widget_mask_count = self.widget_mask_count.get(&id).unwrap();
+                   
+                    for mask_index in 0..*widget_mask_count {
+                        let field_name = format!("_fwc_widget_bitmask{}", mask_index + 1);
+                        let set_field_str = static_gen::set_field(
+                            &struct_name_raw,
+                            &field_name,
+                            &field_name,
+                        );
+
+                        widgets_gen_snapshot.extend(
+                            CodeBuilder::convert_string_to_syn(&set_field_str)
+                        );
+                    }
+
                     // Если цикл совершил более 64 итераций (хардкод )то происходит выход
                     // из него это делается после добавления единицы к итерациям чтобы не
                     // отнимать единицу
@@ -193,6 +215,7 @@ impl CodegenVisitor<'_> {
                             }
 
                             #(#post_tokens)*
+                            #widgets_gen_snapshot
                         });
                     } else {
                         // Если функция имеет возвращаемое значение то это не экран и не
@@ -207,6 +230,7 @@ impl CodegenVisitor<'_> {
                             #original_block
 
                             #(#post_tokens)*
+                            #widgets_gen_snapshot
                         });
                     }
                 }

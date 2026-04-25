@@ -86,7 +86,12 @@ impl<'a> CodegenVisitor<'a> {
             let widget_count = self.ir.screen_maybe_widgets.get(screen_id)
                 .unwrap_or(&default_temp).count;
 
-            self.widget_mask_count.insert(*screen_id, get_spark_mask(widget_count)); 
+            let mut count = get_spark_mask(widget_count);
+            if widget_count == 0 {
+                count = 0;
+            }
+
+            self.widget_mask_count.insert(*screen_id, count);
         }
     }
 }
