@@ -39,7 +39,7 @@ fn test_screen() {
         }
     }
 
-    rect_state = true;
+    rect_state = false;
     
 }
 

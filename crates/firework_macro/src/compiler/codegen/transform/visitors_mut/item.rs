@@ -139,7 +139,9 @@ impl CodegenVisitor<'_> {
                     let bitmask_statements = reactive_output.bitmask_statements;
                     let bitmask_clone_statements = reactive_output.bitmask_clone_statements;
                     let bitmask_check_expr = reactive_output.bitmask_check_expr;
-                    let widget_bitmask_statement = self.generate_widgets_mask(id);
+                    let widget_bitmask_statement = self.generate_widgets_mask(
+                        id, &struct_name_raw
+                    );
 
                     let is_shared = matches!(self.flags.compile_type, CompileType::Shared);
                     let init_code = if !is_shared {
@@ -176,6 +178,7 @@ impl CodegenVisitor<'_> {
                     let widget_mask_count = self.widget_mask_count.get(&id).unwrap();
                    
                     for mask_index in 0..*widget_mask_count {
+                        // Имя локальной маски и имя поле идентично
                         let field_name = format!("_fwc_widget_bitmask{}", mask_index + 1);
                         let set_field_str = static_gen::set_field(
                             &struct_name_raw,

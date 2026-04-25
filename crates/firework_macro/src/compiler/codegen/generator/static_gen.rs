@@ -186,3 +186,25 @@ pub(crate) fn get_field_ref_mut(instance_name: &str, field_name: &str, var_name:
         var_name, instance_name_upper, field_name,
     )
 }
+
+/// Принимает имя структуры, поле и имя переменной после чего генерирует код который
+/// записывает в эту переменную копию, работает только для типов которые реализуют Copy
+#[cfg(not(feature = "safety-multithread"))]
+pub(crate) fn copy_field(instance_name: &str, field_name: &str, var_name: &str) -> String {
+    let instance_name_upper = instance_name.to_uppercase();
+    
+    format!(
+        "if let Some(val) = unsafe {{ (*::core::ptr::addr_of!({}_INSTANCE)).{}.as_ref() }} {{ {} = *val; }}",
+        instance_name_upper, field_name, var_name,
+    )
+}
+
+#[cfg(feature = "safety-multithread")]
+pub(crate) fn copy_field(instance_name: &str, field_name: &str, var_name: &str) -> String {
+    let instance_name_upper = instance_name.to_uppercase();
+    
+    format!(
+        "if let Some(val) = {}_INSTANCE.get().unwrap().lock().unwrap().{}.as_ref() {{ {} = *val; }}",
+        instance_name_upper, field_name, var_name,
+    )
+}
