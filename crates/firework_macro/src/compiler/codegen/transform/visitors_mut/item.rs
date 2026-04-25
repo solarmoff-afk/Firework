@@ -24,17 +24,7 @@ impl CodegenVisitor<'_> {
             if let Item::Fn(mut item_fn) = item {
                 // Возвращает ли что-то функция, это нужно чтобы понять нужно ли сгенерировать 
                 // панику в конце цикла чтобы избежать ошибки
-                let has_return = match &item_fn.sig.output {
-                    ReturnType::Default => false,
-
-                    ReturnType::Type(_, ty) => { 
-                        match ty.as_ref() {
-                            Type::Tuple(tuple) if tuple.elems.is_empty() => false,
-                            Type::Never(_) => false,
-                            _ => true,
-                        }
-                    }
-                };
+                let has_return = self.check_function_has_return(&item_fn);
 
                 self.functions_count += 1;
                 let function_name = item_fn.sig.ident.to_string();
@@ -52,11 +42,8 @@ impl CodegenVisitor<'_> {
                 if let Some(id) = self.ui_id { 
                     let span = item_fn.span();
 
-                    let struct_name_raw = format!("ApplicationUiBlockStruct{}", id);
-                    let struct_name = format_ident!("ApplicationUiBlockStruct{}", id);
+                    let struct_name_raw = format!("ApplicationUiBlockStruct{}", id); 
                     let _instance_ident = format_ident!("APPLICATIONUIBLOCKSTRUCT{}_INSTANCE", id);
-                    
-                    // Только для shared
                     let build_name = format_ident!("_fwc_fn_build{}", id);
                     
                     let mut fields: Vec<Field> = Vec::new();
@@ -68,65 +55,10 @@ impl CodegenVisitor<'_> {
                     // static mut и unsafe
                     let instance_name = struct_name_raw.to_uppercase();
                     let instance = static_declaration(&instance_name, &struct_name_raw, &fields_data);
-                    let instance_item: Item = parse_str(&instance).unwrap();
-
-                    // Структура экрана где хранится состояние, компоненты и виджеты
-                    let struct_def: Item = parse_quote_spanned!(span=> 
-                        struct #struct_name {
-                            #(#fields),*
-                        }
-                    );
+                    let instance_item: Item = parse_str(&instance).unwrap(); 
                   
-                    // Проверка можно ли генерировать структуру сейчас, в Shared режиме
-                    // компиляции нужна только одна структура так как состояние глобальное
-                    // поэтому после первой генерации в Shared режиме генерировать структуру
-                    // и экземпляр больше нельзя
-                    if self.should_generate_struct() {
-                        new_items.push(struct_def);
-                        new_items.push(instance_item);
-                        
-                        if matches!(self.flags.compile_type, CompileType::Shared) {
-                            let (build_statements, build_check) = self.generate_shared_build(id);
+                    self.generate_build(&mut new_items, instance_item, &fields, id, span);
 
-                            let tokens = quote! {
-                                let mut _fwc_build = false;
-
-                                #build_check
-
-                                if _fwc_build {
-                                    #(#build_statements)*
-                                }
-                            };
-
-                            // В обычном режиме просто вставка токенов в функцию
-                            #[cfg(not(feature = "safety-multithread"))]
-                            let tokens = quote! {
-                                fn #build_name () {
-                                    #tokens
-                                }
-                            };
-
-                            // Чтобы не было дедлока в эффектах необходимо в безопасном
-                            // режиме генерировать проверку на то что экземпляр не был
-                            // инициализирован (None)
-                            #[cfg(feature = "safety-multithread")]
-                            let tokens = quote! {
-                                fn #build_name () {
-                                    if #_instance_ident.get().is_none() {
-                                        #tokens
-                                    }
-                                }
-                            };
-                            
-                            // SAFETY: Код явлется абсолютно валидным, build_statements в
-                            // случае синтаксической ошибки были бы отбракованы на этапе
-                            // generate_shared_build через функцию из CodeBuilder из-за чего
-                            // unwrap здесь безопасен
-                            let item: Item = syn::parse2(tokens).unwrap();
-                            new_items.push(item);
-                        }
-                    }
-                    
                     // Оригинальное тело функции (уже трансформированное), так как block
                     // не реализует Default нужно использовать std::mem::replace, идёт
                     // парсинг обычного пустого блока чтобы заменить на него оригинал, а
@@ -293,6 +225,87 @@ impl CodegenVisitor<'_> {
             // В обычном режиме структура нужная каждой функции так как каждая функция
             // это отдельный экран
             _ => true,
+        }
+    }
+
+    /// проверяет возвращаемоет значение у функции
+    fn check_function_has_return(&self, item_fn: &ItemFn) -> bool {
+        match &item_fn.sig.output {
+            ReturnType::Default => false,
+            ReturnType::Type(_, ty) => match ty.as_ref() {
+                Type::Tuple(tuple) if tuple.elems.is_empty() => false,
+                Type::Never(_) => false,
+                _ => true,
+            },
+        }
+    }
+
+    /// Генерирует код для функции Build в Shared режиме и записывает новую функцию в
+    /// new_item по мутабельной ссылке
+    fn generate_build(
+        &self, new_items: &mut Vec<Item>, instance_item: Item, fields: &Vec<Field>,
+        id: u128, span: Span,
+    ) {
+        // Только для shared
+        let build_name = format_ident!("_fwc_fn_build{}", id);
+
+        let struct_name = format_ident!("ApplicationUiBlockStruct{}", id);
+
+        // Структура экрана где хранится состояние, компоненты и виджеты
+        let struct_def: Item = parse_quote_spanned!(span=> 
+            struct #struct_name {
+                #(#fields),*
+            }
+        );
+
+        // Проверка можно ли генерировать структуру сейчас, в Shared режиме
+        // компиляции нужна только одна структура так как состояние глобальное
+        // поэтому после первой генерации в Shared режиме генерировать структуру
+        // и экземпляр больше нельзя
+        if self.should_generate_struct() {
+            new_items.push(struct_def);
+            new_items.push(instance_item);
+            
+            if matches!(self.flags.compile_type, CompileType::Shared) {
+                let (build_statements, build_check) = self.generate_shared_build(id);
+
+                let tokens = quote! {
+                    let mut _fwc_build = false;
+
+                    #build_check
+
+                    if _fwc_build {
+                        #(#build_statements)*
+                    }
+                };
+
+                // В обычном режиме просто вставка токенов в функцию
+                #[cfg(not(feature = "safety-multithread"))]
+                let tokens = quote! {
+                    fn #build_name () {
+                        #tokens
+                    }
+                };
+
+                // Чтобы не было дедлока в эффектах необходимо в безопасном
+                // режиме генерировать проверку на то что экземпляр не был
+                // инициализирован (None)
+                #[cfg(feature = "safety-multithread")]
+                let tokens = quote! {
+                    fn #build_name () {
+                        if #_instance_ident.get().is_none() {
+                            #tokens
+                        }
+                    }
+                };
+            
+                // SAFETY: Код явлется абсолютно валидным, build_statements в
+                // случае синтаксической ошибки были бы отбракованы на этапе
+                // generate_shared_build через функцию из CodeBuilder из-за чего
+                // unwrap здесь безопасен
+                let item: Item = syn::parse2(tokens).unwrap();
+                new_items.push(item);
+            }
         }
     }
 }
