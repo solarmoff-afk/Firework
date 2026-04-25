@@ -1,6 +1,5 @@
 use firework_ui::ui;
 
-/*
 #[ui]
 fn test_screen() {
     let mut my_spark = spark!(0);
@@ -13,32 +12,6 @@ fn test_screen() {
     }
 
     spark2 = 20; 
-}
-*/
-
-#[ui]
-fn test_screen() {
-    // let mut my_spark = spark!(0);
-    
-    rect! {
-        position: (10, 10),
-    }
-
-    if 1 == 1 {
-        rect! {
-            position: (10, 10),
-        }
-    }
-
-    rect! {
-        position: (10, 10),
-    }
-
-    if 1 == 1 {
-        rect! {
-            position: (10, 10),
-        }
-    }
 }
 
 fn main() {

@@ -14,12 +14,16 @@ use super::transform::traits::{ToStmt, ToExpr};
 use super::consts::CHECK_NAVIGATE;
 
 pub struct CodeBuilder {
-    ir: FireworkIR
+    /// Токены которые вставляются под конец функции за пределами цикла реактивности
+    pub tokens: Vec<TokenStream>,
+    
+    ir: FireworkIR,
 }
 
 impl CodeBuilder {
     pub fn new(ir: FireworkIR) -> Self {
         Self {
+            tokens: Vec::new(),
             ir,
         }
     }
@@ -116,17 +120,61 @@ impl CodeBuilder {
         final_tokens
     }
 
+    /// Выполняется при выходе из функции чтобы подготовить билдер к генерации кода для
+    /// следующей функции
+    pub fn function_end(&mut self) {
+        self.tokens.clear();
+    }
+
     pub(crate) fn generate_check_spark_bit(&self, code: &mut String, id: usize) {
+        self.generate_check(code, id, "_fwc_bitmask", "_clone");
+    }
+
+    pub(crate) fn generate_check_widget_bit(&self, code: &mut String, id: usize) {
+        self.generate_check(code, id, "_fwc_widget_bitmask", "");
+    }
+
+    fn generate_check(&self, code: &mut String, id: usize, mask_name: &str, mask_suffix: &str) {
         // Получение маски на основе айди спарка
         let mask = get_spark_mask(id);
         let id_in_mask = normalize_bit_index(id);
 
         code.push_str(check_flag(
             // Имя маски
-            format!("_fwc_bitmask{}_clone", mask).as_str(),
+            format!("{}{}{}", mask_name, mask, mask_suffix).as_str(),
             
             // Индекс внутри этой маски
             id_in_mask,
         ).as_str());
+    }
+
+    /// Метод для генерации деактивации битов в маске при изменении спарка который
+    /// был в условии от которых зависит декларация условного виджета
+    pub(crate) fn generate_widget_spark_update(
+        &self,
+        statement: &FireworkStatement,
+        spark_id: &usize,
+    ) -> TokenStream {
+        let mut update_widgets_statements = TokenStream::new();
+
+        if let Some(map) = self.ir.screen_maybe_widgets.get(&statement.screen_index) { 
+            if let Some(widgets) = map.spark_widget_map.get(spark_id) {
+                for widget in widgets {
+                    // Битовая маска этого условного виджета
+                    let mask = get_spark_mask(*widget);
+
+                    let mask_statement = format!("{};", unset_flag(
+                        format!("_fwc_widget_bitmask{}", mask).as_str(), 
+                        normalize_bit_index(*widget),
+                    )).to_stmt().unwrap(); 
+
+                    update_widgets_statements.extend(quote! {
+                        #mask_statement
+                    });
+                }
+            }
+        }
+
+        update_widgets_statements
     }
 }

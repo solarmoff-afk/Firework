@@ -21,6 +21,7 @@ use super::ir::{FireworkIR, FireworkStatement};
 use super::code_builder::CodeBuilder;
 
 use crate::CompileFlags;
+use crate::compiler::codegen::ir::MaybeWidgets;
 
 pub struct CodegenVisitor<'a> {
     // IR от анализатора, содержит плоские семантические метки для каждого стейтемента,
@@ -81,8 +82,11 @@ impl<'a> CodegenVisitor<'a> {
     pub(crate) fn find_widget_mask_counts(&mut self) {
         for (_screen_name, _screen_signature, screen_id) in self.ir.screens.iter() {
             // Вычисление количества битовых масок
-            let widget_count = self.ir.screen_maybe_widgets.get(screen_id).unwrap_or(&0usize);
-            self.widget_mask_count.insert(*screen_id, get_spark_mask(*widget_count)); 
+            let default_temp = MaybeWidgets::new();
+            let widget_count = self.ir.screen_maybe_widgets.get(screen_id)
+                .unwrap_or(&default_temp).count;
+
+            self.widget_mask_count.insert(*screen_id, get_spark_mask(widget_count)); 
         }
     }
 }

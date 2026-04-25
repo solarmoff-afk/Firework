@@ -62,8 +62,17 @@ impl CodeBuilder {
                             format!("_fwc_bitmask{}", mask).as_str(),
                             normalize_bit_index(*id),
                         )).to_stmt().unwrap();
+
+                        // Обновлене условных виджетов декларация которых зависит от
+                        // этого спарка
+                        let update_widgets_statement = self.generate_widget_spark_update(
+                            statement, id
+                        );
                         
-                        inner_masks.extend(quote_spanned!(span=> #update_stmt));
+                        inner_masks.extend(quote_spanned!(span=> {
+                            #update_widgets_statement
+                            #update_stmt
+                        }));
                     }
                 }
                 

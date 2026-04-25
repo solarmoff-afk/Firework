@@ -45,6 +45,7 @@ impl CodegenVisitor<'_> {
                     .find(|(name, _, _)| name == &function_name)
                     .map(|(_, _, id)| *id);
 
+                // Проход по дереву продолжается
                 visit_item_fn_mut(self, &mut item_fn);
 
                 if let Some(id) = self.ui_id { 
@@ -153,7 +154,17 @@ impl CodegenVisitor<'_> {
                         quote! {
                             #build_name();
                         }
-                    }; 
+                    };
+
+                    // При входе в item обход дерева продолжился из-за строки выше, конкретно:
+                    // visit_item_fn_mut(self, &mut item_fn);
+                    //
+                    // Она продолжает обход, VisitorMut входит в блок и начинает вызовы
+                    // кодбилдера для каждого стейтемента который есть в IR снапшоте. В
+                    // результате билдер формирует пост токены, после вызова visit_item_fn_mut
+                    // стэк вызовов возвращается в этот метод и токены уже доступны, их
+                    // можно клонировать и вставить в код
+                    let post_tokens = self.builder.tokens.clone();
 
                     // Если цикл совершил более 64 итераций (хардкод )то происходит выход
                     // из него это делается после добавления единицы к итерациям чтобы не
@@ -180,6 +191,8 @@ impl CodegenVisitor<'_> {
                                 _fwc_event = firework_ui::LifeCycle::Reactive;
                                 if _fwc_guard > 64 { break; }
                             }
+
+                            #(#post_tokens)*
                         });
                     } else {
                         // Если функция имеет возвращаемое значение то это не экран и не
@@ -191,12 +204,17 @@ impl CodegenVisitor<'_> {
                             
                             #(#bitmask_statements)*
                             #(#bitmask_clone_statements)*
-                            #original_block 
+                            #original_block
+
+                            #(#post_tokens)*
                         });
                     }
                 }
 
                 new_items.push(Item::Fn(item_fn));
+                
+                // Очистка локальных данных билдера
+                self.builder.function_end();
             } else {
                 let mut other_item = item;
 

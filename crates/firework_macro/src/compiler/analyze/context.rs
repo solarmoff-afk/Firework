@@ -20,6 +20,12 @@ pub struct AnalyzeContext {
     // Промежуточное представление, строки кода с добавлением семантической метки
     pub ir: FireworkIR,
 
+    // Стэк спарков который содержит все спарки в верхних if/match/effect чтобы определить
+    // от каких спарков зависит выполнение этого кода, используется в условных виджетах чтобы
+    // деактивировать нужный бит в случае обновления спарка от которого зависит условный
+    // рендеринг
+    pub spark_stack: Vec<(String, usize)>,
+
     // Счётчики чтобы генерировать названия полей глобальной структуры экрана
     pub widget_counter: usize,
 
@@ -39,6 +45,10 @@ pub struct AnalyzeContext {
     // При входе в условие или match это поле помечается как true, а при выходе как false.
     // Если при декларации виджета это поле true то виджет становится условным
     pub is_maybe: bool,
+
+    // Локальная карта айди спарка -> айди условных виджетов которые создаются в блоке который
+    // зависит от этого спарка
+    pub spark_widget_map: HashMap<usize, Vec<usize>>,
 }
 
 impl AnalyzeContext {
@@ -66,6 +76,7 @@ impl AnalyzeContext {
             },
             
             ir: FireworkIR::new(),
+            spark_stack: Vec::new(),
             
             // Счётчики
             widget_counter: 0,
@@ -77,6 +88,7 @@ impl AnalyzeContext {
             functions_count: 0,
 
             is_maybe: false,
+            spark_widget_map: HashMap::new(),
         }
     }
 }

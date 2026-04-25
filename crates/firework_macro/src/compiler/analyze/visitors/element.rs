@@ -212,6 +212,12 @@ impl<'ast> Analyzer {
                     skin: _skin_struct.unwrap_or("".to_string()),
 
                     is_maybe: if self.context.is_maybe {
+                        for spark in &self.context.spark_stack {
+                            self.context.spark_widget_map.entry(spark.1)
+                                .or_insert_with(Vec::new)
+                                .push(self.context.maybe_widgets_counter);
+                        }
+
                         Some(self.context.maybe_widgets_counter)
                     } else {
                         None

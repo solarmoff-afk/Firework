@@ -7,6 +7,7 @@ use syn::parse::Parser;
 pub use super::super::*;
 
 use crate::CompileType;
+use crate::compiler::codegen::ir::MaybeWidgets;
 
 impl<'ast> Analyzer {
     /// Генерирует заглушки для функций чтобы компилятор не выдал ошибку "функция отсуствует"
@@ -83,6 +84,8 @@ impl<'ast> Analyzer {
 
         self.generate_screen_id_field();
 
+        // TODO: Нужно добавить проверку что если мы уже в функции экрана то другие функции
+        // внутри не должны анализироваться и трансформироваться, там не ui контекст
         syn::visit::visit_item_fn(self, node);
 
         // После парсинга функции нужно добавить стейтемент который уведомит
@@ -97,8 +100,16 @@ impl<'ast> Analyzer {
         self.context.ir.push(statement);
         self.context.ir.screen_sparks.insert(
             self.lifetime_manager.scope.screen_index, self.context.spark_counter);
-        self.context.ir.screen_maybe_widgets.insert(
-            self.lifetime_manager.scope.screen_index, self.context.maybe_widgets_counter);
+        
+        self.context.ir.screen_maybe_widgets.insert(self.lifetime_manager.scope.screen_index,
+            MaybeWidgets {
+                count: self.context.maybe_widgets_counter,
+                spark_widget_map: self.context.spark_widget_map.clone(),
+            }
+        );
+
+        // Очистка локальной карты так как экран уже обработан
+        self.context.spark_widget_map.clear();
 
         // Сбрасывание нужно только если это не компиляция shared! {}, так как shared
         // это множество функций с общим состоянием, поэтому им нужна одна структура

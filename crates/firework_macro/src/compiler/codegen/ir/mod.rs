@@ -74,10 +74,30 @@ pub struct FireworkIR {
     // Хэшмап для хранения id экрана -> количество спарков
     pub screen_sparks: HashMap<u128, usize>,
 
-    // Хэшмап для хранения id экрана -> количество виджетов
-    pub screen_maybe_widgets: HashMap<u128, usize>,
+    // Хэшмап для хранения id экрана -> условные виджеты
+    pub screen_maybe_widgets: HashMap<u128, MaybeWidgets>,
 
     pub shared: SharedData,
+}
+
+/// Структура для хранения состяния условных виджетов
+#[derive(Debug, Clone)]
+pub struct MaybeWidgets {
+    // Сколько всего условных виджетов
+    pub count: usize,
+
+    // Карта айди спарка -> айди условных виджетов которые создаются в блоке который зависит
+    // от этого спарка
+    pub spark_widget_map: HashMap<usize, Vec<usize>>,
+}
+
+impl MaybeWidgets {
+    pub fn new() -> Self {
+        Self {
+            count: 0,
+            spark_widget_map: HashMap::new(),
+        }
+    }
 }
 
 impl FireworkIR {

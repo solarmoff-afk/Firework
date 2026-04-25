@@ -198,12 +198,22 @@ impl Analyzer {
         
         // let _saved_action = self.statement.action.clone();
         self.context.statement.action = FireworkAction::DefaultCode;
+
+        // До входа в блок все спарки условия добавляются в стэка и создаётся копия
+        // стэка чтобы после выхода из блока все спарки из этого условия исчезли из
+        // стэка
+        let spark_stack_snapshot = self.context.spark_stack.clone();
+        self.context.spark_stack.extend(sparks);
+        self.context.spark_stack.dedup();
         
         // Замыкание чтобы выполнить все блоки, self передаётся из-за того что в
         // расте нельзя использовать self внутри метода этой же структуры поэтому
         // здесь передаётся self как аргумент замыкания
         visit_fn(self);
-        
+
+        // Восстановление стэка спарков
+        self.context.spark_stack = spark_stack_snapshot;
+
         // Закрывающий стейтемент реактивного блока
         self.context.statement.action = FireworkAction::ReactiveBlockTerminator;
         self.context.statement.string = "}".to_string();

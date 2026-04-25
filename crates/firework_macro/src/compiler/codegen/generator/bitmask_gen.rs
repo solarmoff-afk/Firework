@@ -3,20 +3,34 @@
 
 #![allow(dead_code)]
 
+/// Генерирует строку которая устанавливает конкретный бит активным. Принимает имя битовой
+/// маски и номер бита, ограничение в 64 так как битовая маска u64 (64 бита). Строка идёт
+/// без точки с запятой
 pub(crate) fn set_flag(mask_name: &str, flag: u8) -> String {
     assert!(flag < 64, "Flag bit index must be < 64");
     return format!("{} |= 1 << {}", mask_name, flag);
 }
 
+/// Прнимает имя битовой маски и нужный бит после чего снимает его (делает нулевым)
+pub(crate) fn unset_flag(mask_name: &str, flag: u8) -> String {
+    assert!(flag < 64, "Flag bit index must be < 64");
+    return format!("{} &= !(1 << {})", mask_name, flag);
+}
+
+/// Генерирует строку которая проверяет конкретный бит в битовой маске. Используется в условиях
+/// чтобы проверить бит. Ограничение в 64 бита, строка идёт без точки с запятой
 pub(crate) fn check_flag(mask_name: &str, flag: u8) -> String {
     assert!(flag < 64, "Flag bit index must be < 64");
     return format!("({} & (1 << {})) != 0", mask_name, flag);
 }
 
+/// Генерирует строку которая очищает маску, строка без точки с запятой
 pub(crate) fn clear_mask(mask_name: &str) -> String {
     return format!("{} = 0", mask_name);
 }
 
+/// Нормализирует бит чтобы он влезал в диапазон от 0 до 63 и мог быть битом в битовой
+/// маске. Возвращает нормализованный бит
 pub(crate) fn normalize_bit_index(id: usize) -> u8 {
     // SAFETY: Формула написана так что в любом случае будет значение от 0 до 63, а
     // ограчение u8 это 256, то есть даже при максимальном значении переполнение
@@ -24,6 +38,8 @@ pub(crate) fn normalize_bit_index(id: usize) -> u8 {
     (id % 64).try_into().unwrap()
 }
 
+/// Определяет в какую маску нужно поместить значение принимая его не нормализованный айди.
+/// Возвращает u8 (индекс маски)
 pub(crate) fn get_spark_mask(id: usize) -> u8 {
     // 1 -> 1, 19 -> 1, 64 -> 1, 67 -> 2, 98 -> 2, 128 -> 2, 136 -> 3
     ((id / 64) + 1) as u8
