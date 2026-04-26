@@ -26,7 +26,7 @@ impl CodeBuilder {
                 // Обход всех полей
                 for (name, field) in &description.fields {
                     // Поле с именем skin нужно пропустить, так как оно явлется задающим
-                    if name == "skin" {
+                    if need_skip_props(name) {
                         return;
                     }
 
@@ -181,4 +181,11 @@ impl CodeBuilder {
             _ => {},
         };
     }
+}
+
+/// Метод который определяет нужно ли скипнуть пропс (Этот пропс выполняет функцию инструкций
+/// для кодогенератора)
+fn need_skip_props(props: &str) -> bool {
+    props == "skin" ||    // Для того чтобы изменить отображение виджета
+    props == "key"        // Для динамических списков
 }

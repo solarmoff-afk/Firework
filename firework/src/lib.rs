@@ -2,13 +2,16 @@
 // Лицензия EPL 2.0, подробнее в файле LICENSE. Copyright (c) 2026 Firework
 
 pub mod skins;
+pub mod dyn_list;
 
 mod runtime_errors;
 
 pub use firework_macro::{ui, shared, component, effect};
 pub use firework_adapter::{AdapterCommand, AdapterEvent, AdapterClickPhase, AdapterResult};
+
 pub use runtime_errors::RENDER_ADAPTER_MISSING_ERROR;
 pub use skins::DefaultRectSkin;
+pub use dyn_list::{DynList, ListEntry};
 
 /// A simpler implementation of the matches macro separate from STD for use in
 /// generated code
