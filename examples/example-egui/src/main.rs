@@ -29,8 +29,7 @@ fn test_screen() {
 #[ui]
 fn test_screen() {
     let mut rect_state = spark!(true);
-
-    
+ 
     if rect_state {
         rect! {
             position: (10, 10),
@@ -39,9 +38,21 @@ fn test_screen() {
         }
     }
 
-    rect_state = false;
-    
+    rect_state = false;  
 }
+
+/*
+#[ui]
+fn test_screen() {
+    for i in 0..3 {
+        rect! {
+            position: (10, 10),
+            size: (100, 100),
+            color: (0, 255, 0),
+        }
+    }
+}
+/*
 
 fn main() {
     firework_ui::run_with_adapter(egui_adapter, test_screen);

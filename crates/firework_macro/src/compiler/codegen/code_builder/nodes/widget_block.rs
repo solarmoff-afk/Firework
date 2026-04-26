@@ -13,7 +13,7 @@ impl CodeBuilder {
                 let instance_ident_upper = format_ident!("{}_INSTANCE", struct_name.to_uppercase());
                 let field_ident = format_ident!("widget_object_{}", description.id);
 
-                let skin_path: syn::Path = syn::parse_str(&description.skin)
+                let skin_path: syn::Type = syn::parse_str(&description.skin)
                     .expect(format!("Invalid skin name: {}", description.skin).as_str());
 
                 // При навигации нужно сгенерировать конструкцию виджета на основе скина

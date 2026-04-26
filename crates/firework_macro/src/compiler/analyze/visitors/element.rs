@@ -180,23 +180,32 @@ impl<'ast> Analyzer {
                 _skin_struct = map_skin(&name);
             }
 
-            // Только если в skin_struct была добавлена структура нужно добавить поле
-            // в структуру экрана. Если поля нет то это функциональный виджет который
-            // не получил скин через поле skin
-            if let Some(ref skin) = _skin_struct {
-                self.add_field_to_struct(
-                    format!("widget_object_{}", self.context.widget_counter),
-                    skin.to_string(),
-                );
-            }
-            
             // Микрорантайм это контейнер который может хранится на куче (Vec или Smallvec)
             // и нужен в динамических списках чтобы разместить хэндлы рендер движка для
             // примитивных объектов созданных из виджетов внутри цикла 
             let mut has_microruntime = false;
-            if let Some((_start, need_microruntime)) = self.reactive_block {
-                has_microruntime = need_microruntime;
+            
+            // У функциональных виджетов нет скина, а если поле _skin_struct пустое
+            // то значит это функиональный виджет
+            let mut skin_field = _skin_struct.clone().unwrap_or("".to_string());
+            
+            if let Some((_start, _need_microruntime)) = self.reactive_block {
+                has_microruntime = _need_microruntime;
+
+                if _need_microruntime {
+                    // Если виджет был декларирован в цикле то его нужно обернуть в
+                    // специальный контейнер
+                    skin_field = format!("firework_ui::DynList<{}>", skin_field);
+                }
             }
+
+            // Только если в skin_struct была добавлена структура нужно добавить поле
+            // в структуру экрана. Если поля нет то это функциональный виджет который
+            // не получил скин через поле skin
+            self.add_field_to_struct(
+                format!("widget_object_{}", self.context.widget_counter),
+                skin_field.to_string(),
+            );
 
             self.context.statement.string = i.to_token_stream().to_string();
             self.context.statement.action = FireworkAction::WidgetBlock(
@@ -205,10 +214,7 @@ impl<'ast> Analyzer {
                     fields: fields_map,
                     is_functional: is_functional_widget(&name),
                     id: self.context.widget_counter,
-                    has_microruntime,
-
-                    // У функциональных виджетов нет скина, а если поле _skin_struct пустое
-                    // то значит это функиональный виджет
+                    has_microruntime, 
                     skin: _skin_struct.unwrap_or("".to_string()),
 
                     is_maybe: if self.context.is_maybe {

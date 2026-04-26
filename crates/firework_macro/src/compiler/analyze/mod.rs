@@ -169,6 +169,9 @@ impl Analyzer {
             // Нулевой эффект должен быть пустым
             is_null_effect = vec.is_empty();
         }
+
+        // Вызов в любом случае, даже если в условии нет спарков
+        self.reactive_block = Some((self.statement_index, is_loop));
         
         // Если в условии есть спарки то мы входим в реактивный блок. Реактивные блоки
         // в реактивных блоках не работают. То есть реактивный блок будет создан если в
@@ -177,9 +180,7 @@ impl Analyzer {
         // то is_null_effect
         if condition_has_spark || is_null_effect {
             open_statement.action = action;
-            open_statement.is_reactive_block = true;
-
-            self.reactive_block = Some((self.statement_index, is_loop));
+            open_statement.is_reactive_block = true; 
         } else {
             // Иначе это может быть else реактивного блока
             open_statement.action = FireworkAction::ReactiveElse;
