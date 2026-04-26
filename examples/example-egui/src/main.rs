@@ -52,7 +52,7 @@ fn test_screen() {
         }
     }
 }
-/*
+*/
 
 fn main() {
     firework_ui::run_with_adapter(egui_adapter, test_screen);
