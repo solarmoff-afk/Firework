@@ -61,6 +61,10 @@ pub enum FireworkAction {
     // скин это runtime концепция
     WidgetBlock(WidgetDescription),
 
+    // Начало цикла который содержит в себе виджеты, хранит вектор с айди виджетов которые
+    // используются и usize который означает глубину
+    DynamicLoopBegin(usize, Vec<usize>),
+
     // Просто код для инлайна
     DefaultCode,
 

@@ -49,6 +49,15 @@ pub struct AnalyzeContext {
     // Локальная карта айди спарка -> айди условных виджетов которые создаются в блоке который
     // зависит от этого спарка
     pub spark_widget_map: HashMap<usize, Vec<usize>>,
+
+    // Вектор виджетов которые были созданы, используется для динамических списков чтобы
+    // снапшотить вектор при входе и забрать значение после чтобы понять нужно ли генерировать
+    // специальный код и если да то для каких виджетов. Содержит айди виджета (не условного,
+    // а основной счётчик айди для полей в структуре)
+    pub microruntime_widgets: MicroruntimeWidgets,
+
+    // Вложенность цикла
+    pub cycle_depth: usize,
 }
 
 impl AnalyzeContext {
@@ -86,9 +95,36 @@ impl AnalyzeContext {
 
             flags: CompileFlags::new(),
             functions_count: 0,
-
             is_maybe: false,
             spark_widget_map: HashMap::new(),
+            microruntime_widgets: MicroruntimeWidgets::new(),
+            cycle_depth: 0,
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct MicroruntimeWidgets {
+    // Количество вложенных циклов на данный момент
+    pub count: usize,
+   
+    // Виджеты в этом цикле
+    pub widgets: Vec<usize>,
+
+    // Был ли обновлён счётчик за в этой области видимости
+    pub is_dirty: bool,
+
+    // Есть ли виджеты вообще тут либо в дочерних циклах
+    pub has_widgets: bool, 
+}
+
+impl MicroruntimeWidgets {
+    pub fn new() -> Self {
+        Self {
+            count: 0,
+            widgets: Vec::new(),
+            is_dirty: false,
+            has_widgets: false, 
         }
     }
 }

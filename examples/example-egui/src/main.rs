@@ -46,11 +46,27 @@ fn test_screen() {
 #[ui]
 fn test_screen() {
     for i in 0..3 {
+        for j in 0..3 {
+            for k in 0..3 {
+                rect! {
+                    position: (10, 10),
+                    size: (100, 100),
+                    color: (0, 255, 0),
+                }
+            }
+        }
+
         rect! {
             position: (10, 10),
             size: (100, 100),
             color: (0, 255, 0),
         }
+    }
+
+    rect! {
+        position: (10, 10),
+        size: (100, 100),
+        color: (0, 255, 0),
     }
 }
 

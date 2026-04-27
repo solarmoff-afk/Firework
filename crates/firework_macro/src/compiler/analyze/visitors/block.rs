@@ -5,6 +5,40 @@ use syn::spanned::Spanned;
 
 pub use super::super::*;
 
+/// Генерация снапшота текущих динамических виджетов в цикле
+macro_rules! create_snapshot {
+    ($self:expr, $snapshot_name:ident) => {
+        $self.context.cycle_depth += 1;
+        $self.context.microruntime_widgets.count += 1;
+        $self.context.microruntime_widgets.is_dirty = false;
+
+        // Снапшот состояния. Микрорантайм виджеты можно создать только внутри цикла поэтому
+        // шума в снапшоте быть не может, после выхода из первого цикла он всегда будет
+        // пустым
+        let mut $snapshot_name = $self.context.microruntime_widgets.clone();
+
+        // Очистка чтобы у каждой области видимости цикла были только его виджеты
+        $self.context.microruntime_widgets.widgets.clear(); 
+    };
+}
+
+/// Возврат снапшота, требует вызов create_snapshot в той же области видимости выше
+macro_rules! restore_snapshot {
+    ($self:expr, $snapshot_name:ident) => {
+        $snapshot_name.has_widgets = $self.context.microruntime_widgets.has_widgets;
+        $self.context.microruntime_widgets = $snapshot_name;
+
+        // Если после замены уровень нулевой то виджетов тут снова нет
+        if $self.context.microruntime_widgets.count == 0 {
+            $self.context.microruntime_widgets.has_widgets = false;
+        }
+
+        if $self.context.cycle_depth > 0 {
+            $self.context.cycle_depth -= 1;
+        }
+    };
+}
+
 impl<'ast> Analyzer {
     /// Вход в новую область видимости
     pub(crate) fn analyze_block(&mut self, i: &'ast syn::Block) { 
@@ -118,6 +152,8 @@ impl<'ast> Analyzer {
 
     /// Цикл while
     pub(crate) fn analyze_expr_while(&mut self, i: &'ast ExprWhile) {
+        create_snapshot!(self, snapshot);
+        
         let sparks = self.get_sparks(&i.cond);
         let condition_code = i.cond.to_token_stream().to_string();
 
@@ -137,10 +173,15 @@ impl<'ast> Analyzer {
                 this.analyze_block(&i.body);
             }
         );
+
+        self.end_loop(i.span());
+        restore_snapshot!(self, snapshot);
     }
     
     /// Цикл for
     pub(crate) fn analyze_expr_for_loop(&mut self, i: &'ast ExprForLoop) {
+        create_snapshot!(self, snapshot);
+        
         let sparks = self.get_sparks(&i.expr);
         let pattern_code = i.pat.to_token_stream().to_string();
         let expr_code = i.expr.to_token_stream().to_string();
@@ -161,6 +202,9 @@ impl<'ast> Analyzer {
                 this.analyze_block(&i.body);
             }
         );
+
+        self.end_loop(i.span());
+        restore_snapshot!(self, snapshot);
     }
     
     /// Match
@@ -219,6 +263,8 @@ impl<'ast> Analyzer {
 
     /// Loop { ... }
     pub(crate) fn analyze_expr_loop(&mut self, i: &'ast ExprLoop) {
+        create_snapshot!(self, snapshot);
+
         // Метка цикла
         let label = i.label.as_ref().map(|l| l.name.ident.to_string());
 
@@ -234,6 +280,9 @@ impl<'ast> Analyzer {
                 this.analyze_block(&i.body);
             }
         );
+
+        self.end_loop(i.span());
+        restore_snapshot!(self, snapshot);
     }
 
     /// Выход из цикла (break), пример:
@@ -283,5 +332,21 @@ impl<'ast> Analyzer {
         // чтобы return в замыканиях не вернул всё реактивные переменные в статику
         // (не сгенерировал DropSpark в замыкании)
         self.lifetime_manager = old_manager;
+    }
+
+    fn end_loop(&mut self, span: Span) {
+        // Если при выходе из цикла в нём обнаружены виджеты то нужно пометить этот цикл
+        // как динамический список в IR
+        if self.context.microruntime_widgets.has_widgets {
+            let mut statement = self.context.statement.clone();
+            
+            statement.action = FireworkAction::DynamicLoopBegin(
+                self.context.cycle_depth,
+                self.context.microruntime_widgets.widgets.clone(),
+            );
+            statement.string = "".to_string();
+            statement.span = span;
+            self.context.ir.push(statement); 
+        }
     }
 }

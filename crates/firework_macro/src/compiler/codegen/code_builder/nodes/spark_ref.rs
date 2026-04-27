@@ -17,7 +17,7 @@ impl CodeBuilder {
         struct_name: String,
         final_tokens: &mut TokenStream,
         statement: &FireworkStatement, 
-    ) {
+    ) -> bool {
         match &statement.action {
             FireworkAction::SparkRef { name, id, is_mut, root, local_id, .. } => {
                 let field_name = format!("spark_{}", id);
@@ -69,9 +69,13 @@ impl CodeBuilder {
                         #(#func_effects_statements)*
                     }
                 ));
+
+                return true;
             },
 
             _ => {},
         };
+
+        false
     }
 }

@@ -195,7 +195,19 @@ impl<'ast> Analyzer {
                 if _need_microruntime {
                     // Если виджет был декларирован в цикле то его нужно обернуть в
                     // специальный контейнер
-                    skin_field = format!("firework_ui::DynList<{}>", skin_field);
+
+                    let depth = self.context.microruntime_widgets.count;
+                    self.context.microruntime_widgets.has_widgets = true;
+
+                    skin_field = {
+                        let mut result = skin_field.clone();
+                        
+                        for _ in 0..depth {
+                            result = format!("firework_ui::DynList<{}>", result);
+                        }
+                        
+                        result
+                    }; 
                 }
             }
 
@@ -232,6 +244,11 @@ impl<'ast> Analyzer {
             );
             self.context.ir.push(self.context.statement.clone());
             self.statement_index += 1;
+
+            if has_microruntime {
+                self.context.microruntime_widgets.widgets.push(self.context.widget_counter);
+                self.context.microruntime_widgets.count += 1;
+            }
 
             self.context.widget_counter += 1;
 

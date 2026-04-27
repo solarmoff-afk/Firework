@@ -29,7 +29,7 @@ impl CodeBuilder {
         struct_name: String,
         final_tokens: &mut TokenStream,
         statement: &FireworkStatement,
-    ) {
+    ) -> bool {
         match &statement.action {
             FireworkAction::InitialSpark { id, expr_body, name, is_mut, .. } => {
                 let field_name = format!("spark_{}", id);
@@ -63,9 +63,13 @@ impl CodeBuilder {
 
                     let #modifier #ident = #take_field_expr;
                 ));
+
+                return true;
             },
 
             _ => {},
         };
+
+        false
     }
 }

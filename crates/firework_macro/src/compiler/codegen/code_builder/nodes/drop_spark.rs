@@ -16,7 +16,7 @@ impl CodeBuilder {
     pub fn node_drop_spark(
         &self, span: Span, struct_name: String, final_tokens: &mut TokenStream,
         statement: &FireworkStatement,
-    ) {
+    ) -> bool {
         match &statement.action {
             // Генерация возврата владения в BSS
             // TODO: Могут возникнуть ошибки компиляции на уровне rustc если
@@ -31,9 +31,13 @@ impl CodeBuilder {
                 final_tokens.extend(quote_spanned!(span=> 
                     #set_field_expr
                 ));
+
+                return true;
             },
 
             _ => {},
         };
+
+        false
     }
 }

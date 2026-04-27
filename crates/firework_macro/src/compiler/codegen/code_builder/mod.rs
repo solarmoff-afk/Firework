@@ -47,15 +47,10 @@ impl CodeBuilder {
         let mut final_tokens = TokenStream::new();
         let mut is_body_handled = false;
 
-        // Может быть несколько семантических меток на стейтемент, чаще всего это
-        // DropSpark или терминаторы. Они привязаны к спану оригинального стейтемента,
-        // но выполняют функцию дополнения
         for statement in statements {
-            // Имя структуры экрана
-            let struct_name = format!("ApplicationUiBlockStruct{}", statement.screen_index);
-
             match &statement.action {
-                FireworkAction::ReactiveBlock(..) => {
+                FireworkAction::ReactiveBlock(..) |
+                FireworkAction::DynamicLoopBegin(..) => {
                     is_body_handled = true;
                 },
 
@@ -70,32 +65,56 @@ impl CodeBuilder {
 
                 _ => {}
             }
+        }
+
+        // Может быть несколько семантических меток на стейтемент, чаще всего это
+        // DropSpark или терминаторы. Они привязаны к спану оригинального стейтемента,
+        // но выполняют функцию дополнения
+        for statement in statements {
+            // Имя структуры экрана
+            let struct_name = format!("ApplicationUiBlockStruct{}", statement.screen_index);
 
             // Узлы обрабатывают виртуальный стейтемент и генерируют токены в final_tokens
             // обрабатывая семантическую метку
             
             // Узел инициализации реактивной переменной
-            self.node_initial_spark(
-                span, struct_name.clone(), &mut final_tokens, &statement);
+            if self.node_initial_spark(
+                    span, struct_name.clone(), &mut final_tokens, &statement) {
+                continue;
+            }
             
             // Узел возврата владения в статическую память
-            self.node_drop_spark(
-                span, struct_name.clone(), &mut final_tokens, &statement);
+            if self.node_drop_spark(
+                    span, struct_name.clone(), &mut final_tokens, &statement) {
+                continue;
+            }
             
             // Узел реактивного блока
-            self.node_reactive_block(
-                span, &mut final_tokens, &statement, &processed_body, statements);
+            if self.node_reactive_block(
+                    span, &mut final_tokens, &statement, &processed_body, statements) {
+                continue;
+            }
             
             // Узел обновления реактивной переменной
-            self.node_update_spark(span, &mut final_tokens, &statement, &processed_body);
+            if self.node_update_spark(span, &mut final_tokens, &statement, &processed_body) {
+                continue;
+            }
+
+            if self.node_dynamic_list(span, &mut final_tokens, &statement, &processed_body) {
+                continue;
+            }
 
             // Узел взятия ссылки на глобальный спарк шейред блока
-            self.node_spark_ref(
-                span, struct_name.clone(), &mut final_tokens, &statement);
+            if self.node_spark_ref(
+                    span, struct_name.clone(), &mut final_tokens, &statement) {
+                continue;
+            }
 
             // Узел инициализации виджета
-            self.node_widget_block(
-                span, struct_name.clone(), &mut final_tokens, &statement);
+            if self.node_widget_block(
+                    span, struct_name.clone(), &mut final_tokens, &statement) {
+                continue;
+            }
 
             // Для DefaultCode нет отдельного узла так как он просто отправляет свой вход
             // на выход

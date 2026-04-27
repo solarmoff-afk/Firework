@@ -32,7 +32,7 @@ impl CodeBuilder {
     pub fn node_reactive_block(
         &self, span: Span, final_tokens: &mut TokenStream, statement: &FireworkStatement,
         processed_body: &TokenStream, all_statements: &[FireworkStatement],
-    ) {
+    ) -> bool {
         match &statement.action {
             FireworkAction::ReactiveBlock(_block_type, sparks) => {
                 let mut condition = String::new();
@@ -82,9 +82,13 @@ impl CodeBuilder {
                         #inner_masks
                     }
                 ));
+
+                return true;
             },
 
             _ => {},
         };
+
+        false
     } 
 }

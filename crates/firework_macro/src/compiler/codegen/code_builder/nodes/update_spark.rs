@@ -11,7 +11,7 @@ impl CodeBuilder {
     pub fn node_update_spark(
         &self, span: Span, final_tokens: &mut TokenStream,
         statement: &FireworkStatement, processed_body: &TokenStream,
-    ) {
+    ) -> bool {
         match &statement.action {
             FireworkAction::UpdateSpark(_, id, _) => {
                 // Реактивная переменная (спарк) обновилась то нужно изменить бит
@@ -90,9 +90,13 @@ impl CodeBuilder {
                         }
                     ));
                 }
+
+                return true;
             },
 
             _ => {},
         };
+
+        false
     }
 }

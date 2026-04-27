@@ -7,7 +7,7 @@ impl CodeBuilder {
     pub fn node_widget_block(
         &mut self, span: Span, struct_name: String, final_tokens: &mut TokenStream,
         statement: &FireworkStatement, 
-    ) {
+    ) -> bool {
         match &statement.action {
             FireworkAction::WidgetBlock(description) => {
                 let instance_ident_upper = format_ident!("{}_INSTANCE", struct_name.to_uppercase());
@@ -27,7 +27,8 @@ impl CodeBuilder {
                 for (name, field) in &description.fields {
                     // Поле с именем skin нужно пропустить, так как оно явлется задающим
                     if need_skip_props(name) {
-                        return;
+                        // True так как блок обработан
+                        return true;
                     }
 
                     // Название метода берётся из названия поля
@@ -176,10 +177,14 @@ impl CodeBuilder {
                         };
                     ));
                 }
+
+                return true;
             },
 
             _ => {},
         };
+
+        false
     }
 }
 
