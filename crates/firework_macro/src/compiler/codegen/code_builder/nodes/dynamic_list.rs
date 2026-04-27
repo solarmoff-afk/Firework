@@ -5,16 +5,15 @@ use super::super::*;
 
 impl CodeBuilder { 
     pub fn node_dynamic_list(
-        &self, span: Span, final_tokens: &mut TokenStream,
+        &self, span: Span, final_tokens: &mut TokenStream, _struct_name: String,
         statement: &FireworkStatement, processed_body: &TokenStream,
     ) -> bool {
         match &statement.action {
-            FireworkAction::DynamicLoopBegin(depth, widgets) => {
-                println!("Depth: {depth}, widgets: {:#?}", widgets);
+            FireworkAction::DynamicLoopBegin(_depth, _widgets) => { 
                 final_tokens.extend(quote_spanned!(span=> 
-                    println!("Cycle start: {}", #depth);
+                    // #list_inits
                     #processed_body
-                    println!("Cycle end: {}", #depth);
+                    // #list_ends
                 ));
 
                 return true;

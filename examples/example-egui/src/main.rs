@@ -47,26 +47,15 @@ fn test_screen() {
 fn test_screen() {
     for i in 0..3 {
         for j in 0..3 {
-            for k in 0..3 {
-                rect! {
-                    position: (10, 10),
-                    size: (100, 100),
-                    color: (0, 255, 0),
-                }
+            let key = (i * 3 + j) as u64;
+
+            rect! {
+                position: (150 * i, 150 * j),
+                size: (100, 100),
+                color: (0, 255, 0),
+                key: key,
             }
         }
-
-        rect! {
-            position: (10, 10),
-            size: (100, 100),
-            color: (0, 255, 0),
-        }
-    }
-
-    rect! {
-        position: (10, 10),
-        size: (100, 100),
-        color: (0, 255, 0),
     }
 }
 

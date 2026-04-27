@@ -6,3 +6,4 @@ pub mod reactive;
 pub mod shared;
 pub mod widget_bitmask;
 pub mod desugaring;
+pub mod dynamic_list;

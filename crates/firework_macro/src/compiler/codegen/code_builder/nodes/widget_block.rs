@@ -23,12 +23,20 @@ impl CodeBuilder {
 
                 let mut widget_reactive = quote! {};
 
+                // Выражение ключа, ключ нужен в динамических списках для оптимизиации
+                // обхода в микрорантайме
+                let mut key_expr: Option<TokenStream> = None;
+
                 // Обход всех полей
                 for (name, field) in &description.fields {
+                    if name == "key" {
+                        key_expr = Some(field.token_stream.clone());
+                        continue;
+                    }
+
                     // Поле с именем skin нужно пропустить, так как оно явлется задающим
                     if need_skip_props(name) {
-                        // True так как блок обработан
-                        return true;
+                        continue;
                     }
 
                     // Название метода берётся из названия поля
@@ -99,7 +107,7 @@ impl CodeBuilder {
                     widget_update_bitmask.extend(quote! {
                         #statement
                     });
-                }
+                } 
 
                 // Генерация проверки на то, что бит виджета изменился в битовой маске
                 let mut condition = String::new();
@@ -112,58 +120,108 @@ impl CodeBuilder {
 
                 let condition_statement = condition.to_expr().unwrap();
 
-                // Безопасный режим с Mutex
-                #[cfg(feature = "safety-multithread")]
-                let match_value = quote! {
-                     #instance_ident_upper.get()
-                        .expect("Instance not initialized").lock().unwrap().#field_ident
-                };
+                let mut match_value = TokenStream::new();
 
-                #[cfg(feature = "safety-multithread")]
-                final_tokens.extend(quote_spanned!(span=>
-                    match #match_value {
-                        Some(ref _fwc_wb_1) => {
+                let is_in_loop = description.has_microruntime;
+                if is_in_loop {
+                    // У виджетов в циклах обязан быть ключ, это проверяется анализатором
+                    let key_token = key_expr.expect("Key field not found");
+
+                    #[cfg(feature = "safety-multithread")]
+                    final_tokens.extend(quote_spanned!(span=>
+                        {
+                            let mut _fwc_inst = #instance_ident_upper.get()
+                                .expect("Instance not initialized").lock().unwrap();
+                            
+                            // SAFETY: List initialized before
+                            let mut _fwc_list_ref = _fwc_inst.#field_ident.as_mut().unwrap();
+
+                            let mut _fwc_wb_1 = match _fwc_list_ref.entry(#key_token) {
+                                firework_ui::ListEntry::Occupied(existing) => existing,
+                                firework_ui::ListEntry::Vacant(vacant) => vacant.insert(#widget_init),
+                            };
+
                             #widget_reactive
                             #widget_update_bitmask
-                        },
+                        }
+                    ));
 
-                        None => {
+                    #[cfg(not(feature = "safety-multithread"))]
+                    final_tokens.extend(quote_spanned!(span=>
+                        {
+                            let mut _fwc_list_ref = unsafe { 
+                                (*::core::ptr::addr_of_mut!(#instance_ident_upper)).#field_ident.as_mut().unwrap() 
+                            };
+
+                            let mut _fwc_wb_1 = match _fwc_list_ref.entry(#key_token) {
+                                firework_ui::ListEntry::Occupied(existing) => existing,
+                                firework_ui::ListEntry::Vacant(vacant) => vacant.insert(#widget_init),
+                            };
+
+                            #widget_reactive
+                            #widget_update_bitmask
+                        }
+                    ));
+                } else {
+                    // Безопасный режим с Mutex
+                    #[cfg(feature = "safety-multithread")]
+                    {
+                        match_value = quote! {
                             #instance_ident_upper.get()
-                                .expect("Instance not initialized")
-                                .lock()
-                                .unwrap()
-                                .#field_ident = Some(#widget_init);
-                            #widget_update_bitmask
-                        },
-                    };
-                ));
-
-                #[cfg(not(feature = "safety-multithread"))]
-                let match_value = quote! {
-                     unsafe {
-                        (*::core::ptr::addr_of!(#instance_ident_upper)).#field_ident
+                                .expect("Instance not initialized").lock()
+                                .unwrap().#field_ident
+                        };
                     }
-                };
 
-                // Обычный режим
-                #[cfg(not(feature = "safety-multithread"))]
-                final_tokens.extend(quote_spanned!(span=>
-                    match #match_value {
-                        Some(ref _fwc_wb_1) => {
-                            #widget_reactive
-                            #widget_update_bitmask
-                        },
-                        
-                        None => {
-                            unsafe {
-                                (*::core::ptr::addr_of_mut!(#instance_ident_upper)).#field_ident
-                                    = Some(#widget_init);
+                    #[cfg(feature = "safety-multithread")]
+                    final_tokens.extend(quote_spanned!(span=>
+                        match #match_value {
+                            Some(ref _fwc_wb_1) => {
+                                #widget_reactive
                                 #widget_update_bitmask
-                            }
-                        },
-                    };
-                ));
+                            },
 
+                            None => {
+                                #instance_ident_upper.get()
+                                    .expect("Instance not initialized")
+                                    .lock()
+                                    .unwrap()
+                                    .#field_ident = Some(#widget_init);
+                                #widget_update_bitmask
+                            },
+                        };
+                    ));
+
+                    #[cfg(not(feature = "safety-multithread"))]
+                    {
+                        match_value = quote! {
+                            unsafe {
+                                (*::core::ptr::addr_of!(#instance_ident_upper)).#field_ident
+                            }
+                        };
+                    }
+
+                    // Обычный режим
+                    #[cfg(not(feature = "safety-multithread"))]
+                    final_tokens.extend(quote_spanned!(span=>
+                        match #match_value {
+                            Some(ref _fwc_wb_1) => {
+                                #widget_reactive
+                                #widget_update_bitmask
+                            },
+                            
+                            None => {
+                                unsafe {
+                                    (*::core::ptr::addr_of_mut!(#instance_ident_upper)).#field_ident
+                                        = Some(#widget_init);
+                                    #widget_update_bitmask
+                                }
+                            },
+                        };
+                    ));
+                }
+
+                // Финализация
                 if description.is_maybe.is_some() {
                     self.tokens.push(quote_spanned!(span=>
                         match #match_value {

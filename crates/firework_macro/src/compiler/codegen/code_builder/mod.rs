@@ -100,7 +100,8 @@ impl CodeBuilder {
                 continue;
             }
 
-            if self.node_dynamic_list(span, &mut final_tokens, &statement, &processed_body) {
+            if self.node_dynamic_list(span, &mut final_tokens, struct_name.clone(), &statement,
+                    &processed_body) {
                 continue;
             }
 

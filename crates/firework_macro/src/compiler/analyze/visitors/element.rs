@@ -195,19 +195,14 @@ impl<'ast> Analyzer {
                 if _need_microruntime {
                     // Если виджет был декларирован в цикле то его нужно обернуть в
                     // специальный контейнер
-
-                    let depth = self.context.microruntime_widgets.count;
+ 
                     self.context.microruntime_widgets.has_widgets = true;
 
-                    skin_field = {
-                        let mut result = skin_field.clone();
-                        
-                        for _ in 0..depth {
-                            result = format!("firework_ui::DynList<{}>", result);
-                        }
-                        
-                        result
-                    }; 
+                    skin_field = format!("firework_ui::DynList<u64, {}>", skin_field);
+                    self.context.ir.screen_dynamic_widgets
+                        .entry(self.context.statement.screen_index)
+                        .or_insert_with(Vec::new)
+                        .push(self.context.widget_counter);
                 }
             }
 
