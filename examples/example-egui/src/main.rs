@@ -54,8 +54,8 @@ fn test_screen() {
                 size: (100, 100),
                 color: (0, 255, 0),
 
-                #[key_type((i32, i32))]
-                key: (i, j),
+                // #[key_type((i32, i32))]
+                // key: (i, j),
             }
         }
     }

@@ -141,6 +141,7 @@ impl<'ast> Analyzer {
             for prop in args.properties {
                 let prop_name = prop.name.to_string();
                 if prop_name == "key" {
+                    println!("FOUND KEY!");
                     has_key = true;
                 }
 
@@ -181,6 +182,13 @@ impl<'ast> Analyzer {
                         }
                     }
                 }
+            }
+
+            if !has_key {
+                self.context.errors.push(compile_error_spanned(
+                    i.tokens.clone(),
+                    WIDGET_KEY_REQUIRED_ERROR,
+                ));
             }
 
             // Если в инициализации виджета есть поле skin то это должна быть структура с

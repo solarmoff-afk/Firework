@@ -179,6 +179,17 @@ error[FE018]: state name `{}` not found in state! segment
    = note: for more information, see: [WORK IN PROGRESS]
 ";
 
+/// Виджеты в циклах должны иметь пропс key
+pub const WIDGET_KEY_REQUIRED_ERROR: &str = "\
+error[FE019]: widget inside a loop requires a `key` prop
+   = note: widgets created in loops need unique keys to maintain reactive state across iterations
+   = help: add a `key` prop to the widget: `widget_name! { key: value, field: value }`
+   = note: key type defaults to `u64`, but can be customized with `#[key_type(Type)]` attribute
+   = help: example: `widget_name! { #[key_type(u32)] key: index, }`
+   = help: example with tuple: `widget_name! { #[key_type((i32, i32))] key: (row, col) }`
+   = note: for more information, see: [WORK IN PROGRESS]
+";
+
 pub fn compile_error_spanned<T: quote::ToTokens>(tokens: T, msg: &str) -> Error {
     Error::new_spanned(tokens, msg)
 }

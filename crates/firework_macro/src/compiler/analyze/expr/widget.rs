@@ -178,21 +178,6 @@ impl Parse for WidgetPropertyAttribute {
     }
 }
 
-impl WidgetPropertyAttribute {
-    pub fn to_string(&self) -> String {
-        match &self.args {
-            Some(args) => {
-                let args_str = args.iter()
-                    .map(|arg| arg.to_string())
-                    .collect::<Vec<_>>()
-                    .join(", ");
-                format!("{}({})", self.name, args_str)
-            }
-            None => self.name.to_string(),
-        }
-    }
-}
-
 impl WidgetAttributeArg {
     pub fn to_string(&self) -> String {
         match self {
