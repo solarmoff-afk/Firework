@@ -2,7 +2,7 @@
 // Лицензия EPL 2.0, подробнее в файле LICENSE. Copyright (c) 2026 Firework
 
 use syn::parse::{Parse, ParseStream};
-use syn::{Ident, Token, Expr, Result, punctuated::Punctuated};
+use syn::{Lit, Ident, Token, Expr, Result, punctuated::Punctuated};
 
 /// Струкутра для хранения информации о инициализация поля внутри декларативного виджета,
 /// пример:
@@ -17,13 +17,21 @@ pub struct WidgetProperty {
 
     // Правая часть, выражение которое задаётся для этого поля
     pub value: Expr,
+
+    pub attrs: Vec<WidgetPropertyAttribute>,
 }
 
 impl Parse for WidgetProperty {
     fn parse(input: ParseStream) -> Result<Self> {
+        let mut attrs = Vec::new();
+        while input.peek(Token![#]) {
+            let attr: WidgetPropertyAttribute = input.parse()?;
+            attrs.push(attr);
+        }
+
         // Левая часть, имя поля куда задаётся значение 
         let name: Ident = input.parse()?;
-        
+
         // Центральная часть, пропускается так как не нужна. Двоеточие которое
         // разделяет левую и правую часть (a: b)
         let _: Token![:] = input.parse()?;
@@ -38,9 +46,16 @@ impl Parse for WidgetProperty {
         };
 
         Ok(WidgetProperty {
+            attrs,
             name,
-            value
+            value,
         })
+    }
+}
+
+impl WidgetProperty {
+    pub fn get_attribute(&self, name: &str) -> Option<&WidgetPropertyAttribute> {
+        self.attrs.iter().find(|attr| attr.name == name)
     }
 }
 
@@ -111,5 +126,85 @@ pub fn map_skin(widget_name: &str) -> Option<String> {
        
         // Не имеет скина так как явлется функциональным виджетом
         _ => None,
+    }
+}
+
+/// Атрибут для поля виджета
+#[derive(Debug, Clone)]
+pub struct WidgetPropertyAttribute {
+    pub name: Ident,
+    pub args: Option<Vec<WidgetAttributeArg>>,
+}
+
+#[derive(Debug, Clone)]
+pub enum WidgetAttributeArg {
+    Lit(Lit),
+    Ident(Ident),
+    Tuple(Vec<WidgetAttributeArg>),
+}
+
+impl Parse for WidgetAttributeArg {
+    fn parse(input: ParseStream) -> Result<Self> {
+        if input.peek(syn::token::Paren) {
+            let content;
+            syn::parenthesized!(content in input);
+            let args = Punctuated::<WidgetAttributeArg, Token![,]>::parse_terminated(&content)?;
+            Ok(WidgetAttributeArg::Tuple(args.into_iter().collect()))
+        } else if input.peek(syn::Lit) {
+            Ok(WidgetAttributeArg::Lit(input.parse()?))
+        } else {
+            Ok(WidgetAttributeArg::Ident(input.parse()?))
+        }
+    }
+}
+
+impl Parse for WidgetPropertyAttribute {
+    fn parse(input: ParseStream) -> Result<Self> {
+        let _: Token![#] = input.parse()?;
+        let content;
+        syn::bracketed!(content in input);
+        
+        let name: Ident = content.parse()?;
+        let args = if content.peek(syn::token::Paren) {
+            let args_content;
+            syn::parenthesized!(args_content in content);
+            let args = Punctuated::<WidgetAttributeArg, Token![,]>::parse_terminated(&args_content)?;
+            Some(args.into_iter().collect())
+        } else {
+            None
+        };
+        
+        Ok(WidgetPropertyAttribute { name, args })
+    }
+}
+
+impl WidgetPropertyAttribute {
+    pub fn to_string(&self) -> String {
+        match &self.args {
+            Some(args) => {
+                let args_str = args.iter()
+                    .map(|arg| arg.to_string())
+                    .collect::<Vec<_>>()
+                    .join(", ");
+                format!("{}({})", self.name, args_str)
+            }
+            None => self.name.to_string(),
+        }
+    }
+}
+
+impl WidgetAttributeArg {
+    pub fn to_string(&self) -> String {
+        match self {
+            WidgetAttributeArg::Lit(lit) => quote::quote!(#lit).to_string(),
+            WidgetAttributeArg::Ident(ident) => ident.to_string(),
+            WidgetAttributeArg::Tuple(args) => {
+                let inner = args.iter()
+                    .map(|arg| arg.to_string())
+                    .collect::<Vec<_>>()
+                    .join(", ");
+                format!("({})", inner)
+            }
+        }
     }
 }

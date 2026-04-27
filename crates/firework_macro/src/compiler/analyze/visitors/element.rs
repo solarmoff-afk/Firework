@@ -135,8 +135,15 @@ impl<'ast> Analyzer {
 
             let mut fields_map: HashMap<String, FireworkWidgetField> = HashMap::new();
 
+            let mut key_type = "u64".to_string();
+            let mut has_key = false; 
+
             for prop in args.properties {
                 let prop_name = prop.name.to_string();
+                if prop_name == "key" {
+                    has_key = true;
+                }
+
                 let mut this_field = FireworkWidgetField {
                     sparks: Vec::new(),
                     string: prop.value.to_token_stream().to_string(),
@@ -166,6 +173,14 @@ impl<'ast> Analyzer {
                 }
 
                 fields_map.insert(prop_name, this_field);
+
+                if let Some(attr) = prop.get_attribute("key_type") {
+                    if let Some(args) = &attr.args {
+                        if let Some(first) = args.first() {
+                            key_type = first.to_string();
+                        }
+                    }
+                }
             }
 
             // Если в инициализации виджета есть поле skin то это должна быть структура с
@@ -196,9 +211,9 @@ impl<'ast> Analyzer {
                     // Если виджет был декларирован в цикле то его нужно обернуть в
                     // специальный контейнер
  
-                    self.context.microruntime_widgets.has_widgets = true;
+                    self.context.microruntime_widgets.has_widgets = true; 
 
-                    skin_field = format!("firework_ui::DynList<u64, {}>", skin_field);
+                    skin_field = format!("firework_ui::DynList<{}, {}>", key_type, skin_field);
                     self.context.ir.screen_dynamic_widgets
                         .entry(self.context.statement.screen_index)
                         .or_insert_with(Vec::new)

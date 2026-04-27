@@ -64,7 +64,7 @@ error[FE006]: multiple spark!() calls in the same expression are not allowed
 /// Нарушение синтаксиса Widget DSL
 pub const WIDGET_PARSE_ERROR: &str = "\
 error[FE007]: failed to parse widget macro invocation
-   = note: expected syntax: `widget_name!(field: value, field: value);`
+   = note: expected syntax: `widget_name! { field: value, field: value }`
    = help: check that all fields follow the `field: value` pattern
    = help: fields must be separated by commas
    = note: for more information, see: [WORK IN PROGRESS]

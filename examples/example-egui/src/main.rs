@@ -49,13 +49,13 @@ fn test_screen() {
 
     for i in 0..x {
         for j in 0..3 {
-            let key = (i * 3 + j) as u64;
-
             rect! {
                 position: (150 * i, 150 * j),
                 size: (100, 100),
                 color: (0, 255, 0),
-                key: key,
+
+                #[key_type((i32, i32))]
+                key: (i, j),
             }
         }
     }
