@@ -45,7 +45,9 @@ fn test_screen() {
 
 #[ui]
 fn test_screen() {
-    for i in 0..3 {
+    let mut x = spark!(3);
+
+    for i in 0..x {
         for j in 0..3 {
             let key = (i * 3 + j) as u64;
 
@@ -57,6 +59,8 @@ fn test_screen() {
             }
         }
     }
+
+    x += 1;
 }
 
 fn main() {
