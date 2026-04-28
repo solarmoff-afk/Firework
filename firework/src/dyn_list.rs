@@ -7,6 +7,7 @@ use core::mem;
 /// гарантирует наличие метода visible
 pub trait SkinVisibility {
     fn visible(&self, state: bool);
+    fn unmount(self);
 }
 
 /// Результат поиска элемента в списке
@@ -75,7 +76,7 @@ impl<K: Eq + PartialEq, T: SkinVisibility> DynList<K, T> {
     /// Завершение прохода, убивает элементы которых больше нет в коде
     pub fn end_pass(&mut self) {
         for (_, item) in self.old_items.drain(..) {
-            item.visible(false);
+            item.unmount();
         }
     }
 
@@ -146,9 +147,9 @@ impl<K: Eq + PartialEq, T: SkinVisibility> DynList<K, T> {
     }
 
     pub fn end_pass(&mut self) {
-        for i in 0..64 {
+        for i in 0..16 {
             if let Some(item) = self.old_items[i].take() {
-                item.1.visible(false);
+                item.unmount();
             }
         }
     }

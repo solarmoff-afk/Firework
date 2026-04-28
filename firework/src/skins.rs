@@ -62,11 +62,23 @@ impl DefaultRectSkin {
     pub fn hit_group(self, group: u16) -> Self {
         let _ = adapter_command(AdapterCommand::SetHitGroup(self.handle, group));
         self
-    } 
+    }
+
+    pub fn __id(&self) -> usize {
+        self.handle
+    }
 }
 
 impl crate::dyn_list::SkinVisibility for DefaultRectSkin {
     fn visible(&self, state: bool) {
         DefaultRectSkin::visible(*self, state);
+    }
+
+    fn unmount(self) {
+        self.visible(false);
+        
+        crate::adapter_command(
+            crate::AdapterCommand::Remove(self.__id()) 
+        );
     }
 }
