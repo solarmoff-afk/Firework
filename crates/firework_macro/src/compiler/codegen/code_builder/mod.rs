@@ -37,28 +37,59 @@ impl CodeBuilder {
     /// Ноды сами решают использовать ли оригинальный стейтемент
     pub fn build(
         &mut self, stmt: &syn::Stmt, statements: &[FireworkStatement], 
-        processed_body: TokenStream,
+        mut processed_body: TokenStream,
     ) -> TokenStream {
         // Спан нужен для того чтобы вставить код в нужное место для правильных ошибок
         // rustc
         let span = stmt.span();
         
-        // Финальный набор токенов куда добавляется результат каждой ноды
         let mut final_tokens = TokenStream::new();
         let mut is_body_handled = false;
 
+        // Ноды которые полностью меняют оригинальный код перезаписывая его
         for statement in statements {
-            match &statement.action {
-                FireworkAction::ReactiveBlock(..) |
-                FireworkAction::DynamicLoopBegin(..) => {
-                    is_body_handled = true;
-                },
+            let struct_name = format!("ApplicationUiBlockStruct{}", statement.screen_index);
+            let mut temp_tokens = TokenStream::new();
+            
+            let tokens = &mut temp_tokens;
+            if self.node_initial_spark(span, struct_name.clone(), tokens, &statement) ||
+               self.node_spark_ref(span, struct_name.clone(), tokens, &statement) ||
+               self.node_widget_block(span, struct_name.clone(), tokens, &statement) 
+            {
+                processed_body = temp_tokens; 
+                is_body_handled = true;
+                break; 
+            }
+        }
 
+        // Ноды которые требуют только обёртку для проверки фазы флэша (Build/Navigate)
+        for statement in statements {
+            let mut temp_tokens = TokenStream::new();
+            match statement.action {
                 FireworkAction::UpdateSpark(..) => {
                     let need_condition = !statement.is_reactive_block
                         && statement.parent_widget_id.is_none();
-                    
-                    if need_condition {
+
+                    if self.node_update_spark(span, &mut temp_tokens, &statement,
+                            &processed_body) && need_condition {
+                        processed_body = temp_tokens;
+                        is_body_handled = true;
+                    }
+                },
+
+                FireworkAction::ReactiveBlock(..) => {
+                    if self.node_reactive_block(span, &mut temp_tokens, &statement,
+                            &processed_body, statements) {
+                        processed_body = temp_tokens;
+                        is_body_handled = true;
+                    }
+                },
+
+                FireworkAction::DynamicLoopBegin(..) => {
+                    let struct_name = format!("ApplicationUiBlockStruct{}", statement.screen_index);
+                    if self.node_dynamic_list(span, &mut temp_tokens, struct_name, &statement,
+                            &processed_body) {
+                        processed_body = temp_tokens;
                         is_body_handled = true;
                     }
                 },
@@ -67,76 +98,28 @@ impl CodeBuilder {
             }
         }
 
-        // Может быть несколько семантических меток на стейтемент, чаще всего это
-        // DropSpark или терминаторы. Они привязаны к спану оригинального стейтемента,
-        // но выполняют функцию дополнения
+        // Возврат владения в статику
+        let mut drop_tokens = TokenStream::new();
         for statement in statements {
-            // Имя структуры экрана
-            let struct_name = format!("ApplicationUiBlockStruct{}", statement.screen_index);
+            if let FireworkAction::DropSpark { .. } = statement.action {
+                let struct_name = format!("ApplicationUiBlockStruct{}",
+                    statement.screen_index);
 
-            // Узлы обрабатывают виртуальный стейтемент и генерируют токены в final_tokens
-            // обрабатывая семантическую метку
-            
-            // Узел инициализации реактивной переменной
-            if self.node_initial_spark(
-                    span, struct_name.clone(), &mut final_tokens, &statement) {
-                continue;
-            }
-            
-            // Узел возврата владения в статическую память
-            if self.node_drop_spark(
-                    span, struct_name.clone(), &mut final_tokens, &statement) {
-                continue;
-            }
-            
-            // Узел реактивного блока
-            if self.node_reactive_block(
-                    span, &mut final_tokens, &statement, &processed_body, statements) {
-                continue;
-            }
-            
-            // Узел обновления реактивной переменной
-            if self.node_update_spark(span, &mut final_tokens, &statement, &processed_body) {
-                continue;
-            }
-
-            if self.node_dynamic_list(span, &mut final_tokens, struct_name.clone(), &statement,
-                    &processed_body) {
-                continue;
-            }
-
-            // Узел взятия ссылки на глобальный спарк шейред блока
-            if self.node_spark_ref(
-                    span, struct_name.clone(), &mut final_tokens, &statement) {
-                continue;
-            }
-
-            // Узел инициализации виджета
-            if self.node_widget_block(
-                    span, struct_name.clone(), &mut final_tokens, &statement) {
-                continue;
-            }
-
-            // Для DefaultCode нет отдельного узла так как он просто отправляет свой вход
-            // на выход
-            match &statement.action {
-                // Другой случай который либо не реализован, либо DefaultCode (код без
-                // семантической метки)
-                FireworkAction::DefaultCode => {
-                    if !is_body_handled {
-                        final_tokens.extend(quote_spanned!(span=> 
-                            #processed_body 
-                        ));
-
-                        is_body_handled = true;
-                    }
-                }, 
-
-                // Другие метки игнорируются
-                _ => {},
+                self.node_drop_spark(span, struct_name, &mut drop_tokens, &statement);
             }
         }
 
+        // Финальная сборка
+        if is_body_handled && !processed_body.is_empty() {
+            final_tokens.extend(processed_body);
+        } else {
+            final_tokens.extend(quote_spanned!(span=> {
+                #processed_body
+            }));
+        }
+
+        // DropSpark всегда идёт вне контекстных условий
+        final_tokens.extend(drop_tokens);
         final_tokens
     }
 

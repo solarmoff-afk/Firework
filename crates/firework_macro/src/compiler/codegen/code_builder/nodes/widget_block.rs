@@ -39,6 +39,11 @@ impl CodeBuilder {
                         continue;
                     }
 
+                    if field.is_fn && is_event(name) {
+                        println!("Hello world");
+                        continue;
+                    }
+
                     // Название метода берётся из названия поля
                     let method_ident = format_ident!("{}", name);
 
@@ -251,4 +256,8 @@ impl CodeBuilder {
 fn need_skip_props(props: &str) -> bool {
     props == "skin" ||    // Для того чтобы изменить отображение виджета
     props == "key"        // Для динамических списков
+}
+
+fn is_event(props: &str) -> bool {
+    props == "on_click"
 }

@@ -33,6 +33,12 @@ fn test_screen() {
 
                 #[key_type((i32, i32))]
                 key: (i, j),
+
+                /*
+                on_click: || {
+                    println!("Hello world");
+                }
+                */
             }
         }
     }
