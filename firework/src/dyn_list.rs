@@ -88,7 +88,6 @@ impl<K: Eq + PartialEq, T: SkinVisibility> DynList<K, T> {
     }
 }
 
-
 #[cfg(feature = "no-alloc")]
 pub struct DynList<K, T> {
     current_items: [Option<(K, T)>; 64],

@@ -13,6 +13,8 @@ pub use runtime_errors::RENDER_ADAPTER_MISSING_ERROR;
 pub use skins::DefaultRectSkin;
 pub use dyn_list::{DynList, ListEntry};
 
+pub const TOUCH_HIT_GROUP: u16 = u16::MAX;
+
 /// A simpler implementation of the matches macro separate from STD for use in
 /// generated code
 #[macro_export]
@@ -23,6 +25,54 @@ macro_rules! tiny_matches {
             _ => false
         }
     };
+}
+
+#[derive(Debug, Clone, Copy)]
+pub enum CurrentEvent {
+    None,
+    Touch {
+        x: u32,
+        y: u32,
+        hit_object_id: Option<usize>,
+        phase: AdapterClickPhase,
+    },
+}
+
+#[cfg(not(feature = "safety-multithread"))]
+static mut CURRENT_EVENT: CurrentEvent = CurrentEvent::None;
+
+#[cfg(feature = "safety-multithread")]
+static CURRENT_EVENT: OnceLock<Mutex<CurrentEvent>> = OnceLock::new();
+
+/// Установить текущее событие
+#[cfg(not(feature = "safety-multithread"))]
+pub fn set_current_event(event: CurrentEvent) {
+    unsafe {
+        CURRENT_EVENT = event;
+    }
+}
+
+#[cfg(feature = "safety-multithread")]
+pub fn set_current_event(event: CurrentEvent) {
+    *CURRENT_EVENT.get_or_init(|| Mutex::new(CurrentEvent::None)).lock().unwrap() = event;
+}
+
+/// Получить и ОЧИСТИТЬ текущее событие (заменить на None)
+#[cfg(not(feature = "safety-multithread"))]
+pub fn take_current_event() -> CurrentEvent {
+    unsafe {
+        let event = CURRENT_EVENT;
+        CURRENT_EVENT = CurrentEvent::None;
+        event
+    }
+}
+
+#[cfg(feature = "safety-multithread")]
+pub fn take_current_event() -> CurrentEvent {
+    let mut lock = CURRENT_EVENT.get_or_init(|| Mutex::new(CurrentEvent::None)).lock().unwrap();
+    let event = *lock;
+    *lock = CurrentEvent::None;
+    event
 }
 
 /// Current Flash pass context of the screen or component
@@ -160,6 +210,10 @@ pub fn after_first_flash() {
         height: 1280,
         listener: |event| {
             match event {
+                AdapterEvent::Touch(x, y, phase) => {
+                    handle_touch_event(x, y, phase, TOUCH_HIT_GROUP);
+                },
+
                 AdapterEvent::Tick => {
                     adapter_command(AdapterCommand::Render);
                 },
@@ -168,4 +222,26 @@ pub fn after_first_flash() {
             }
         },
     });
+}
+
+pub fn handle_touch_event(x: u32, y: u32, phase: AdapterClickPhase, hit_group: u16) {
+    let hit_result = adapter_command(AdapterCommand::ResolveHit(hit_group, (x as i32, y as i32, 1, 1)));
+    
+    let hit_object_id = match hit_result {
+        AdapterResult::Handle(id) => Some(id),
+        _ => None,
+    };
+    
+    dispatch_event(CurrentEvent::Touch {
+        x,
+        y,
+        hit_object_id,
+        phase,
+    });
+}
+
+pub fn dispatch_event(event: CurrentEvent) {
+    set_current_event(event);
+    get_focus()();
+    set_current_event(CurrentEvent::None);
 }

@@ -13,10 +13,14 @@ pub struct DefaultRectSkin {
 impl DefaultRectSkin { 
     pub fn new(layout: u16) -> Option<Self> {
         match adapter_command(AdapterCommand::NewRect { layout }) {
-            AdapterResult::Handle(handle) => Some(Self {
-                handle: handle,
-                _layout: layout,
-            }),
+            AdapterResult::Handle(handle) => {
+                adapter_command(AdapterCommand::SetHitGroup(handle, crate::TOUCH_HIT_GROUP));
+
+                Some(Self {
+                    handle: handle,
+                    _layout: layout,
+                })
+            }
 
             _ => None,
         }
