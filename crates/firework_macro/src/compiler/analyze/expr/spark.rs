@@ -187,7 +187,7 @@ impl Parse for GlobalState {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::compiler::analyze::lifetime_manager::Variable; 
+    use crate::compiler::analyze::lifetime::Variable; 
     use syn::parse_quote;
 
     #[test]

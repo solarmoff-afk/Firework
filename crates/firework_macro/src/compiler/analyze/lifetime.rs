@@ -191,10 +191,13 @@ impl<'ast> Analyzer {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::compiler::codegen::actions::{FireworkAction, FireworkStatement};
+mod tests {    
     use proc_macro2::Span;
+
+    use super::*;
+    
+    use crate::compiler::codegen::ir::actions::FireworkAction;
+    use crate::compiler::codegen::ir::FireworkStatement;
 
     #[test]
     fn test_lifetime_checker_update_scope_drops_single_spark() {
