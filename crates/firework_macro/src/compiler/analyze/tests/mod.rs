@@ -53,7 +53,7 @@ fn create_drop_spark(name: &str, id: usize) -> FireworkAction {
 fn create_reactive_block(
     block_type: FireworkReactiveBlock, deps: Vec<(String, usize)>
 ) -> FireworkAction {
-    FireworkAction::ReactiveBlock(block_type, deps)
+    FireworkAction::ReactiveBlock(block_type, deps, false)
 }
 
 /// Тест инициализации спарка, будет ли его инициализация в IR с нужными значениями под

@@ -303,11 +303,13 @@ fn test_analyze_nested_widgets() {
 fn test_analyze_widget_missing_key_error() {
     let tokens = quote::quote! {
         fn screen() {
-            rect! {
-                position: (10, 10),
-                size: (100, 100),
-                color: (255, 0, 0),
-                // key 
+            for i in 0..3 {
+                rect! {
+                    position: (10, 10),
+                    size: (100, 100),
+                    color: (255, 0, 0),
+                    // key 
+                }
             }
         }
     };
