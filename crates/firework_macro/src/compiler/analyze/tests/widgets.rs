@@ -25,7 +25,7 @@ fn test_analyze_basic_widget() {
     let expected = [
         WidgetBlock(WidgetDescription {
             widget_type: "rect".to_string(),
-            fields: HashMap::new(),
+            fields: vec![],
             is_functional: false,
             id: 0,
             has_microruntime: false,
@@ -80,7 +80,7 @@ fn test_analyze_widget_with_sparks() {
 
         WidgetBlock(WidgetDescription {
             widget_type: "rect".to_string(),
-            fields: HashMap::new(),
+            fields: vec![],
             is_functional: false,
             id: 0,
             has_microruntime: false,
@@ -135,7 +135,8 @@ fn test_analyze_widget_with_closure() {
             assert_eq!(desc.widget_type, "button");
             assert!(!desc.is_functional);
             
-            if let Some(field) = desc.fields.get("on_click") {
+            if let Some(field) = desc.fields.iter().find(|(k, _)| k == "on_click")
+                    .map(|(_, v)| v) {
                 assert!(field.is_fn);
                 assert!(field.string.contains("counter += 1"));
             }
@@ -165,7 +166,7 @@ fn test_analyze_layout_widget() {
     let expected = [
         WidgetBlock(WidgetDescription {
             widget_type: "layout".to_string(),
-            fields: HashMap::new(),
+            fields: vec![],
             is_functional: true,
             id: 0,
             has_microruntime: false,
@@ -354,7 +355,7 @@ fn test_analyze_widget_with_key_type() {
         if let WidgetBlock(desc) = &stmt.action {
             found_widget = true;
             assert!(desc.has_microruntime); 
-            assert!(desc.fields.contains_key("key"));
+            assert!(desc.fields.iter().any(|(k, _)| k == "key"));
         }
     }
     
@@ -440,7 +441,8 @@ fn test_analyze_widget_closure_with_sparks() {
     
     for stmt in &ir.statements {
         if let WidgetBlock(desc) = &stmt.action {
-            if let Some(on_click) = desc.fields.get("on_click") {
+            if let Some(on_click) = desc.fields.iter().find(|(k, _)| k == "on_click")
+                    .map(|(_, v)| v) {
                 assert!(on_click.is_fn);
                 found_closure_with_updates = true;
                 

@@ -6,6 +6,7 @@ shared! {
         theme: u8 = 0,
     }
 
+    
     #[effect(theme)]
     fn on_update_effect() {
         println!("Update!");

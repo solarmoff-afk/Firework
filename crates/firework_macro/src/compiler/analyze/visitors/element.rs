@@ -53,15 +53,20 @@ impl<'ast> Analyzer {
                 }
             };
 
-            let mut fields_map: HashMap<String, FireworkWidgetField> = HashMap::new();
+            let mut fields_map: Vec<(String, FireworkWidgetField)> = Vec::new();
 
             let mut key_type = "u64".to_string();
-            let mut has_key = false; 
+            let mut has_key = false;
+            let mut has_skin: Option<String> = None;
 
             for prop in args.properties {
                 let prop_name = prop.name.to_string();
                 if prop_name == "key" {
                     has_key = true;
+                }
+
+                if prop_name == "skin" {
+                    has_skin = Some(prop.value.to_token_stream().to_string());
                 }
 
                 let mut this_field = FireworkWidgetField {
@@ -92,7 +97,7 @@ impl<'ast> Analyzer {
                     this_field.is_fn = true;
                 }
 
-                fields_map.insert(prop_name, this_field);
+                fields_map.push((prop_name, this_field));
 
                 if let Some(attr) = prop.get_attribute("key_type") {
                     if let Some(args) = &attr.args {
@@ -107,8 +112,8 @@ impl<'ast> Analyzer {
             // методом build
             let mut _skin_struct: Option<String> = None;
             
-            if let Some(skin) = fields_map.get("skin") {
-                _skin_struct = Some(skin.string.clone());
+            if let Some(skin) = has_skin {
+                _skin_struct = Some(skin.clone());
             } else {
                 // Иначе нужно использовать метод чтобы получить стандартную структуру
                 // для скина этого виджета

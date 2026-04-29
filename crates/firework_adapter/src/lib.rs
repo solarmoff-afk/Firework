@@ -17,7 +17,8 @@
 /// полностью изолирована от работы с рендерингом и нативными вызовами. Адаптер работает
 /// с хэндлами или же id (usize обёртка) для объектов, текстур, шрифтов и т.д. которые
 /// создаются через AdapterCommand
-#[derive(Debug, Clone, Copy)]
+#[allow(unpredictable_function_pointer_comparisons)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum AdapterCommand {
     /// > ENG: This command deletes all render objects currently existing on the screen.
     /// This command must synchronously (within 1 frame) iterate over all objects

@@ -3,6 +3,7 @@
 
 pub mod skins;
 pub mod dyn_list;
+pub mod null_adapter;
 
 mod runtime_errors;
 
@@ -12,6 +13,7 @@ pub use firework_adapter::{AdapterCommand, AdapterEvent, AdapterClickPhase, Adap
 pub use runtime_errors::RENDER_ADAPTER_MISSING_ERROR;
 pub use skins::DefaultRectSkin;
 pub use dyn_list::{DynList, ListEntry};
+pub use null_adapter::null_adapter;
 
 pub const TOUCH_HIT_GROUP: u16 = u16::MAX;
 

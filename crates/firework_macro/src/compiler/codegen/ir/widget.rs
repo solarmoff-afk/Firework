@@ -2,7 +2,6 @@
 // Лицензия EPL 2.0, подробнее в файле LICENSE. Copyright (c) 2026 Firework
 
 use proc_macro2::TokenStream;
-use std::collections::HashMap;
 
 /// Поле виджета в Widget DSL, полем считается отдельная часть общей настройки
 /// widget_name! {
@@ -38,7 +37,7 @@ pub struct WidgetDescription {
 
     /// Карта для полей, String -> FireworkWidgetField, FireworkWidgetField содержит
     /// само поле и спарки которые используются внутри
-    pub fields: HashMap<String, FireworkWidgetField>,
+    pub fields: Vec<(String, FireworkWidgetField)>,
 
     /// Является ли этот виджет функциональным (layout!, component!)
     pub is_functional: bool,
