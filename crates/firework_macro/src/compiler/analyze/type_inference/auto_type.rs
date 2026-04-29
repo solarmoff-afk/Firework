@@ -53,7 +53,7 @@ pub fn guess_type_from_expr(expr: &Expr) -> Option<String> {
                 
                 match path_str.as_str() {
                     // Строка
-                    "String::from" | "String::new" => Some("String".to_string()),
+                    "String::from" | "String::new" => Some("::std::string::String".to_string()),
                     
                     // Option
                     "Some" => { 
@@ -61,7 +61,7 @@ pub fn guess_type_from_expr(expr: &Expr) -> Option<String> {
                             .and_then(guess_type_from_expr)
                             .unwrap_or_else(|| "_".to_string());
 
-                        Some(format!("Option<{}>", inner_type))
+                        Some(format!("::std::option::Option<{}>", inner_type))
                     },
                     
                     // Box
@@ -70,7 +70,7 @@ pub fn guess_type_from_expr(expr: &Expr) -> Option<String> {
                             .and_then(guess_type_from_expr)
                             .unwrap_or_else(|| "_".to_string());
                         
-                        Some(format!("Box<{}>", inner_type))
+                        Some(format!("::std::boxed::Box<{}>", inner_type))
                     },
 
                     // Arc
@@ -79,7 +79,7 @@ pub fn guess_type_from_expr(expr: &Expr) -> Option<String> {
                             .and_then(guess_type_from_expr)
                             .unwrap_or_else(|| "_".to_string());
                         
-                        Some(format!("Arc<{}>", inner_type))
+                        Some(format!("::std::sync::Arc<{}>", inner_type))
                     },
 
                     // Rc
@@ -88,7 +88,7 @@ pub fn guess_type_from_expr(expr: &Expr) -> Option<String> {
                             .and_then(guess_type_from_expr)
                             .unwrap_or_else(|| "_".to_string());
                         
-                        Some(format!("Rc<{}>", inner_type))
+                        Some(format!("::std::rc::Rc<{}>", inner_type))
                     },
 
                     // RefCell
@@ -97,7 +97,7 @@ pub fn guess_type_from_expr(expr: &Expr) -> Option<String> {
                             .and_then(guess_type_from_expr)
                             .unwrap_or_else(|| "_".to_string());
                         
-                        Some(format!("RefCell<{}>", inner_type))
+                        Some(format!("::std::cell::RefCell<{}>", inner_type))
                     },
 
                     // Mutex
@@ -106,7 +106,7 @@ pub fn guess_type_from_expr(expr: &Expr) -> Option<String> {
                             .and_then(guess_type_from_expr)
                             .unwrap_or_else(|| "_".to_string());
                         
-                        Some(format!("Mutex<{}>", inner_type))
+                        Some(format!("::std::sync::Mutex<{}>", inner_type))
                     },
 
                     // RwLock
@@ -115,7 +115,7 @@ pub fn guess_type_from_expr(expr: &Expr) -> Option<String> {
                             .and_then(guess_type_from_expr)
                             .unwrap_or_else(|| "_".to_string());
                         
-                        Some(format!("RwLock<{}>", inner_type))
+                        Some(format!("::std::sync::RwLock<{}>", inner_type))
                     },
                     
                     // Если это какой-то другой вызов конструктора
@@ -193,27 +193,27 @@ mod tests {
 
     #[test]
     fn test_type_inference_construct() {
-        assert_eq!(guess_type("Some(10)"), Some("Option<i32>".to_string()));
-        assert_eq!(guess_type("Some(10u32)"), Some("Option<u32>".to_string()));
-        assert_eq!(guess_type("Some(Some(10u32))"), Some("Option<Option<u32>>".to_string()));
+        assert_eq!(guess_type("Some(10)"), Some("::std::option::Option<i32>".to_string()));
+        assert_eq!(guess_type("Some(10u32)"), Some("::std::option::Option<u32>".to_string()));
+        assert_eq!(guess_type("Some(Some(10u32))"), Some("::std::option::Option<::std::option::Option<u32>>".to_string()));
     }
 
     #[test]
     fn test_type_inference_string() {
-        assert_eq!(guess_type("String::new()"), Some("String".to_string()));
-        assert_eq!(guess_type("String::from(\"Hello\")"), Some("String".to_string()));
-        assert_eq!(guess_type("Some(String::new())"), Some("Option<String>".to_string()));
+        assert_eq!(guess_type("String::new()"), Some("::std::string::String".to_string()));
+        assert_eq!(guess_type("String::from(\"Hello\")"), Some("::std::string::String".to_string()));
+        assert_eq!(guess_type("Some(String::new())"), Some("::std::option::Option<::std::string::String>".to_string()));
         assert_eq!(guess_type("\"Hello\""), Some("&'static str".to_string())); 
     }
 
     #[test]
     fn test_type_inference_smart_pointers() {
-        assert_eq!(guess_type("Box::new(10)"), Some("Box<i32>".to_string()));
-        assert_eq!(guess_type("Box::new(Some(10))"), Some("Box<Option<i32>>".to_string()));
-        assert_eq!(guess_type("Rc::new(10)"), Some("Rc<i32>".to_string()));
-        assert_eq!(guess_type("Rc::new(Some(10))"), Some("Rc<Option<i32>>".to_string()));
-        assert_eq!(guess_type("Arc::new(10)"), Some("Arc<i32>".to_string()));
-        assert_eq!(guess_type("Arc::new(Some(10))"), Some("Arc<Option<i32>>".to_string()));
+        assert_eq!(guess_type("Box::new(10)"), Some("::std::boxed::Box<i32>".to_string()));
+        assert_eq!(guess_type("Box::new(Some(10))"), Some("::std::boxed::Box<::std::option::Option<i32>>".to_string()));
+        assert_eq!(guess_type("Rc::new(10)"), Some("::std::rc::Rc<i32>".to_string()));
+        assert_eq!(guess_type("Rc::new(Some(10))"), Some("::std::rc::Rc<::std::option::Option<i32>>".to_string()));
+        assert_eq!(guess_type("Arc::new(10)"), Some("::std::sync::Arc<i32>".to_string()));
+        assert_eq!(guess_type("Arc::new(Some(10))"), Some("::std::sync::Arc<::std::option::Option<i32>>".to_string()));
     }
 
     #[test]
