@@ -86,7 +86,7 @@ impl<'ast> Analyzer {
             sparks.clone(),
             false,
             format!("if {} {{", condition_code),
-            FireworkAction::ReactiveBlock(FireworkReactiveBlock::ReactiveIf, sparks),
+            FireworkAction::ReactiveBlock(FireworkReactiveBlock::ReactiveIf, sparks, false),
             |this| {
                 let old_maybe = this.context.is_maybe;
                 this.context.is_maybe = true;
@@ -101,14 +101,15 @@ impl<'ast> Analyzer {
                             // Для else if нужно проанализировать его как отдельное условие
                             // со своими собственными спарками
                             let else_if_sparks = this.get_sparks(&else_if.cond);
-                            let else_if_condition_code = else_if.cond.to_token_stream().to_string();
+                            let else_if_condition_code = else_if.cond.to_token_stream()
+                                .to_string();
                         
                             this.handle_reactive_block(
                                 else_if_sparks.clone(),
                                 false,
                                 format!("}} else if {} {{", else_if_condition_code),
                                 FireworkAction::ReactiveBlock(
-                                    FireworkReactiveBlock::ReactiveIf, else_if_sparks,
+                                    FireworkReactiveBlock::ReactiveIf, else_if_sparks, false,
                                 ),
                                 |inner_this| {
                                     inner_this.analyze_block(&else_if.then_branch);
@@ -167,7 +168,8 @@ impl<'ast> Analyzer {
             sparks.clone(),
             true,
             format!("while {} {{", condition_code),
-            FireworkAction::ReactiveBlock(FireworkReactiveBlock::ReactiveWhile, sparks.clone()),
+            FireworkAction::ReactiveBlock(FireworkReactiveBlock::ReactiveWhile,
+                sparks.clone(), false),
             |this| {
                 visit::visit_expr(this, &i.cond);
                 this.analyze_block(&i.body);
@@ -196,7 +198,8 @@ impl<'ast> Analyzer {
             sparks.clone(),
             true,
             format!("for {} in {} {{", pattern_code, expr_code),
-            FireworkAction::ReactiveBlock(FireworkReactiveBlock::ReactiveFor, sparks.clone()),
+            FireworkAction::ReactiveBlock(FireworkReactiveBlock::ReactiveFor, sparks.clone(),
+                false),
             |this| {
                 visit::visit_expr(this, &i.expr);
                 this.analyze_block(&i.body);
@@ -216,7 +219,8 @@ impl<'ast> Analyzer {
             sparks.clone(),
             false,
             format!("match {} {{", expr_code),
-            FireworkAction::ReactiveBlock(FireworkReactiveBlock::ReactiveMatch, sparks.clone()),
+            FireworkAction::ReactiveBlock(FireworkReactiveBlock::ReactiveMatch, sparks.clone(),
+                false),
             |this| {
                 let old_maybe = this.context.is_maybe;
                 this.context.is_maybe = true;

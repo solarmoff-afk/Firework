@@ -7,7 +7,7 @@ fn test_screen() {
 
     my_spark = spark2 * 2;
 
-    if my_spark > 0 { 
+    if my_spark > 0 {
         println!("Больше 0, {}", my_spark);
     }
 

@@ -58,6 +58,11 @@ pub struct AnalyzeContext {
 
     // Вложенность цикла
     pub cycle_depth: usize,
+
+    // Стэк хуков на реактивные блоки. Если в одном из дочерних блоков есть виджет то идёт
+    // проход по всему стэку, из кортежа берётся (айди элемента в IR, Span в снапшоте) и
+    // этот реактивный блок помечается как часть декларации UI
+    pub reactive_block_stack: Vec<IrHook>,
 }
 
 impl AnalyzeContext {
@@ -99,6 +104,7 @@ impl AnalyzeContext {
             spark_widget_map: HashMap::new(),
             microruntime_widgets: MicroruntimeWidgets::new(),
             cycle_depth: 0,
+            reactive_block_stack: Vec::new(),
         }
     }
 }

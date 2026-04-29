@@ -125,7 +125,8 @@ impl<'ast> Analyzer {
                 effect_sparks.clone(),
                 false,
                 "{ // effect".to_string(),
-                FireworkAction::ReactiveBlock(FireworkReactiveBlock::Effect, effect_sparks),
+                FireworkAction::ReactiveBlock(FireworkReactiveBlock::Effect, effect_sparks,
+                    false),
                 |this| {
                     // Так как условие if effect_sparks.len() > 0 { выше не сработало бы
                     // и этот код не выполнился бы если в выражении нет спарков то блок

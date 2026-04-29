@@ -80,6 +80,8 @@ pub struct FireworkIR {
     pub screen_dynamic_widgets: HashMap<u128, Vec<usize>>,
 
     pub shared: SharedData,
+
+    span: Span,
 }
 
 /// Структура для хранения состяния условных виджетов
@@ -113,7 +115,8 @@ impl FireworkIR {
             screen_sparks: HashMap::new(),
             screen_maybe_widgets: HashMap::new(),
             screen_dynamic_widgets: HashMap::new(),
-            shared: SharedData::new()
+            shared: SharedData::new(),
+            span: Span::call_site(),
         }
     }
    
@@ -140,7 +143,8 @@ impl FireworkIR {
     /// Устанавливает спан по которому будут добавлены виртуальные стейтементы через
     /// push после этого вызова
     pub fn set_span(&mut self, span: Span) {
-        self.last_span = Some(SpanKey::from_span(span));
+        self.last_span = Some(SpanKey::from_span(span.clone()));
+        self.span = span;
     }
 
     /// Получение текущего спан ключа (Спан ключ это строка которая получена из Span)
@@ -148,9 +152,22 @@ impl FireworkIR {
         self.last_span.as_ref()
     }
 
+    /// Возвращает последний оригинальный спан
+    pub fn get_span(&self) -> Span {
+        self.span
+    }
+
     pub fn get_current_statements(&self) -> Option<&Vec<FireworkStatement>> {
         if let Some(span_key) = &self.last_span {
             self.snapshot.statements.get(span_key)
+        } else {
+            None
+        }
+    }
+
+    pub fn get_current_statements_count(&self) -> Option<usize> {
+        if let Some(span_key) = &self.last_span {
+            Some(self.snapshot.statements.get(span_key)?.len())
         } else {
             None
         }
@@ -167,6 +184,14 @@ impl FireworkIR {
     pub fn get_statements_by_span(&self, span: Span) -> Option<&Vec<FireworkStatement>> {
         let key = SpanKey::from_span(span);
         self.snapshot.statements.get(&key)
+    }
+
+    pub fn get_statement_by_spankey(
+        &mut self,
+        key: SpanKey,
+        index: usize
+    ) -> Option<&mut FireworkStatement> { 
+        self.snapshot.statements.get_mut(&key)?.get_mut(index)
     }
 
     pub fn get_statements_by_span_mut(&mut self, span: Span) -> Option<&mut Vec<FireworkStatement>> {

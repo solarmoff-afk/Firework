@@ -187,6 +187,23 @@ impl<'ast> Analyzer {
                 self.context.microruntime_widgets.count += 1;
             }
 
+            // Если внутри реактивного блока происходит декларация UI то стандартное условие
+            // выполнить если фаза Build или navigate или состояние изменилось не работает,
+            // так как при клике (Event) все три условия не выполняются. Это критично для
+            // динамических списков так как они требуют чтобы кто-то их дёргал. Если внутри
+            // реактивного блока есть декларация виджета (не важно обычного, условного или
+            // динамического) то он и все родительские реактивные блоки в стэке помечаются
+            // как часть декларации UI и в условии также будет выполнение при Event, а обычные
+            // реактивные блоки без виджетов внутри не будут затронуты
+            let stack = self.context.reactive_block_stack.clone();
+            for reactive_hock in &stack {
+                let statement = self.get_statement_from_hook(reactive_hock.clone());
+
+                if let FireworkAction::ReactiveBlock(_, _, is_ui) = &mut statement.action {
+                    *is_ui = true;
+                }
+            }
+
             self.context.widget_counter += 1;
 
             // Если вызов находится в условии или паттерн матчинге (Match) то виджет является

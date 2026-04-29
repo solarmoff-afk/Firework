@@ -45,7 +45,8 @@ impl Analyzer {
                     effect_sparks.clone(),
                     false,
                     "{ // effect".to_string(),
-                    FireworkAction::ReactiveBlock(FireworkReactiveBlock::Effect, effect_sparks),
+                    FireworkAction::ReactiveBlock(FireworkReactiveBlock::Effect, effect_sparks,
+                        false),
                     |this| {
                         for stmt in &last_expr_block.block.stmts {
                             this.visit_stmt(stmt);

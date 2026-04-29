@@ -8,6 +8,7 @@ mod type_inference;
 mod linter;
 mod context;
 mod lifetime;
+mod hook;
 
 #[cfg(test)]
 mod tests;
@@ -24,12 +25,14 @@ use context::AnalyzeContext;
 use lifetime::{Variable, Scope, LifetimeManager};
 use type_inference::mut_check::is_mutable_method;
 use linter::FireworkLinter;
+use hook::IrHook;
 
 use crate::compiler::codegen::ir::{
     FireworkIR, FireworkStatement, FireworkAction, FireworkWidgetField, FireworkReactiveBlock,
 };
 use crate::compiler::error::*;
 use crate::compiler::CompileFlags;
+use crate::compiler::codegen::ir::SpanKey;
 
 /// Нельзя хранить String поэтому используется &str, при использовании нужно использовать
 /// String::from, но это позволяет не тянуть lazy_static или другой крейт
@@ -70,7 +73,7 @@ pub struct Analyzer {
     // то строка в реактивном блоке, а usize это начало блока. Вложенные конструкции и
     // вложенные реактивные блоки не меняют этот флаг, он всегда показывает на первый
     // реактивный блок. Второе значение кортежа это цикл (нужен ли микрорантайм)
-    reactive_block: Option<(usize, bool)>, 
+    reactive_block: Option<(usize, bool)>,
 }
 
 impl Analyzer {
@@ -165,7 +168,7 @@ impl Analyzer {
         let condition_has_spark = !sparks.is_empty();
         
         // Если это эффект
-        if let FireworkAction::ReactiveBlock(FireworkReactiveBlock::Effect, vec) = &action {
+        if let FireworkAction::ReactiveBlock(FireworkReactiveBlock::Effect, vec, _) = &action {
             // Нулевой эффект должен быть пустым
             is_null_effect = vec.is_empty();
         }
@@ -178,9 +181,11 @@ impl Analyzer {
         // условии есть спарки или если это эффект без спарков. Если это эффект у которого
         // есть спарки то это сделает true condition_has_spark, а если это эффект без спарков
         // то is_null_effect
-        if condition_has_spark || is_null_effect {
+        let is_reactive = condition_has_spark || is_null_effect;
+        
+        if is_reactive {
             open_statement.action = action;
-            open_statement.is_reactive_block = true; 
+            open_statement.is_reactive_block = true;
         } else {
             // Иначе это может быть else реактивного блока
             open_statement.action = FireworkAction::ReactiveElse;
@@ -195,6 +200,32 @@ impl Analyzer {
 
         // Открывающий стейтемент реактивного блока
         self.context.ir.push(open_statement);
+
+        // Безопасная обработка последнего индекса после пуша
+        let mut index = 0;
+        if let Some(last_index) = self.context.ir.statements.len().checked_sub(1) {
+            index = last_index;
+        }
+
+        // Если это реактивный блок то он добавляется в стэк реактивных блоков 
+        if is_reactive {
+            // SAFETY: Unwrap безопасен так как в handle_reactive_block можно попасть
+            // только из if/if else/else/for/match/loop/while/effect, а они все требуют
+            // стейтемента, а спан задаётся в стейтементе всегда поэтому get_current_span
+            // здесь есть всегда
+            let span = self.context.ir.get_current_span().expect("IE:1").clone();
+            let count = self.context.ir.get_current_statements_count().expect("IE:2");
+            let local_index = count.checked_sub(1).expect("IE:4");
+
+            self.context.reactive_block_stack.push(
+                IrHook::new(
+                    index,
+                    span,
+                    local_index,
+                )
+            );
+        }
+
         self.statement_index += 1;
         
         // let _saved_action = self.statement.action.clone();
@@ -211,6 +242,11 @@ impl Analyzer {
         // расте нельзя использовать self внутри метода этой же структуры поэтому
         // здесь передаётся self как аргумент замыкания
         visit_fn(self);
+
+        // После выполнения обработки блока идёт снятие реактивного блока из стэка
+        if is_reactive {
+            self.context.reactive_block_stack.pop();
+        }
 
         // Восстановление стэка спарков
         self.context.spark_stack = spark_stack_snapshot;
