@@ -103,13 +103,6 @@ impl<'ast> Analyzer {
                 }
             }
 
-            if !has_key {
-                self.context.errors.push(compile_error_spanned(
-                    i.tokens.clone(),
-                    WIDGET_KEY_REQUIRED_ERROR,
-                ));
-            }
-
             // Если в инициализации виджета есть поле skin то это должна быть структура с
             // методом build
             let mut _skin_struct: Option<String> = None;
@@ -145,6 +138,13 @@ impl<'ast> Analyzer {
                         .entry(self.context.statement.screen_index)
                         .or_insert_with(Vec::new)
                         .push(self.context.widget_counter);
+                    
+                    if !has_key {
+                        self.context.errors.push(compile_error_spanned(
+                            i.tokens.clone(),
+                            WIDGET_KEY_REQUIRED_ERROR,
+                        ));
+                    }
                 }
             }
 
