@@ -97,7 +97,9 @@ fn my_adapter(command: AdapterCommand) -> AdapterResult {
 
         AdapterCommand::Render => {
 
-        }
+        },
+
+        _ => todo!(),
     }
 
     AdapterResult::Void
