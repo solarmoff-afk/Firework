@@ -17,18 +17,20 @@ fn test_screen() {
 */
 
 #[ui]
-fn test_spark_derived_rect_screen() {
-    let mut x = spark!(10);
-    let mut pos = spark!((10, 10)); // (i32, i32)
- 
-    pos.0 = x;
+fn test_spark_dynamic_rect_screen() {
+    let mut count = spark!(3);  
 
-    rect! {
-        position: pos, // Должна быть инициализация с (10, 10)
-        color: (255, 255, 255),
+    for i in 0..count {
+        rect! {
+            position: (10, 10),
+            color: (255, 255, 255),
+            
+            #[key_type(i32)]
+            key: i,
+        }
     }
 
-    x = 20; // Должно вызвать реакцию с Pos и будет (20, 10)
+    count += 1;
 }
 
 fn main() {

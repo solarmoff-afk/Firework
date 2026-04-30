@@ -57,6 +57,41 @@ fn test_spark_derived_rect_screen() {
     x = 20; // Должно вызвать реакцию с Pos и будет (20, 10)
 }
 
+#[ui]
+fn test_spark_dynamic_rect_screen() {
+    let mut count = spark!(3);  
+
+    for i in 0..count {
+        rect! {
+            position: (10, 10),
+            color: (255, 255, 255),
+            
+            #[key_type(i32)]
+            key: i,
+        }
+    }
+
+    count += 1;
+}
+
+#[ui]
+fn test_spark_dynamic_decrement_rect_screen() {
+    let mut count = spark!(3);  
+
+    for i in 0..count {
+        rect! {
+            position: (10, 10),
+            color: (255, 255, 255),
+            
+            #[key_type(i32)]
+            key: i,
+        }
+    }
+
+    // Один виджет удаляется
+    count -= 1;
+}
+
 #[test]
 fn test_spark_rect() { 
     let commands = TestHarness::run(test_spark_rect_screen);
@@ -103,5 +138,79 @@ fn test_spark_derived_rect() {
 
         // ???
         AdapterCommand::SetPosition(0, (20, 10)),
+    ]);
+}
+
+#[test]
+fn test_spark_dynamic_rect() {
+    let commands = TestHarness::run(test_spark_dynamic_rect_screen);
+
+    assert_eq!(commands, vec![
+        AdapterCommand::RemoveAll,
+        
+        // for i in 0..count {
+        //  // Iter 1
+        AdapterCommand::NewRect { layout: 1, },
+        AdapterCommand::SetHitGroup(0, 65535),
+        AdapterCommand::SetPosition(0, (10, 10)),
+        AdapterCommand::SetColor(0, (255, 255, 255, 255)),
+        //  // Iter 2 
+        AdapterCommand::NewRect { layout: 1, },
+        AdapterCommand::SetHitGroup(0, 65535),
+        AdapterCommand::SetPosition(0, (10, 10)),
+        AdapterCommand::SetColor(0, (255, 255, 255, 255)),
+
+        //  // Iter 3
+        AdapterCommand::NewRect { layout: 1, },
+        AdapterCommand::SetHitGroup(0, 65535),
+        AdapterCommand::SetPosition(0, (10, 10)),
+        AdapterCommand::SetColor(0, (255, 255, 255, 255)),
+        // }
+        
+        // Здесь происходит count += 1, теперь count = 4, цикл перезапускается, но создаётся только
+        // один новый прямоугольник потому-что ключи оптимизируют создание. DynList видит что создан
+        // только 1 прямоугольник и вызывает конструктор только для него
+        
+        //  // Iter 4
+        AdapterCommand::NewRect { layout: 1, },
+        AdapterCommand::SetHitGroup(0, 65535),
+        AdapterCommand::SetPosition(0, (10, 10)),
+        AdapterCommand::SetColor(0, (255, 255, 255, 255)),
+    ]);
+}
+
+#[test]
+fn test_spark_dynamic_decrement_rect() {
+    let commands = TestHarness::run(test_spark_dynamic_decrement_rect_screen);
+    
+    assert_eq!(commands, vec![
+        AdapterCommand::RemoveAll,
+        
+        // for i in 0..count {
+        //  // Iter 1
+        AdapterCommand::NewRect { layout: 1, },
+        AdapterCommand::SetHitGroup(0, 65535),
+        AdapterCommand::SetPosition(0, (10, 10)),
+        AdapterCommand::SetColor(0, (255, 255, 255, 255)),
+
+        //  // Iter 2 
+        AdapterCommand::NewRect { layout: 1, },
+        AdapterCommand::SetHitGroup(0, 65535),
+        AdapterCommand::SetPosition(0, (10, 10)),
+        AdapterCommand::SetColor(0, (255, 255, 255, 255)),
+
+        //  // Iter 3
+        AdapterCommand::NewRect { layout: 1, },
+        AdapterCommand::SetHitGroup(0, 65535),
+        AdapterCommand::SetPosition(0, (10, 10)),
+        AdapterCommand::SetColor(0, (255, 255, 255, 255)),
+
+        // }
+
+        // count -= 1
+        // Это размонтирует только последний виджет из DynList, он исчезнет и будет
+        // размонтирован через команду Remove(id)
+        AdapterCommand::SetVisible(0, false),
+        AdapterCommand::Remove(0),
     ]);
 }
