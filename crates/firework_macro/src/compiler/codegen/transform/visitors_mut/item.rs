@@ -21,185 +21,212 @@ impl CodegenVisitor<'_> {
  
         for item in items {
             // Любая функция это экран
-            if let Item::Fn(mut item_fn) = item {
-                // Возвращает ли что-то функция, это нужно чтобы понять нужно ли сгенерировать 
-                // панику в конце цикла чтобы избежать ошибки
-                let has_return = self.check_function_has_return(&item_fn);
-
-                self.functions_count += 1;
-                let function_name = item_fn.sig.ident.to_string();
-                
-                // Поиск имени функции в IR, если оно не найдено от find вернёт None в self.ui_id
-                // и код для UI не сгенерируется
-                self.ui_id = self.ir.screens
-                    .iter()
-                    .find(|(name, _, _)| name == &function_name)
-                    .map(|(_, _, id)| *id);
-
-                // Проход по дереву продолжается
-                visit_item_fn_mut(self, &mut item_fn);
-
-                if let Some(id) = self.ui_id { 
-                    let span = item_fn.span();
-
-                    let struct_name_raw = format!("ApplicationUiBlockStruct{}", id); 
-                    let _instance_ident = format_ident!("APPLICATIONUIBLOCKSTRUCT{}_INSTANCE", id);
-                    let build_name = format_ident!("_fwc_fn_build{}", id);
+            match item {
+                Item::Fn(mut item_fn) => {
+                    self.transform_ui_function(&mut item_fn.sig, &mut item_fn.block,
+                        &item_fn.attrs, &mut new_items);
                     
-                    let mut fields: Vec<Field> = Vec::new();
-                    let fields_data = self.generate_fields(id, &mut fields, span);
+                    new_items.push(Item::Fn(item_fn));
+                },
 
-                    // Генерация статического экземпляра. Если используется safety-multitrhead
-                    // фича то static_gen генерирует OnceLock + Mutex для безопасной работы
-                    // из нескольких поток, если safety-multitrhead нет то используется
-                    // static mut и unsafe
-                    let instance_name = struct_name_raw.to_uppercase();
-                    let instance = static_declaration(&instance_name, &struct_name_raw, &fields_data);
-                    let instance_item: Item = parse_str(&instance).unwrap(); 
-                  
-                    self.generate_build(&mut new_items, instance_item, &fields, id, span);
-
-                    // Оригинальное тело функции (уже трансформированное), так как block
-                    // не реализует Default нужно использовать std::mem::replace, идёт
-                    // парсинг обычного пустого блока чтобы заменить на него оригинал, а
-                    // оригинальые данные забрать сюда чтобы избежать клонирования
-                    let original_block = std::mem::replace(&mut item_fn.block, parse_quote!({})); 
-
-                    let reactive_output = self.generate_reactive(id);
-                    let generated_block = self.generate_flash_pass(id, &function_name);
-
-                    let bitmask_statements = reactive_output.bitmask_statements;
-                    let bitmask_clone_statements = reactive_output.bitmask_clone_statements;
-                    let bitmask_check_expr = reactive_output.bitmask_check_expr;
-                    let widget_bitmask_statement = self.generate_widgets_mask(
-                        id, &struct_name_raw
-                    );
-
-                    let is_shared = matches!(self.flags.compile_type, CompileType::Shared);
-                    let init_code = if !is_shared {
-                        quote! {
-                            let mut _fwc_build = false;
-                            #generated_block
-                        }
-                    } else {
-                        // Если это shared то для каждой функции нужно сначала (в первой фазе)
-                        // вызвать build функцию чтобы проверить инициализацию и если спарки
-                        // ещё не инициализированы на уровне state! {} то нужно их
-                        // инициализировать
-                        quote! {
-                            #build_name();
-                        }
-                    };
-
-                    // При входе в item обход дерева продолжился из-за строки выше, конкретно:
-                    // visit_item_fn_mut(self, &mut item_fn);
-                    //
-                    // Она продолжает обход, VisitorMut входит в блок и начинает вызовы
-                    // кодбилдера для каждого стейтемента который есть в IR снапшоте. В
-                    // результате билдер формирует пост токены, после вызова visit_item_fn_mut
-                    // стэк вызовов возвращается в этот метод и токены уже доступны, их
-                    // можно клонировать и вставить в код
-                    let post_tokens = self.builder.tokens.clone();
-
-                    // Генерация снапшота битовых масок в текущем кадре чтобы в следующем
-                    // при Event получить снапшот вместо нуля
-                    let mut widgets_gen_snapshot = TokenStream::new();
-
-                    // SAFETY: Для всех id экранов генерируется количество масок, а так как
-                    // id взят из IR то такой элемент точно есть в карте
-                    let widget_mask_count = self.widget_mask_count.get(&id).unwrap();
-                   
-                    for mask_index in 0..*widget_mask_count {
-                        // Имя локальной маски и имя поле идентично
-                        let field_name = format!("_fwc_widget_bitmask{}", mask_index + 1);
-                        let set_field_str = static_gen::set_field(
-                            &struct_name_raw,
-                            &field_name,
-                            &field_name,
-                        );
-
-                        widgets_gen_snapshot.extend(
-                            CodeBuilder::convert_string_to_syn(&set_field_str)
-                        );
-                    }
-
-                    let (dyn_lists_begin, dyn_lists_end) = if let Some(dynamic_widgets)
-                            = self.ir.screen_dynamic_widgets.get(&id) {
-                        helpers::dynamic_list::generate_lifecycle(
-                            &struct_name_raw,
-                            dynamic_widgets,
-                            span,
-                        )
-                    } else {
-                        (TokenStream::new(), TokenStream::new())
-                    };
-
-                    // Если цикл совершил более 64 итераций (хардкод )то происходит выход
-                    // из него это делается после добавления единицы к итерациям чтобы не
-                    // отнимать единицу
-                    // (64 - 1 = 63) от максимального количества итераций, так как:
-                    //  - Нулевой шаг, +1, 1 итерация
-                    //  - Первый шаг,  +1, 2 итерация
-                    //  - 63 шаг, +1,  +1, 64 итерация, условие сработало
-                    if !has_return {
-                        item_fn.block = parse_quote_spanned!(span=> {
-                            let mut _fwc_event = firework_ui::LifeCycle::Navigate;
-                            #init_code
-                            
-                            let mut _fwc_guard: u8 = 0;
-                            #(#bitmask_statements)*
-                            #(#widget_bitmask_statement)*
-                            
-                            loop {
-                                #(#bitmask_clone_statements)*
-
-                                #dyn_lists_begin
-                                #original_block
-                                #dyn_lists_end
-                                
-                                if #bitmask_check_expr { break; }
-                                _fwc_guard += 1;
-                                _fwc_event = firework_ui::LifeCycle::Reactive;
-                                if _fwc_guard > 64 { break; }
+                Item::Impl(mut item_impl) => {
+                    for item in &mut item_impl.items {
+                        if let ImplItem::Fn(method) = item {
+                            if method.sig.ident == "flash" {
+                                self.transform_ui_function(
+                                    &mut method.sig,
+                                    &mut method.block,
+                                    &method.attrs,
+                                    &mut new_items
+                                );
                             }
-
-                            #(#post_tokens)*
-                            #widgets_gen_snapshot
-                        });
-                    } else {
-                        // Если функция имеет возвращаемое значение то это не экран и не
-                        // компонент, а значит виджетов у неё нет, а значит переменные из
-                        // widget_bitmask_statement и так далее не нужны в этом случае
-                        item_fn.block = parse_quote_spanned!(span=> {
-                            let mut _fwc_event = firework_ui::LifeCycle::Navigate;
-                            #init_code
-                            
-                            #(#bitmask_statements)*
-                            #(#bitmask_clone_statements)*
-                            #original_block
-
-                            #(#post_tokens)*
-                            #widgets_gen_snapshot
-                        });
+                        }
                     }
-                }
+                    new_items.push(Item::Impl(item_impl));
+                },
 
-                new_items.push(Item::Fn(item_fn));
-                
-                // Очистка локальных данных билдера
-                self.builder.function_end();
-            } else {
-                let mut other_item = item;
-
-                self.visit_item_mut(&mut other_item);
-                
-                new_items.push(other_item);
+                mut other_item => {
+                    self.visit_item_mut(&mut other_item);
+                    new_items.push(other_item);
+                },
             }
         }
 
         self.resolve_shared_desugar_attr(&mut new_items);
         
         i.items = new_items;
+    }
+
+    fn transform_ui_function(
+        &mut self,
+        sig: &mut Signature,
+        block: &mut Block,
+        attrs: &[Attribute],
+        new_items: &mut Vec<Item>,
+    ) {
+        // Возвращает ли что-то функция, это нужно чтобы понять нужно ли сгенерировать 
+        // панику в конце цикла чтобы избежать ошибки
+        let has_return = self.check_function_has_return(sig);
+
+        self.functions_count += 1;
+        let function_name = sig.ident.to_string();
+        
+        // Поиск имени функции в IR, если оно не найдено от find вернёт None в self.ui_id
+        // и код для UI не сгенерируется
+        self.ui_id = self.ir.screens
+            .iter()
+            .find(|(name, _, _)| name == &function_name)
+            .map(|(_, _, id)| *id);
+
+        self.visit_block_mut(block);
+
+        if let Some(id) = self.ui_id { 
+            let span = sig.span();
+
+            let struct_name_raw = format!("ApplicationUiBlockStruct{}", id); 
+            let _instance_ident = format_ident!("APPLICATIONUIBLOCKSTRUCT{}_INSTANCE", id);
+            let build_name = format_ident!("_fwc_fn_build{}", id);
+            
+            let mut fields: Vec<Field> = Vec::new();
+            let fields_data = self.generate_fields(id, &mut fields, span);
+
+            // Генерация статического экземпляра. Если используется safety-multitrhead
+            // фича то static_gen генерирует OnceLock + Mutex для безопасной работы
+            // из нескольких поток, если safety-multitrhead нет то используется
+            // static mut и unsafe
+            let instance_name = struct_name_raw.to_uppercase();
+            let instance = static_declaration(&instance_name, &struct_name_raw, &fields_data);
+            let instance_item: Item = parse_str(&instance).unwrap(); 
+          
+            self.generate_build(new_items, instance_item, &fields, id, span);
+
+            // Оригинальное тело функции (уже трансформированное), так как block
+            // не реализует Default нужно использовать std::mem::replace, идёт
+            // парсинг обычного пустого блока чтобы заменить на него оригинал, а
+            // оригинальые данные забрать сюда чтобы избежать клонирования
+            let original_block = std::mem::replace(block, parse_quote!({})); 
+
+            let reactive_output = self.generate_reactive(id);
+            let generated_block = self.generate_flash_pass(id, &function_name);
+
+            let bitmask_statements = reactive_output.bitmask_statements;
+            let bitmask_clone_statements = reactive_output.bitmask_clone_statements;
+            let bitmask_check_expr = reactive_output.bitmask_check_expr;
+            let widget_bitmask_statement = self.generate_widgets_mask(
+                id, &struct_name_raw
+            );
+
+            let is_shared = matches!(self.flags.compile_type, CompileType::Shared);
+            let init_code = if !is_shared {
+                quote! {
+                    let mut _fwc_build = false;
+                    #generated_block
+                }
+            } else {
+                // Если это shared то для каждой функции нужно сначала (в первой фазе)
+                // вызвать build функцию чтобы проверить инициализацию и если спарки
+                // ещё не инициализированы на уровне state! {} то нужно их
+                // инициализировать
+                quote! {
+                    #build_name();
+                }
+            };
+
+            // При входе в item обход дерева продолжился из-за строки выше, конкретно:
+            // visit_item_fn_mut(self, &mut item_fn);
+            //
+            // Она продолжает обход, VisitorMut входит в блок и начинает вызовы
+            // кодбилдера для каждого стейтемента который есть в IR снапшоте. В
+            // результате билдер формирует пост токены, после вызова visit_item_fn_mut
+            // стэк вызовов возвращается в этот метод и токены уже доступны, их
+            // можно клонировать и вставить в код
+            let post_tokens = self.builder.tokens.clone();
+
+            // Генерация снапшота битовых масок в текущем кадре чтобы в следующем
+            // при Event получить снапшот вместо нуля
+            let mut widgets_gen_snapshot = TokenStream::new();
+
+            // SAFETY: Для всех id экранов генерируется количество масок, а так как
+            // id взят из IR то такой элемент точно есть в карте
+            let widget_mask_count = self.widget_mask_count.get(&id).expect("IE:5");
+           
+            for mask_index in 0..*widget_mask_count {
+                // Имя локальной маски и имя поле идентично
+                let field_name = format!("_fwc_widget_bitmask{}", mask_index + 1);
+                let set_field_str = static_gen::set_field(
+                    &struct_name_raw,
+                    &field_name,
+                    &field_name,
+                );
+
+                widgets_gen_snapshot.extend(
+                    CodeBuilder::convert_string_to_syn(&set_field_str)
+                );
+            }
+
+            let (dyn_lists_begin, dyn_lists_end) = if let Some(dynamic_widgets)
+                    = self.ir.screen_dynamic_widgets.get(&id) {
+                helpers::dynamic_list::generate_lifecycle(
+                    &struct_name_raw,
+                    dynamic_widgets,
+                    span,
+                )
+            } else {
+                (TokenStream::new(), TokenStream::new())
+            };
+
+            // Если цикл совершил более 64 итераций (хардкод )то происходит выход
+            // из него это делается после добавления единицы к итерациям чтобы не
+            // отнимать единицу
+            // (64 - 1 = 63) от максимального количества итераций, так как:
+            //  - Нулевой шаг, +1, 1 итерация
+            //  - Первый шаг,  +1, 2 итерация
+            //  - 63 шаг, +1,  +1, 64 итерация, условие сработало
+            if !has_return {
+                *block = parse_quote_spanned!(span=> {
+                    let mut _fwc_event = firework_ui::LifeCycle::Navigate;
+                    #init_code
+                    
+                    let mut _fwc_guard: u8 = 0;
+                    #(#bitmask_statements)*
+                    #(#widget_bitmask_statement)*
+                    
+                    loop {
+                        #(#bitmask_clone_statements)*
+
+                        #dyn_lists_begin
+                        #original_block
+                        #dyn_lists_end
+                        
+                        if #bitmask_check_expr { break; }
+                        _fwc_guard += 1;
+                        _fwc_event = firework_ui::LifeCycle::Reactive;
+                        if _fwc_guard > 64 { break; }
+                    }
+
+                    #(#post_tokens)*
+                    #widgets_gen_snapshot
+                });
+            } else {
+                // Если функция имеет возвращаемое значение то это не экран и не
+                // компонент, а значит виджетов у неё нет, а значит переменные из
+                // widget_bitmask_statement и так далее не нужны в этом случае
+                *block = parse_quote_spanned!(span=> {
+                    let mut _fwc_event = firework_ui::LifeCycle::Navigate;
+                    #init_code
+                    
+                    #(#bitmask_statements)*
+                    #(#bitmask_clone_statements)*
+                    #original_block
+
+                    #(#post_tokens)*
+                    #widgets_gen_snapshot
+                });
+            }
+        }
+        
+        // Очистка локальных данных билдера
+        self.builder.function_end();
     }
 
     /// Генерирует набор полей для вставки по ссылке на fields и возвращает вектор сырых
@@ -243,8 +270,8 @@ impl CodegenVisitor<'_> {
     }
 
     /// проверяет возвращаемоет значение у функции
-    fn check_function_has_return(&self, item_fn: &ItemFn) -> bool {
-        match &item_fn.sig.output {
+    fn check_function_has_return(&self, sig: &Signature) -> bool {
+        match &sig.output {
             ReturnType::Default => false,
             ReturnType::Type(_, ty) => match ty.as_ref() {
                 Type::Tuple(tuple) if tuple.elems.is_empty() => false,
@@ -317,7 +344,7 @@ impl CodegenVisitor<'_> {
                 // случае синтаксической ошибки были бы отбракованы на этапе
                 // generate_shared_build через функцию из CodeBuilder из-за чего
                 // unwrap здесь безопасен
-                let item: Item = syn::parse2(tokens).unwrap();
+                let item: Item = syn::parse2(tokens).expect("IE:6");
                 new_items.push(item);
             }
         }

@@ -389,8 +389,16 @@ impl<'ast> Visit<'ast> for Analyzer {
 
     fn visit_item_impl(&mut self, _i: &'ast ItemImpl) {
         println!("{:#?}", _i);
+        
+        for item in &_i.items {
+            if let ImplItem::Fn(method) = item {
+                if method.sig.ident == "flash" {
+                    self.analyze_item_fn(method);
+                }
+            }
+        }
+        
         visit::visit_item_impl(self, _i);
-        // self.context.output.extend(node.to_token_stream());
     }
 
     fn visit_item_macro(&mut self, i: &'ast ItemMacro) {
