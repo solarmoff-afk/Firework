@@ -115,12 +115,14 @@ impl CodegenVisitor<'_> {
             );
 
             let is_shared = matches!(self.flags.compile_type, CompileType::Shared);
-            let init_code = if !is_shared {
+            let is_component = matches!(self.flags.compile_type, CompileType::Component);
+
+            let init_code = if !is_shared && !is_component {
                 quote! {
                     let mut _fwc_build = false;
                     #generated_block
                 }
-            } else {
+            } else if !is_component {
                 // Если это shared то для каждой функции нужно сначала (в первой фазе)
                 // вызвать build функцию чтобы проверить инициализацию и если спарки
                 // ещё не инициализированы на уровне state! {} то нужно их
@@ -128,6 +130,9 @@ impl CodegenVisitor<'_> {
                 quote! {
                     #build_name();
                 }
+            } else {
+                // Компонентам не нужна инициализация
+                quote! {}
             };
 
             // При входе в item обход дерева продолжился из-за строки выше, конкретно:
