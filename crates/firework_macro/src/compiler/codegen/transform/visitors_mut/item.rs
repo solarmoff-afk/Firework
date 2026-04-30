@@ -24,7 +24,7 @@ impl CodegenVisitor<'_> {
             match item {
                 Item::Fn(mut item_fn) => {
                     self.transform_ui_function(&mut item_fn.sig, &mut item_fn.block,
-                        &item_fn.attrs, &mut new_items);
+                        &mut new_items);
                     
                     new_items.push(Item::Fn(item_fn));
                 },
@@ -36,7 +36,6 @@ impl CodegenVisitor<'_> {
                                 self.transform_ui_function(
                                     &mut method.sig,
                                     &mut method.block,
-                                    &method.attrs,
                                     &mut new_items
                                 );
                             }
@@ -61,7 +60,6 @@ impl CodegenVisitor<'_> {
         &mut self,
         sig: &mut Signature,
         block: &mut Block,
-        attrs: &[Attribute],
         new_items: &mut Vec<Item>,
     ) {
         // Возвращает ли что-то функция, это нужно чтобы понять нужно ли сгенерировать 

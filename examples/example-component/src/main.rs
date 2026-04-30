@@ -13,9 +13,13 @@ component! {
         }
 
         pub fn flash(&self, context: ComponentContext) {
-            effect!({
+            let mut my_state = spark!(0);
+
+            effect!(my_state, {
                 println!("Component mount");
             });
+
+            my_state += 1;
         }
     }
 }

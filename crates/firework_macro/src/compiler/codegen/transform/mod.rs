@@ -9,7 +9,6 @@ mod macro_resolver;
 use syn::visit_mut::VisitMut;
 use syn::spanned::Spanned;
 use syn::*;
-use syn::visit_mut::*;
 use std::collections::HashMap;
 use quote::format_ident;
 use proc_macro2::TokenStream;
