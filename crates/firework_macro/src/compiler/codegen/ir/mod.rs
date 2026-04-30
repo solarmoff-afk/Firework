@@ -65,6 +65,8 @@ pub struct FireworkIR {
     // кортежей (Имя поля, тип) для структуры
     pub screen_structs: HashMap<String, Vec<(String, String)>>,
 
+    pub component_structs: HashMap<String, Vec<(String, String)>>,
+
     pub screens: Vec<(
         String,
         String,
@@ -111,6 +113,7 @@ impl FireworkIR {
             snapshot: Snapshot::new(), 
             last_span: None,
             screen_structs: HashMap::new(),
+            component_structs: HashMap::new(),
             screens: Vec::new(),
             screen_sparks: HashMap::new(),
             screen_maybe_widgets: HashMap::new(),

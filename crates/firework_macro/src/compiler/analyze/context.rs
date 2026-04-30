@@ -63,6 +63,9 @@ pub struct AnalyzeContext {
     // проход по всему стэку, из кортежа берётся (айди элемента в IR, Span в снапшоте) и
     // этот реактивный блок помечается как часть декларации UI
     pub reactive_block_stack: Vec<IrHook>,
+
+    // Какой компонент сейчас реализуется
+    pub now_component: Option<String>,
 }
 
 impl AnalyzeContext {
@@ -105,6 +108,7 @@ impl AnalyzeContext {
             microruntime_widgets: MicroruntimeWidgets::new(),
             cycle_depth: 0,
             reactive_block_stack: Vec::new(),
+            now_component: None,
         }
     }
 }

@@ -34,6 +34,7 @@ use crate::compiler::codegen::ir::{
 use crate::compiler::error::*;
 use crate::compiler::CompileFlags;
 use crate::compiler::codegen::ir::SpanKey;
+use crate::CompileType;
 
 /// Нельзя хранить String поэтому используется &str, при использовании нужно использовать
 /// String::from, но это позволяет не тянуть lazy_static или другой крейт
@@ -389,6 +390,23 @@ impl<'ast> Visit<'ast> for Analyzer {
     }
 
     fn visit_item_impl(&mut self, _i: &'ast ItemImpl) {
+        if !matches!(self.context.flags.compile_type, CompileType::Component) {
+            return;
+        }
+
+        let self_type = &_i.self_ty;
+        
+        if let Type::Path(type_path) = &**self_type {
+            if let Some(segment) = type_path.path.segments.last() {
+                let struct_name = &segment.ident;
+                
+                // Структура для которой идёт реализация становится текущим компонентом
+                self.context.now_component = Some(struct_name.to_string())
+            } else {
+                return;
+            }
+        }
+
         for item in &_i.items {
             if let ImplItem::Fn(method) = item {
                 if method.sig.ident == "flash" {
@@ -397,6 +415,9 @@ impl<'ast> Visit<'ast> for Analyzer {
                 }
             }
         }
+
+        // Теперь никакой компонент не реализуется
+        self.context.now_component = None;
         
         // visit::visit_item_impl(self, _i);
     }

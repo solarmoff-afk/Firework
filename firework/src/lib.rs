@@ -20,6 +20,7 @@ pub const TOUCH_HIT_GROUP: u16 = u16::MAX;
 /// Type for component props
 pub type Prop<T> = Option<T>;
 
+#[derive(Debug, Clone, Copy)]
 pub struct ComponentContext {
     pub depth: u16,
 }
