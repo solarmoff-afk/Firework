@@ -1,6 +1,5 @@
 use firework_ui::ui;
 
-/*
 #[ui]
 fn test_screen() {
     let mut my_spark = spark!(0);
@@ -14,27 +13,8 @@ fn test_screen() {
 
     spark2 = 20; 
 }
-*/
 
-#[ui]
-fn test_spark_dynamic_rect_screen() {
-    let mut count = spark!(3);  
-
-    for i in 0..count {
-        rect! {
-            position: (10, 10),
-            color: (255, 255, 255),
-            
-            #[key_type(i32)]
-            key: i,
-        }
-    }
-
-    count += 1;
-}
 
 fn main() {
-    /*
     firework_ui::run(test_screen);
-    */
 }

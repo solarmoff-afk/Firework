@@ -2,7 +2,7 @@
 resolver = "2"
 members = [
   "crates/firework_adapter",
-  "crates/firework_macro", "examples/example-egui", "examples/example-service",
+  "crates/firework_macro", "examples/example-component", "examples/example-egui", "examples/example-service",
   "examples/example-simple", "examples/example-window",
   "firework",
 ]

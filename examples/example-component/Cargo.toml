@@ -1,0 +1,12 @@
+[package]
+name = "example-component"
+version = "0.1.0"
+edition = "2024"
+
+[features]
+default = []
+safety-multithread = ["firework_ui/safety-multithread"]
+detail = ["firework_ui/detail"]
+
+[dependencies]
+firework_ui = { workspace = true }

@@ -17,6 +17,21 @@ pub use null_adapter::null_adapter;
 
 pub const TOUCH_HIT_GROUP: u16 = u16::MAX;
 
+/// Type for component props
+pub type Prop<T> = Option<T>;
+
+pub struct ComponentContext {
+    pub depth: u16,
+}
+
+impl ComponentContext {
+    pub fn new() -> Self {
+        Self {
+            depth: 0,
+        }
+    }
+}
+
 /// A simpler implementation of the matches macro separate from STD for use in
 /// generated code
 #[macro_export]
