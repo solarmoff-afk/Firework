@@ -2,16 +2,13 @@ use firework_ui::ui;
 
 #[ui]
 fn test_screen() {
-    let mut my_spark = spark!(0);
-    let mut spark2 = spark!(10);
+    let mut my_state = spark!(0);
 
-    my_spark = spark2 * 2;
+    effect!(my_state, {
+        println!("Component mount");
+    });
 
-    if my_spark > 0 {
-        println!("Больше 0, {}", my_spark);
-    }
-
-    spark2 = 20; 
+    my_state += 1;
 }
 
 

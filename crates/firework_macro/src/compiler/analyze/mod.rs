@@ -398,7 +398,7 @@ impl<'ast> Visit<'ast> for Analyzer {
             }
         }
         
-        visit::visit_item_impl(self, _i);
+        // visit::visit_item_impl(self, _i);
     }
 
     fn visit_item_macro(&mut self, i: &'ast ItemMacro) {
