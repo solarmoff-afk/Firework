@@ -12,7 +12,7 @@ component! {
             }
         }
 
-        pub fn flash(&self, context: ComponentContext) {
+        pub fn flash(&mut self, context: ComponentContext) {
             let mut my_state = spark!(0);
 
             effect!(my_state, {

@@ -9,6 +9,7 @@ mod linter;
 mod context;
 mod lifetime;
 mod hook;
+mod components;
 
 #[cfg(test)]
 mod tests;
@@ -388,11 +389,10 @@ impl<'ast> Visit<'ast> for Analyzer {
     }
 
     fn visit_item_impl(&mut self, _i: &'ast ItemImpl) {
-        println!("{:#?}", _i);
-        
         for item in &_i.items {
             if let ImplItem::Fn(method) = item {
                 if method.sig.ident == "flash" {
+                    self.validate_flash_signature(method);
                     self.analyze_item_fn(method);
                 }
             }

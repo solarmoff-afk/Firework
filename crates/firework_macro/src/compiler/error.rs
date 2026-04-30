@@ -190,6 +190,58 @@ error[FE019]: widget inside a loop requires a `key` prop
    = note: for more information, see: [WORK IN PROGRESS]
 ";
 
+pub const COMPONENT_FLASH_UNSAFE_ERROR: &str = "\
+error[FE020]: method `flash` cannot be marked as `unsafe`
+   = note: Firework calls the `flash` method from the parent screen or component without an explicit unsafe block
+   = help: remove `unsafe` from the method signature
+   = help: if you need to perform unsafe operations, use an internal `unsafe { ... }` block
+   = help: if you intended to create a custom method, avoid using reserved names: `flash`, `new`, or `__fwcf_*`
+   = note: for more information, see: [WORK IN PROGRESS]
+";
+
+pub const COMPONENT_FLASH_RETURN_ERROR: &str = "\
+error[FE021]: method `flash` must not have a return value
+   = note: the `flash` method is a one-way lifecycle hook; its output is not captured
+   = help: remove the return type from the signature
+   = help: to pass data back to the parent, consider a functional prop with a mutable reference: `name: Prop<&mut T>`
+   = note: remember that functional props (unlike structural ones) may be `None` during events or fine-grained updates
+   = note: for more information, see: [WORK IN PROGRESS]
+";
+
+pub const COMPONENT_FLASH_MUT_SELF_ERROR: &str = "\
+error[FE022]: method `flash` must take `&mut self`
+   = note: components must be able to mutate their internal state and reactive variables (sparks)
+   = note: Firework stores intermediate reactive data within the component structure itself
+   = help: change the first argument to `&mut self`
+   = note: for more information, see: [WORK IN PROGRESS]
+";
+
+pub const COMPONENT_FLASH_CONTEXT_MISSING_ERROR: &str = "\
+error[FE023]: `ComponentContext` is missing or misplaced in `flash` signature
+   = note: the context is required to communicate with the parent and determine the current execution mode
+   = note: `ComponentContext` must be the second argument, immediately following `&mut self`
+   = help: add `context: ComponentContext` as the second argument: `fn flash(&mut self, context: ComponentContext, ...)`
+   = note: `ComponentContext` implements `Copy` and should not be passed by reference
+   = note: for more information, see: [WORK IN PROGRESS]
+";
+
+pub const COMPONENT_FLASH_INVALID_ARG_ERROR: &str = "\
+error[FE024]: invalid argument type `{}` in `flash` method
+   = note: only `Prop<T>` (or `firework_ui::Prop<T>`) and `ComponentContext` are allowed as arguments
+   = note: `Prop<T>` in arguments acts as a 'functional prop', typically used for passing references or transient data
+   = note: functional props are guaranteed to be `Some` only during `Build`, `Navigate`, or full tree updates
+   = help: wrap the type in a Prop: `Prop<{}>`
+   = note: for more information, see: [WORK IN PROGRESS]
+";
+
+pub const COMPONENT_FLASH_MULTIPLE_CONTEXT_ERROR: &str = "\
+error[FE025]: multiple `ComponentContext` arguments found
+   = note: the Firework compiler requires exactly one primary context to be defined
+   = help: remove redundant context arguments; only the second argument can be a `ComponentContext`
+   = help: expected signature: `fn flash(&mut self, context: ComponentContext, ...)`
+   = note: for more information, see: [WORK IN PROGRESS]
+";
+
 pub fn compile_error_spanned<T: quote::ToTokens>(tokens: T, msg: &str) -> Error {
     Error::new_spanned(tokens, msg)
 }
