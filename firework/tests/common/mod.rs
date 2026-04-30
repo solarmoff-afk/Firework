@@ -1,4 +1,6 @@
-// tests/common/mod.rs
+// Часть проекта Firework с открытым исходным кодом.
+// Лицензия EPL 2.0, подробнее в файле LICENSE. Copyright (c) 2026 Firework
+
 use std::cell::RefCell;
 use firework_ui::{run_with_adapter, null_adapter, AdapterCommand, AdapterResult};
 
