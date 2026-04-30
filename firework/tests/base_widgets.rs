@@ -1,8 +1,10 @@
 // Часть проекта Firework с открытым исходным кодом.
 // Лицензия EPL 2.0, подробнее в файле LICENSE. Copyright (c) 2026 Firework
 
-use std::cell::RefCell;
-use firework_ui::{ui, run_with_adapter, null_adapter, AdapterCommand, AdapterResult};
+mod common;
+
+use crate::common::TestHarness;
+use firework_ui::{ui, AdapterCommand};
 
 #[ui]
 fn test_ui_rect_screen() {
@@ -23,60 +25,39 @@ fn test_ui_dynamic_rect_test() {
     }
 }
 
-thread_local! {
-    static COMMANDS: RefCell<Vec<AdapterCommand>> = RefCell::new(Vec::new());
-}
-
-fn adapter_handler(command: AdapterCommand) -> AdapterResult {
-    if !matches!(command, AdapterCommand::RunLoop { .. } ) {
-        println!("Command: {:#?}", command);
-        COMMANDS.with(|cmds| cmds.borrow_mut().push(command));
-    }
-
-    null_adapter(command)
-}
-
 #[test]
 fn test_ui_rect() { 
-    COMMANDS.with(|cmds| cmds.borrow_mut().clear());
-    
-    run_with_adapter(adapter_handler, test_ui_rect_screen);
-    
-    COMMANDS.with(|cmds| {
-        assert_eq!(*cmds.borrow(), vec![
-            AdapterCommand::RemoveAll,
-            AdapterCommand::NewRect { layout: 1, },
-            AdapterCommand::SetHitGroup(0, 65535),
-            AdapterCommand::SetPosition(0, (10, 10)),
-            AdapterCommand::SetColor(0, (255, 255, 255, 255)),
-        ]);
-    });
+    let commands = TestHarness::run(test_ui_rect_screen);
+
+    assert_eq!(commands, vec![
+        AdapterCommand::RemoveAll,
+        AdapterCommand::NewRect { layout: 1, },
+        AdapterCommand::SetHitGroup(0, 65535),
+        AdapterCommand::SetPosition(0, (10, 10)),
+        AdapterCommand::SetColor(0, (255, 255, 255, 255)),
+    ]);
 }
 
 #[test]
 fn test_ui_dynamic_rect() { 
-    COMMANDS.with(|cmds| cmds.borrow_mut().clear());
+    let commands = TestHarness::run(test_ui_dynamic_rect_test); 
     
-    run_with_adapter(adapter_handler, test_ui_dynamic_rect_test);
-    
-    COMMANDS.with(|cmds| {
-        assert_eq!(*cmds.borrow(), vec![
-            AdapterCommand::RemoveAll,
-            AdapterCommand::NewRect { layout: 1, },
-            AdapterCommand::SetHitGroup(0, 65535),
-            AdapterCommand::SetPosition(0, (0, 10)),
-            AdapterCommand::SetColor(0, (255, 255, 255, 255)),
+    assert_eq!(commands, vec![
+        AdapterCommand::RemoveAll,
+        AdapterCommand::NewRect { layout: 1, },
+        AdapterCommand::SetHitGroup(0, 65535),
+        AdapterCommand::SetPosition(0, (0, 10)),
+        AdapterCommand::SetColor(0, (255, 255, 255, 255)),
 
-            // В NullAdapter системы айди нет
-            AdapterCommand::NewRect { layout: 1, },
-            AdapterCommand::SetHitGroup(0, 65535),
-            AdapterCommand::SetPosition(0, (10, 10)),
-            AdapterCommand::SetColor(0, (255, 255, 255, 255)),
+        // В NullAdapter системы айди нет
+        AdapterCommand::NewRect { layout: 1, },
+        AdapterCommand::SetHitGroup(0, 65535),
+        AdapterCommand::SetPosition(0, (10, 10)),
+        AdapterCommand::SetColor(0, (255, 255, 255, 255)),
 
-            AdapterCommand::NewRect { layout: 1, },
-            AdapterCommand::SetHitGroup(0, 65535),
-            AdapterCommand::SetPosition(0, (20, 10)),
-            AdapterCommand::SetColor(0, (255, 255, 255, 255)),
-        ]);
-    });
+        AdapterCommand::NewRect { layout: 1, },
+        AdapterCommand::SetHitGroup(0, 65535),
+        AdapterCommand::SetPosition(0, (20, 10)),
+        AdapterCommand::SetColor(0, (255, 255, 255, 255)),
+    ]);
 }

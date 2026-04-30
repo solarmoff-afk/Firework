@@ -89,6 +89,12 @@ impl CodeBuilder {
                             #processed_body
                         }
                     ));
+                } else {
+                    final_tokens.extend(quote_spanned!(span=>
+                        #statement
+                        #update_widgets_statement
+                        #processed_body
+                    ));
                 }
 
                 return true;

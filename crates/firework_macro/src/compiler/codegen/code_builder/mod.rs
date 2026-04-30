@@ -67,11 +67,8 @@ impl CodeBuilder {
             let mut temp_tokens = TokenStream::new();
             match statement.action {
                 FireworkAction::UpdateSpark(..) => {
-                    let need_condition = !statement.is_reactive_block
-                        && statement.parent_widget_id.is_none();
-
                     if self.node_update_spark(span, &mut temp_tokens, &statement,
-                            &processed_body) && need_condition {
+                            &processed_body) {
                         processed_body = temp_tokens;
                         is_body_handled = true;
                     }
