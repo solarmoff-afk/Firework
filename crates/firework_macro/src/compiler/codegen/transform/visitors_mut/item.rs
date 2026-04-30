@@ -94,7 +94,7 @@ impl CodegenVisitor<'_> {
             // static mut и unsafe
             let instance_name = struct_name_raw.to_uppercase();
             let instance = static_declaration(&instance_name, &struct_name_raw, &fields_data);
-            let instance_item: Item = parse_str(&instance).unwrap(); 
+            let instance_item: Item = parse_str(&instance).expect("IE:8"); 
           
             self.generate_build(new_items, instance_item, &fields, id, span);
 

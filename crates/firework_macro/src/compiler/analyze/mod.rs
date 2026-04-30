@@ -128,14 +128,36 @@ impl Analyzer {
     /// то он создаётся там
     pub fn add_field_to_struct(&mut self, field_name: String, field_type: String) {
         if let Some(_function_name) = &self.function_name {
-            // Добавляет значение в вектор (описание структуры экрана), если такого
-            // значения нет в хэш мапе то создаёт пустой вектор
-            self.context.ir.screen_structs.entry(
-                format!("ApplicationUiBlockStruct{}",
-                    self.lifetime_manager.scope.screen_index.to_string()))
-                .or_insert_with(Vec::new)
-                .push((field_name, field_type));
+            // Добавляет значение в вектор (описание структуры экрана или компонента), если
+            // такого значения нет в хэш мапе то создаёт пустой вектор
+            match self.context.now_component {
+                // Вне режима компиляции Component now_component никогда не станет Some,
+                // так как он становится таким только в Impl визиторе, а там стоит ранний
+                // выход если режим компиляции в флагах не Component
+
+                Some(_) => self.add_field_to_component(field_name, field_type),
+                None => self.add_field_to_screen(field_name, field_type), 
+            }
         }
+    }
+
+    fn add_field_to_screen(&mut self, field_name: String, field_type: String) {
+        self.context.ir.screen_structs.entry(
+            format!("ApplicationUiBlockStruct{}",
+                self.lifetime_manager.scope.screen_index.to_string()))
+            .or_insert_with(Vec::new)
+            .push((field_name, field_type));
+    }
+
+    fn add_field_to_component(&mut self, field_name: String, field_type: String) {
+        // SAFETY: Этот метож вызывается только из add_field_to_struct и только если
+        // now_component это Some
+        self.context.ir.component_structs.entry(self.context.now_component.clone()
+                .expect("IE:7"))
+            .or_insert_with(Vec::new)
+            .push((field_name.clone(), field_type.clone()));
+
+        self.add_field_to_screen(field_name, field_type);
     }
 
     /// Функция хэлпер для регистрации реактивного блока в IR. Реактивный блок это блок
