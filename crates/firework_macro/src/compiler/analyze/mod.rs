@@ -388,6 +388,8 @@ impl<'ast> Visit<'ast> for Analyzer {
     }
 
     fn visit_item_impl(&mut self, _i: &'ast ItemImpl) {
+        println!("{:#?}", _i);
+        visit::visit_item_impl(self, _i);
         // self.context.output.extend(node.to_token_stream());
     }
 

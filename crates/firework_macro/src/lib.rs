@@ -37,6 +37,11 @@ pub fn shared(input: TokenStream) -> TokenStream {
 }
 
 #[proc_macro]
+pub fn component(input: TokenStream) -> TokenStream {
+    process_macro(input, CompileType::Component, false)
+}
+
+#[proc_macro]
 pub fn ui_block(input: TokenStream) -> TokenStream {
     process_macro(input, CompileType::Screen, true)
 }
@@ -70,12 +75,6 @@ fn process_macro(input: TokenStream, compile_type: CompileType, use_counter: boo
     }
     
     output.into()
-}
-
-// Заглушка
-#[proc_macro_attribute]
-pub fn component(_args: proc_macro::TokenStream, input: proc_macro::TokenStream) -> proc_macro::TokenStream {
-    input
 }
 
 #[proc_macro_attribute]

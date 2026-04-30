@@ -15,14 +15,14 @@ use crate::compiler::codegen::generator::bitmask_gen::get_spark_mask;
 impl<'ast> Analyzer {
     /// Генерирует заглушки для функций чтобы компилятор не выдал ошибку "функция отсуствует"
     /// вероятно это временное решение. Также собирает сигнатуру функции для кодогенератора
-    pub(crate) fn analyze_item_fn(&mut self, node: &'ast ItemFn) {
+    pub(crate) fn analyze_item_fn<F: Function>(&mut self, node: &F) {
         self.lifetime_manager.item_scope = self.lifetime_manager.scope.clone();
         self.context.layouts_count = 0;
         self.context.functions_count += 1;
 
         let mut function_head = String::from(""); 
 
-        for attr in &node.attrs {
+        for attr in node.attrs() {
             function_head.push_str(format!("{}\n", quote::quote! { #attr }).as_str());
 
             let path = &attr.meta.path();
@@ -41,7 +41,7 @@ impl<'ast> Analyzer {
                             if let Some(ident) = arg.get_ident() {
                                 self.context.ir.shared.effects.entry(ident.to_string())
                                     .or_insert(Vec::new())
-                                    .push(node.sig.ident.to_string());
+                                    .push(node.sig().ident.to_string());
                             }
                         }
                     }
@@ -49,16 +49,17 @@ impl<'ast> Analyzer {
             }
         }
         
-        let vis = &node.vis;
-        let constness = &node.sig.constness;
-        let asyncness = &node.sig.asyncness;
-        let unsafety = &node.sig.unsafety;
-        let abi = &node.sig.abi;
-        let fn_token = &node.sig.fn_token;
-        let ident = &node.sig.ident;
-        let generics = &node.sig.generics;
-        let inputs = &node.sig.inputs;
-        let output = &node.sig.output;
+        let vis = &node.vis();
+        let sig = &node.sig();
+        let constness = &sig.constness;
+        let asyncness = &sig.asyncness;
+        let unsafety = &sig.unsafety;
+        let abi = &sig.abi;
+        let fn_token = &sig.fn_token;
+        let ident = &sig.ident;
+        let generics = &sig.generics;
+        let inputs = &sig.inputs;
+        let output = &sig.output;
         
         let signature = quote::quote! {
             #vis #constness #asyncness #unsafety #abi #fn_token #ident #generics (#inputs) #output
@@ -67,11 +68,11 @@ impl<'ast> Analyzer {
         function_head.push_str(format!("{}", signature).as_str());
 
         // Добавление всех аргументов в область видимости как переменных
-        for input in &node.sig.inputs {
+        for input in &node.sig().inputs {
             self.visit_fn_arg(input);
         }
 
-        let function_name = node.sig.ident.to_string();
+        let function_name = node.sig().ident.to_string();
         self.function_name = Some(function_name.clone());
         self.context.ir.screens.push(
             (
@@ -89,7 +90,9 @@ impl<'ast> Analyzer {
 
         // TODO: Нужно добавить проверку что если мы уже в функции экрана то другие функции
         // внутри не должны анализироваться и трансформироваться, там не ui контекст
-        syn::visit::visit_item_fn(self, node);
+        if let Some(block) = node.block() {
+            self.visit_block(block);
+        }
 
         // Для Event событий в условном рендеринге нельзя обнулять маску, поэтому нужно
         // взять снапшот из статики на момент прошлого флэша и использовать его копию
@@ -180,4 +183,25 @@ impl<'ast> Analyzer {
         // то структура не генерируется. Всегда добавляется _fwc_null на u8 (1 байт)
         self.add_field_to_struct("_fwc_screen_id".to_string(), "u8".to_string());
     }
+}
+
+pub(crate) trait Function {
+    fn attrs(&self) -> &[Attribute];
+    fn vis(&self) -> &Visibility;
+    fn sig(&self) -> &Signature;
+    fn block(&self) -> Option<&Block>;
+}
+
+impl Function for ItemFn {
+    fn attrs(&self) -> &[Attribute] { &self.attrs }
+    fn vis(&self) -> &Visibility { &self.vis }
+    fn sig(&self) -> &Signature { &self.sig }
+    fn block(&self) -> Option<&Block> { Some(&self.block) }
+}
+
+impl Function for ImplItemFn {
+    fn attrs(&self) -> &[Attribute] { &self.attrs }
+    fn vis(&self) -> &Visibility { &self.vis }
+    fn sig(&self) -> &Signature { &self.sig }
+    fn block(&self) -> Option<&Block> { Some(&self.block) }
 }

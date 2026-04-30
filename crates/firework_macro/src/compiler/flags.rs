@@ -5,6 +5,7 @@
 pub enum CompileType {
     Screen,
     Shared,
+    Component,
 }
 
 #[derive(Debug, Clone, Copy)]

@@ -20,6 +20,7 @@ component! {
     }
 }
 
+/*
 #[ui]
 fn test_screen() {
     let mut my_spark = spark!(0);
@@ -33,9 +34,8 @@ fn test_screen() {
 
     spark2 = 20; 
 }
-
+*/
 
 fn main() {
-    firework_ui::run(test_screen);
+    // firework_ui::run(test_screen);
 }
-
