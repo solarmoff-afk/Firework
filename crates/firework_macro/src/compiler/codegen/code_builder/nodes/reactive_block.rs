@@ -37,7 +37,7 @@ impl CodeBuilder {
     /// по наличию декларации виджета внутри одного из дочерних реактивных блоков
     pub fn node_reactive_block(
         &self, span: Span, final_tokens: &mut TokenStream, statement: &FireworkStatement,
-        processed_body: &TokenStream, all_statements: &[FireworkStatement],
+        processed_body: &TokenStream, _all_statements: &[FireworkStatement],
     ) -> bool {
         match &statement.action {
             FireworkAction::ReactiveBlock(_block_type, sparks, is_ui) => {
