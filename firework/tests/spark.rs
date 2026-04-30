@@ -40,6 +40,23 @@ fn test_spark_conditional_rect_screen() {
     condition = 1;
 }
 
+#[ui]
+fn test_spark_derived_rect_screen() {
+    let mut x = spark!(10);
+    let mut pos = spark!((10, 10)); // (i32, i32)
+
+    // Вычислительный спарк. Эффект без зависимостей защищает от бесконечного
+    // цикла
+    pos.0 = x;
+
+    rect! {
+        position: pos, // Должна быть инициализация с (10, 10)
+        color: (255, 255, 255),
+    }
+
+    x = 20; // Должно вызвать реакцию с Pos и будет (20, 10)
+}
+
 #[test]
 fn test_spark_rect() { 
     let commands = TestHarness::run(test_spark_rect_screen);
@@ -69,5 +86,22 @@ fn test_spark_conditional_rect() {
 
         // Теперь его не видно (condition = 2)
         AdapterCommand::SetVisible(0, false),
+    ]);
+}
+
+#[test]
+fn test_spark_derived_rect() { 
+    let commands = TestHarness::run(test_spark_derived_rect_screen);
+
+    assert_eq!(commands, vec![
+        AdapterCommand::RemoveAll,
+        AdapterCommand::NewRect { layout: 1, },
+        AdapterCommand::SetHitGroup(0, 65535),
+        AdapterCommand::SetPosition(0, (10, 10)),
+        AdapterCommand::SetColor(0, (255, 255, 255, 255)),
+        AdapterCommand::SetPosition(0, (20, 10)),
+
+        // ???
+        AdapterCommand::SetPosition(0, (20, 10)),
     ]);
 }

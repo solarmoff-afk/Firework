@@ -17,26 +17,22 @@ fn test_screen() {
 */
 
 #[ui]
-fn test_spark_conditional_rect_screen() {
-    // Изначально его нет
-    let mut condition = spark!(0); // i32
+fn test_spark_derived_rect_screen() {
+    let mut x = spark!(10);
+    let mut pos = spark!((10, 10)); // (i32, i32)
+ 
+    pos.0 = x;
 
-    // Условный рендеринг
-    if condition == 1 {
-        rect! {
-            position: (10, 10),
-            color: (255, 255, 255),
-        }
-
-        // Теперь условие снова не выполняется, это перезапустит цикл реактивности
-        // и прямоугольник снова исчезнет
-        condition += 1;
+    rect! {
+        position: pos, // Должна быть инициализация с (10, 10)
+        color: (255, 255, 255),
     }
 
-    // Теперь он должен появится так как условие перезапустится
-    condition = 1;
+    x = 20; // Должно вызвать реакцию с Pos и будет (20, 10)
 }
 
 fn main() {
-    firework_ui::run(test_spark_conditional_rect_screen);
+    /*
+    firework_ui::run(test_screen);
+    */
 }

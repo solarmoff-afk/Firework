@@ -59,37 +59,10 @@ impl CodeBuilder {
                 };
                 
                 let condition_statement = condition.to_expr().unwrap();
-
-                // Если внутри реактивного блока происходит обновление спарка то его нужно
-                // обработать прямо здесь и обновить биты в битовых масках чтобы перезапустить
-                // реактивный цикл
-                let mut inner_masks = TokenStream::new();
-                for stmt in all_statements {
-                    if let FireworkAction::UpdateSpark(_, id, _) = &stmt.action {
-                        let mask = get_spark_mask(*id);
-
-                        let update_stmt = format!("{};", set_flag(
-                            format!("_fwc_bitmask{}", mask).as_str(),
-                            normalize_bit_index(*id),
-                        )).to_stmt().unwrap();
-
-                        // Обновлене условных виджетов декларация которых зависит от
-                        // этого спарка
-                        let update_widgets_statement = self.generate_widget_spark_update(
-                            statement, id
-                        );
-                        
-                        inner_masks.extend(quote_spanned!(span=> {
-                            #update_widgets_statement
-                            #update_stmt
-                        }));
-                    }
-                }
                 
                 final_tokens.extend(quote_spanned!(span=>
                     if #condition_statement {
                         #processed_body
-                        #inner_masks
                     }
                 ));
 

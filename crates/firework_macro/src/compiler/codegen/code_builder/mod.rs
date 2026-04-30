@@ -62,36 +62,34 @@ impl CodeBuilder {
             }
         }
 
-        // Ноды которые требуют только обёртку для проверки фазы флэша (Build/Navigate)
         for statement in statements {
             let mut temp_tokens = TokenStream::new();
-            match statement.action {
-                FireworkAction::UpdateSpark(..) => {
-                    if self.node_update_spark(span, &mut temp_tokens, &statement,
-                            &processed_body) {
-                        processed_body = temp_tokens;
-                        is_body_handled = true;
-                    }
-                },
+            if let FireworkAction::UpdateSpark(..) = statement.action {
+                if self.node_update_spark(span, &mut temp_tokens, &statement, &processed_body) {
+                    processed_body = temp_tokens;
+                    is_body_handled = true;
+                }
+            }
+        }
 
-                FireworkAction::ReactiveBlock(..) => {
-                    if self.node_reactive_block(span, &mut temp_tokens, &statement,
-                            &processed_body, statements) {
-                        processed_body = temp_tokens;
-                        is_body_handled = true;
-                    }
-                },
+        for statement in statements {
+            let mut temp_tokens = TokenStream::new();
+            if let FireworkAction::ReactiveBlock(..) = statement.action {
+                if self.node_reactive_block(span, &mut temp_tokens, &statement, &processed_body, statements) {
+                    processed_body = temp_tokens;
+                    is_body_handled = true;
+                }
+            }
+        }
 
-                FireworkAction::DynamicLoopBegin(..) => {
-                    let struct_name = format!("ApplicationUiBlockStruct{}", statement.screen_index);
-                    if self.node_dynamic_list(span, &mut temp_tokens, struct_name, &statement,
-                            &processed_body) {
-                        processed_body = temp_tokens;
-                        is_body_handled = true;
-                    }
-                },
-
-                _ => {}
+        for statement in statements {
+            let mut temp_tokens = TokenStream::new();
+            if let FireworkAction::DynamicLoopBegin(..) = statement.action {
+                let struct_name = format!("ApplicationUiBlockStruct{}", statement.screen_index);
+                if self.node_dynamic_list(span, &mut temp_tokens, struct_name, &statement, &processed_body) {
+                    processed_body = temp_tokens;
+                    is_body_handled = true;
+                }
             }
         }
 
