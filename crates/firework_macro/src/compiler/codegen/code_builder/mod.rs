@@ -75,7 +75,7 @@ impl CodeBuilder {
         for statement in statements {
             let mut temp_tokens = TokenStream::new();
             if let FireworkAction::ReactiveBlock(..) = statement.action {
-                if self.node_reactive_block(span, &mut temp_tokens, &statement, &processed_body, statements) {
+                if self.node_reactive_block(span, &mut temp_tokens, &statement, &processed_body) {
                     processed_body = temp_tokens;
                     is_body_handled = true;
                 }
