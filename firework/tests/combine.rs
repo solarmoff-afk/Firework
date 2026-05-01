@@ -1,12 +1,12 @@
 // Часть проекта Firework с открытым исходным кодом.
 // Лицензия EPL 2.0, подробнее в файле LICENSE. Copyright (c) 2026 Firework
 
-/*
 mod common;
 
 use crate::common::TestHarness;
 use firework_ui::{ui, AdapterCommand};
 
+/*
 #[ui]
 fn test_combine_dynamic_filter_screen() {
     let mut filter_active = spark!(false);
@@ -62,6 +62,7 @@ fn test_combine_dynamic_filter() {
         AdapterCommand::Remove(0),
     ]);
 }
+*/
 
 #[ui]
 fn test_combine_nested_structures_screen() {
@@ -126,8 +127,9 @@ fn test_combine_nested_structures() {
         AdapterCommand::SetVisible(0, false),
         AdapterCommand::Remove(0), // Для (1, 1)
 
-        AdapterCommand::SetVisible(0, false), // Для (0, 0)
-        AdapterCommand::SetVisible(0, false), // Для (0, 1)
+        AdapterCommand::SetVisible(0, false),
+        AdapterCommand::Remove(0),
+        AdapterCommand::SetVisible(0, false),
+        AdapterCommand::Remove(0),
     ]);
 }
-*/
