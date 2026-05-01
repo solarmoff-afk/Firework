@@ -4,7 +4,6 @@
 pub mod traits;
 pub mod helpers;
 mod visitors_mut;
-mod macro_resolver;
 
 use syn::visit_mut::VisitMut;
 use syn::spanned::Spanned;

@@ -36,16 +36,11 @@ fn test_combine_nested_structures_screen() {
     if rows == 0 { 
         rows = 2;
         show_board = true;
-    } else if rows == 2 {
-        rows = 1;
-    } else if show_board {
-        show_board = false;
+        println!("Hello world");
     }
 }
 
 
 fn main() {
-    /*
-    firework_ui::run(test_screen);
-    */
+    firework_ui::run_with_adapter(firework_ui::null_adapter, test_combine_nested_structures_screen);
 }

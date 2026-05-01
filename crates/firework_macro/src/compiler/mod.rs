@@ -9,6 +9,7 @@ mod codegen;
 
 use analyze::prepare_tokens;
 use codegen::transform::CodegenVisitor;
+use codegen::lower::visitors_mut::LowerVisitor;
 use flags::CompileFlags;
 
 use proc_macro2::TokenStream;
@@ -34,6 +35,12 @@ pub fn run_firework_compiler(
     let output = prepare_tokens(file.clone(), flags, id);
 
     if let Some(mut ir) = output.2 && output.1.is_none() {
+        {
+            let mut visitor = LowerVisitor::new(&mut ir);
+            // visitor.set_flags(flags);
+            visitor.visit_file_mut(&mut file);
+        }
+
         let mut visitor = CodegenVisitor::new(&mut ir);
         visitor.set_flags(flags);
         visitor.visit_file_mut(&mut file);

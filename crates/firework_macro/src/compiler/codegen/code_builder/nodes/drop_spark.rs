@@ -14,7 +14,7 @@ impl CodeBuilder {
     /// чтобы вернуть владение обратно в статику чтобы не было паники при использовании
     /// take в следующем флэше
     pub fn node_drop_spark(
-        &self, span: Span, struct_name: String, final_tokens: &mut TokenStream,
+        &self, _span: Span, struct_name: String, final_tokens: &mut TokenStream,
         statement: &FireworkStatement,
     ) -> bool {
         match &statement.action {
@@ -28,7 +28,7 @@ impl CodeBuilder {
                 let set_field_str = static_gen::set_field(&struct_name, &field_name, name);
                 let set_field_expr = Self::convert_string_to_syn(&set_field_str);
                 
-                final_tokens.extend(quote_spanned!(span=> 
+                final_tokens.extend(quote!( 
                     #set_field_expr
                 ));
 

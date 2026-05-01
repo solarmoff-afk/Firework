@@ -267,7 +267,7 @@ impl Analyzer {
         // Замыкание чтобы выполнить все блоки, self передаётся из-за того что в
         // расте нельзя использовать self внутри метода этой же структуры поэтому
         // здесь передаётся self как аргумент замыкания
-        visit_fn(self);
+        let delim_span = visit_fn(self);
 
         // После выполнения обработки блока идёт снятие реактивного блока из стэка
         if is_reactive {
@@ -280,6 +280,8 @@ impl Analyzer {
         // Закрывающий стейтемент реактивного блока
         self.context.statement.action = FireworkAction::ReactiveBlockTerminator;
         self.context.statement.string = "}".to_string();
+        self.context.statement.span = delim_span.close();
+        self.context.ir.set_span(delim_span.close());
         self.statement_index += 1;
 
         // Закрывающая фигурная скобка также является частью реактивного блока

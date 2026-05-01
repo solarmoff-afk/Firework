@@ -4,7 +4,6 @@
 use quote::quote;
 
 pub use super::super::*;
-use super::super::macro_resolver::MacroResolver;
 
 impl CodegenVisitor<'_> {
     pub(crate) fn analyze_block_mut(&mut self, i: &mut Block) {
@@ -18,17 +17,8 @@ impl CodegenVisitor<'_> {
 
             let mut body_statements = Vec::new();
 
-            if let Some(expanded_statements) = MacroResolver::expand(&statement) {
-                let mut inner_block = Block {
-                    brace_token: Default::default(),
-                    stmts: expanded_statements,
-                };
-                self.analyze_block_mut(&mut inner_block);
-                body_statements.extend(inner_block.stmts);
-            } else {
-                syn::visit_mut::visit_stmt_mut(self, &mut statement);
-                body_statements.push(statement.clone());
-            }
+            syn::visit_mut::visit_stmt_mut(self, &mut statement);
+            body_statements.push(statement.clone());
 
             let body_tokens = quote!(
                 #(#body_statements)*
