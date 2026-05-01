@@ -164,7 +164,7 @@ impl CodeBuilder {
                     let mask_statement = format!("{};", unset_flag(
                         format!("_fwc_widget_bitmask{}", mask).as_str(), 
                         normalize_bit_index(*widget),
-                    )).to_stmt().unwrap(); 
+                    )).to_stmt().expect("Generate widget spark update: parse mask error"); 
 
                     update_widgets_statements.extend(quote! {
                         #mask_statement

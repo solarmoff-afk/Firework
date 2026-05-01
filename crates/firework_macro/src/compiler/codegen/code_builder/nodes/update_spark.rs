@@ -75,7 +75,7 @@ impl CodeBuilder {
                     // который позволяет использовать даже айди больше 64 
                     // для множества битовых масок
                     normalize_bit_index(*id),
-                )).to_stmt().unwrap(); 
+                )).to_stmt().expect("Update_spark node parse error: bitmask"); 
 
                 if need_condition {
                     final_tokens.extend(quote_spanned!(span=>

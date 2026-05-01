@@ -58,7 +58,8 @@ impl CodeBuilder {
                     false => condition.push_str(format!(" {} ", CHECK_NAVIGATE).as_str()),
                 };
                 
-                let condition_statement = condition.to_expr().unwrap();
+                let condition_statement = condition.to_expr()
+                    .expect("Syntax error in reactive_block node: is_ui parse failed");
                 
                 final_tokens.extend(quote_spanned!(span=>
                     if #condition_statement {

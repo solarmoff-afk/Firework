@@ -40,7 +40,6 @@ impl CodeBuilder {
                     }
 
                     if field.is_fn && is_event(name) {
-                        println!("Hello world");
                         continue;
                     }
 
@@ -107,7 +106,7 @@ impl CodeBuilder {
                     let statement = format!("{};", set_flag(
                         format!("_fwc_widget_bitmask{}", mask).as_str(), 
                         normalize_bit_index(local_id),
-                    )).to_stmt().unwrap();
+                    )).to_stmt().expect("Widget_block symtax error in bitmask");
 
                     widget_update_bitmask.extend(quote! {
                         #statement
@@ -123,9 +122,23 @@ impl CodeBuilder {
                 self.generate_check_widget_bit(&mut condition,description.is_maybe
                     .unwrap_or(0));
 
-                let condition_statement = condition.to_expr().unwrap();
+                let condition_statement = condition.to_expr()
+                    .expect("Widget_block symtax error: Condition statement parse error"); 
 
-                let mut match_value = TokenStream::new();
+                // Безопасный режим с Mutex
+                #[cfg(feature = "safety-multithread")]
+                let match_value = quote! {
+                    #instance_ident_upper.get()
+                        .expect("Instance not initialized").lock()
+                        .unwrap().#field_ident
+                };
+
+                #[cfg(not(feature = "safety-multithread"))]
+                let match_value = quote! {
+                    unsafe {
+                        (*::core::ptr::addr_of!(#instance_ident_upper)).#field_ident.as_ref()
+                    }
+                };
 
                 let is_in_loop = description.has_microruntime;
                 if is_in_loop {
@@ -168,16 +181,6 @@ impl CodeBuilder {
                         }
                     ));
                 } else {
-                    // Безопасный режим с Mutex
-                    #[cfg(feature = "safety-multithread")]
-                    {
-                        match_value = quote! {
-                            #instance_ident_upper.get()
-                                .expect("Instance not initialized").lock()
-                                .unwrap().#field_ident
-                        };
-                    }
-
                     #[cfg(feature = "safety-multithread")]
                     final_tokens.extend(quote_spanned!(span=>
                         match #match_value {
@@ -196,15 +199,6 @@ impl CodeBuilder {
                             },
                         };
                     ));
-
-                    #[cfg(not(feature = "safety-multithread"))]
-                    {
-                        match_value = quote! {
-                            unsafe {
-                                (*::core::ptr::addr_of!(#instance_ident_upper)).#field_ident
-                            }
-                        };
-                    }
 
                     // Обычный режим
                     #[cfg(not(feature = "safety-multithread"))]

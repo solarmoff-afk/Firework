@@ -29,9 +29,9 @@ pub const SET_FOCUS: &str = "
 \tfirework_ui::set_focus_id(_fwc_id);\n
 ";
 
-pub const CHECK_NAVIGATE: &str = " firework_ui::tiny_matches!(_fwc_event, firework_ui::LifeCycle::Navigate) || firework_ui::tiny_matches!(_fwc_event, firework_ui::LifeCycle::Build) ";
+pub const CHECK_NAVIGATE: &str = " (firework_ui::tiny_matches!(_fwc_event, firework_ui::LifeCycle::Navigate) || firework_ui::tiny_matches!(_fwc_event, firework_ui::LifeCycle::Build)) ";
 
 /// Проверка декларативного реактивного блока для описания UI
-pub const CHECK_DEC_RB: &str = " firework_ui::tiny_matches!(_fwc_event, firework_ui::LifeCycle::Navigate | firework_ui::LifeCycle::Build | firework_ui::LifeCycle::Event) ";
+pub const CHECK_DEC_RB: &str = " (firework_ui::tiny_matches!(_fwc_event, firework_ui::LifeCycle::Navigate | firework_ui::LifeCycle::Build | firework_ui::LifeCycle::Event)) ";
 
-pub const CHECK_EVENT_INCODE: &str = " firework_ui::tiny_matches!(_fwc_event, firework_ui::LifeCycle::Event) ";
+pub const CHECK_EVENT_INCODE: &str = " (firework_ui::tiny_matches!(_fwc_event, firework_ui::LifeCycle::Event)) ";
