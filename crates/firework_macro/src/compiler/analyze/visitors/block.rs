@@ -128,6 +128,8 @@ impl<'ast> Analyzer {
                                             _ => {}
                                         }
                                     }
+
+                                    else_if.then_branch.brace_token.span
                                 },
                             );
                         },
@@ -138,7 +140,10 @@ impl<'ast> Analyzer {
                                 false,
                                 "} else {".to_string(),
                                 else_action,
-                                |inner_this| inner_this.analyze_block(&else_block.block),
+                                |inner_this| {
+                                    inner_this.analyze_block(&else_block.block);
+                                    else_block.block.brace_token.span
+                                },
                             );
                         },
 
@@ -147,6 +152,7 @@ impl<'ast> Analyzer {
                 }
 
                 this.context.is_maybe = old_maybe;
+                i.then_branch.brace_token.span
             },
         );
     }
@@ -173,6 +179,7 @@ impl<'ast> Analyzer {
             |this| {
                 visit::visit_expr(this, &i.cond);
                 this.analyze_block(&i.body);
+                i.body.brace_token.span
             }
         );
 
@@ -203,6 +210,7 @@ impl<'ast> Analyzer {
             |this| {
                 visit::visit_expr(this, &i.expr);
                 this.analyze_block(&i.body);
+                i.body.brace_token.span
             }
         );
 
@@ -261,6 +269,7 @@ impl<'ast> Analyzer {
                 }
 
                 this.context.is_maybe = old_maybe;
+                i.brace_token.span
             },
         );
     }
@@ -282,6 +291,7 @@ impl<'ast> Analyzer {
             FireworkAction::DefaultCode,
             |this| {
                 this.analyze_block(&i.body);
+                i.body.brace_token.span
             }
         );
 

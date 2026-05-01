@@ -1,6 +1,7 @@
 // Часть проекта Firework с открытым исходным кодом.
 // Лицензия EPL 2.0, подробнее в файле LICENSE. Copyright (c) 2026 Firework
 
+use proc_macro2::Group;
 use syn::spanned::Spanned;
 
 pub use super::super::*;
@@ -121,6 +122,19 @@ impl<'ast> Analyzer {
         }
         
         if effect_sparks.len() > 0 {
+            // HACK: Эффекты от вычислительных спарков должны также проходить через
+            // handle_reactive_block, но замыкание должно возвращать DelimSpan который
+            // нельзя создать, но можно получить из группы. Здесь создаётся группа со
+            // спаном из правой части производного выражения и из неё получается delim_span
+            let span = right.span();
+            let mut dummy_group = Group::new(
+                proc_macro2::Delimiter::Brace,
+                TokenStream::new(),
+            );
+            
+            dummy_group.set_span(span);
+            let delim_span = dummy_group.delim_span(); 
+
             self.handle_reactive_block(
                 effect_sparks.clone(),
                 false,
@@ -135,6 +149,7 @@ impl<'ast> Analyzer {
                     statement.is_reactive_block = true;
 
                     this.context.ir.push(statement);
+                    delim_span
                 }
             ); 
         }

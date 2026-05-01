@@ -15,6 +15,7 @@ mod components;
 mod tests;
 
 use proc_macro2::{TokenStream, Span};
+use proc_macro2::extra::DelimSpan;
 use syn::*;
 use syn::visit::Visit;
 use std::collections::HashMap;
@@ -164,14 +165,15 @@ impl Analyzer {
     /// (условие, цикл, match) которые содержит реактивную переменную (спарк) в своём
     /// условии. Он забирает всё содержимое тело поэтому реактивный блок в реактином блоке
     /// не считается отдельным реактивным блоком. Также он вызывает visit метод через
-    /// замыкание (visit_fn). Добавляет закрывающий блок (}) в конце блока
+    /// замыкание (visit_fn). Добавляет закрывающий блок (}) в конце блока, замыкание
+    /// должно вернуть DelimSpan (спаны открывающей и закрывающей скобки)
     fn handle_reactive_block(
         &mut self,
         sparks: Vec<(String, usize)>,
         is_loop: bool,
         open_code: String, 
         action: FireworkAction,
-        visit_fn: impl FnOnce(&mut Self),
+        visit_fn: impl FnOnce(&mut Self) -> DelimSpan,
     ) {
         // Добавление к счётчику глубины. Это используется для форматирования вывода чтобы
         // определить сколько табов нужно

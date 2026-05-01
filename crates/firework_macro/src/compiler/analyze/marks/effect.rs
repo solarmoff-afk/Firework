@@ -51,6 +51,8 @@ impl Analyzer {
                         for stmt in &last_expr_block.block.stmts {
                             this.visit_stmt(stmt);
                         }
+
+                        last_expr_block.block.brace_token.span
                     }
                 );
             } else {
