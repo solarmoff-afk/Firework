@@ -4,3 +4,4 @@
 pub mod item;
 pub mod item_macro;
 pub mod block;
+pub mod struct_visitor;
