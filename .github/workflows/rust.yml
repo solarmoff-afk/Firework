@@ -22,7 +22,7 @@ jobs:
       uses: actions-rust-lang/setup-rust-toolchain@v1
       with:
         toolchain: stable
-        components: rustfmt
+        components: rustfmt, clippy
     
     - name: Cache dependencies
       uses: Swatinem/rust-cache@v2
@@ -33,6 +33,9 @@ jobs:
     
     - name: Check formatting
       run: cargo fmt --all -- --check
+    
+    - name: Lint with Clippy
+      run: cargo clippy --workspace --lib --bins --examples --tests --no-deps -- -D warnings
     
     - name: Build all workspace
       run: cargo build --verbose --workspace
