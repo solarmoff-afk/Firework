@@ -15,28 +15,27 @@ fn test_screen() {
 
 #[ui]
 fn test_combine_nested_structures_screen() {
-    let mut show_board = spark!(false);
-    let mut rows = spark!(0);
+    let mut filter_active = spark!(false);
+    let mut items_count = spark!(0);
 
-    if show_board {
-        for r in 0..rows {
-            for c in 0..2 {
-                rect! {
-                    position: (r * 10, c * 10),
-                    color: (255, 0, 0),
-                    
-                    #[key_type((i32, i32))]
-                    key: (r, c),
-                }
+    for i in 0..items_count {
+        if !filter_active || i % 2 == 0 {
+            rect! {
+                position: (10 * i, 10),
+                color: (255, 255, 255),
+                
+                #[key_type(i32)]
+                key: i,
             }
         }
     }
 
-    // Машина состояний
-    if rows == 0 { 
-        rows = 2;
-        show_board = true;
-        println!("Hello world");
+    if items_count == 0 {
+        items_count = 3; 
+    } else if !filter_active {
+        filter_active = true; 
+    } else if items_count == 3 {
+        items_count = 1; 
     }
 }
 

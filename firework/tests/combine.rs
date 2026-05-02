@@ -6,7 +6,6 @@ mod common;
 use crate::common::TestHarness;
 use firework_ui::{ui, AdapterCommand};
 
-/*
 #[ui]
 fn test_combine_dynamic_filter_screen() {
     let mut filter_active = spark!(false);
@@ -62,7 +61,6 @@ fn test_combine_dynamic_filter() {
         AdapterCommand::Remove(0),
     ]);
 }
-*/
 
 #[ui]
 fn test_combine_nested_structures_screen() {

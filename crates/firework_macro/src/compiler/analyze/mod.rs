@@ -77,6 +77,9 @@ pub struct Analyzer {
     // вложенные реактивные блоки не меняют этот флаг, он всегда показывает на первый
     // реактивный блок. Второе значение кортежа это цикл (нужен ли микрорантайм)
     reactive_block: Option<(usize, bool)>,
+
+    // Нужен ли цикл
+    is_loop: bool,
 }
 
 impl Analyzer {
@@ -99,7 +102,9 @@ impl Analyzer {
             pending_vars: Vec::new(),
 
             // Изначально мы не в реактивном блоке
-            reactive_block: None, 
+            reactive_block: None,
+
+            is_loop: false,
         }
     }
 
@@ -181,7 +186,8 @@ impl Analyzer {
 
         // Текущее состояние
         let state = self.reactive_block;
-                
+        let is_loop_state = self.is_loop;
+        
         // Стейтемент для открытия реактивного блока чтобы кодогенератор мог правильно
         // сгенерировать реактивный блок
         let mut open_statement = self.context.statement.clone();
@@ -199,8 +205,7 @@ impl Analyzer {
             is_null_effect = vec.is_empty();
         }
 
-        // Вызов в любом случае, даже если в условии нет спарков
-        self.reactive_block = Some((self.statement_index, is_loop));
+        // Вызов в любом случае, даже если в условии нет спарков 
         
         // Если в условии есть спарки то мы входим в реактивный блок. Реактивные блоки
         // в реактивных блоках не работают. То есть реактивный блок будет создан если в
@@ -231,6 +236,12 @@ impl Analyzer {
         let mut index = 0;
         if let Some(last_index) = self.context.ir.statements.len().checked_sub(1) {
             index = last_index;
+        }
+
+        self.reactive_block = Some((self.statement_index, is_loop));
+        
+        if !self.is_loop {
+            self.is_loop = is_loop;
         }
 
         // Если это реактивный блок то он добавляется в стэк реактивных блоков 
@@ -288,6 +299,7 @@ impl Analyzer {
         self.context.statement.is_reactive_block = true;
         
         self.reactive_block = state;
+        self.is_loop = is_loop_state;
         
         // Защита от переполнения
         if self.lifetime_manager.scope.depth > 0 {

@@ -129,27 +129,21 @@ impl<'ast> Analyzer {
             // то значит это функиональный виджет
             let mut skin_field = _skin_struct.clone().unwrap_or("".to_string());
             
-            if let Some((_start, _need_microruntime)) = self.reactive_block {
-                has_microruntime = _need_microruntime;
+            if self.is_loop {
+                has_microruntime = true;
+                self.context.microruntime_widgets.has_widgets = true; 
 
-                if _need_microruntime {
-                    // Если виджет был декларирован в цикле то его нужно обернуть в
-                    // специальный контейнер
- 
-                    self.context.microruntime_widgets.has_widgets = true; 
-
-                    skin_field = format!("firework_ui::DynList<{}, {}>", key_type, skin_field);
-                    self.context.ir.screen_dynamic_widgets
-                        .entry(self.context.statement.screen_index)
-                        .or_insert_with(Vec::new)
-                        .push(self.context.widget_counter);
-                    
-                    if !has_key {
-                        self.context.errors.push(compile_error_spanned(
-                            i.tokens.clone(),
-                            WIDGET_KEY_REQUIRED_ERROR,
-                        ));
-                    }
+                skin_field = format!("firework_ui::DynList<{}, {}>", key_type, skin_field);
+                self.context.ir.screen_dynamic_widgets
+                    .entry(self.context.statement.screen_index)
+                    .or_insert_with(Vec::new)
+                    .push(self.context.widget_counter);
+                
+                if !has_key {
+                    self.context.errors.push(compile_error_spanned(
+                        i.tokens.clone(),
+                        WIDGET_KEY_REQUIRED_ERROR,
+                    ));
                 }
             }
 
