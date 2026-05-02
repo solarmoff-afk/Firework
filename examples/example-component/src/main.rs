@@ -1,6 +1,6 @@
+/*
 use firework_ui::{ComponentContext, Prop, component, ui};
 
-/*
 component! {
     pub struct Button {
         pub example_prop: Prop<bool>,
