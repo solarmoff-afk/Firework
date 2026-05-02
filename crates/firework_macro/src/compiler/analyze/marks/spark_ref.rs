@@ -102,22 +102,18 @@ impl Analyzer {
 
     fn find_spark_ref(&self, expr: &Expr, ref_name: &mut String, is_valid: &mut bool) -> bool {
         match expr {
-            Expr::Macro(macro_expr) => {
-                if macro_expr.mac.path.is_ident("spark_ref") {
-                    let tokens = macro_expr.mac.tokens.clone();
+            Expr::Macro(macro_expr) if macro_expr.mac.path.is_ident("spark_ref") => {
+                let tokens = macro_expr.mac.tokens.clone();
 
-                    match syn::parse2::<Expr>(tokens) {
-                        Ok(Expr::Path(path_expr)) => {
-                            *ref_name = path_expr.to_token_stream().to_string();
-                            true
-                        }
-                        _ => {
-                            *is_valid = false;
-                            true
-                        }
+                match syn::parse2::<Expr>(tokens) {
+                    Ok(Expr::Path(path_expr)) => {
+                        *ref_name = path_expr.to_token_stream().to_string();
+                        true
                     }
-                } else {
-                    false
+                    _ => {
+                        *is_valid = false;
+                        true
+                    }
                 }
             }
             _ => false,
