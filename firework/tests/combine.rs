@@ -24,7 +24,7 @@ fn test_combine_dynamic_filter_screen() {
     }
 
     if items_count == 0 {
-        items_count = 3; 
+        items_count = 3;
     } else if !filter_active {
         filter_active = true; 
     } else if items_count == 3 {
