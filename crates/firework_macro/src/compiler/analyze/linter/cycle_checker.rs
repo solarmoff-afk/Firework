@@ -1,8 +1,8 @@
 // Часть проекта Firework с открытым исходным кодом.
 // Лицензия EPL 2.0, подробнее в файле LICENSE. Copyright (c) 2026 Firework
 
-use petgraph::prelude::*;
 use petgraph::algo::astar;
+use petgraph::prelude::*;
 
 use std::collections::HashMap;
 
@@ -31,8 +31,8 @@ impl CycleChecker {
 
     pub fn depend(&mut self, id_parent: usize, id_child: usize) -> Option<Vec<usize>> {
         if let (Some(&p), Some(&c)) = (self.nodes.get(&id_parent), self.nodes.get(&id_child)) {
-            if let Some((_, path_nodes)) = astar(&self.graph, c, |finish| finish == p, |_| 1, |_| 0) {
-                
+            if let Some((_, path_nodes)) = astar(&self.graph, c, |finish| finish == p, |_| 1, |_| 0)
+            {
                 let mut cycle_ids = Vec::new();
 
                 for node_idx in path_nodes {
@@ -50,7 +50,7 @@ impl CycleChecker {
 
             self.graph.add_edge(p, c, ());
         }
-        
+
         None
     }
 }

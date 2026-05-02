@@ -4,7 +4,7 @@
 mod common;
 
 use crate::common::TestHarness;
-use firework_ui::{ui, AdapterCommand};
+use firework_ui::{AdapterCommand, ui};
 
 #[ui]
 fn test_combine_dynamic_filter_screen() {
@@ -16,7 +16,7 @@ fn test_combine_dynamic_filter_screen() {
             rect! {
                 position: (10 * i, 10),
                 color: (255, 255, 255),
-                
+
                 #[key_type(i32)]
                 key: i,
             }
@@ -26,9 +26,9 @@ fn test_combine_dynamic_filter_screen() {
     if items_count == 0 {
         items_count = 3;
     } else if !filter_active {
-        filter_active = true; 
+        filter_active = true;
     } else if items_count == 3 {
-        items_count = 1; 
+        items_count = 1;
     }
 }
 
@@ -36,32 +36,31 @@ fn test_combine_dynamic_filter_screen() {
 fn test_combine_dynamic_filter() {
     let commands = TestHarness::run(test_combine_dynamic_filter_screen);
 
-    assert_eq!(commands, vec![
-        AdapterCommand::RemoveAll,
-        
-        AdapterCommand::NewRect { layout: 1 },
-        AdapterCommand::SetHitGroup(0, 65535),
-        AdapterCommand::SetPosition(0, (0, 10)),
-        AdapterCommand::SetColor(0, (255, 255, 255, 255)),
-        // Элемент i = 1
-        AdapterCommand::NewRect { layout: 1 },
-        AdapterCommand::SetHitGroup(0, 65535),
-        AdapterCommand::SetPosition(0, (10, 10)),
-        AdapterCommand::SetColor(0, (255, 255, 255, 255)),
-        // Элемент i = 2
-        AdapterCommand::NewRect { layout: 1 },
-        AdapterCommand::SetHitGroup(0, 65535),
-        AdapterCommand::SetPosition(0, (20, 10)),
-        AdapterCommand::SetColor(0, (255, 255, 255, 255)),
-        
-        AdapterCommand::SetVisible(0, false),
-        AdapterCommand::Remove(0),
-
-        AdapterCommand::SetVisible(0, false),
-        AdapterCommand::Remove(0),
-
-        AdapterCommand::SetVisible(0, true),
-    ]);
+    assert_eq!(
+        commands,
+        vec![
+            AdapterCommand::RemoveAll,
+            AdapterCommand::NewRect { layout: 1 },
+            AdapterCommand::SetHitGroup(0, 65535),
+            AdapterCommand::SetPosition(0, (0, 10)),
+            AdapterCommand::SetColor(0, (255, 255, 255, 255)),
+            // Элемент i = 1
+            AdapterCommand::NewRect { layout: 1 },
+            AdapterCommand::SetHitGroup(0, 65535),
+            AdapterCommand::SetPosition(0, (10, 10)),
+            AdapterCommand::SetColor(0, (255, 255, 255, 255)),
+            // Элемент i = 2
+            AdapterCommand::NewRect { layout: 1 },
+            AdapterCommand::SetHitGroup(0, 65535),
+            AdapterCommand::SetPosition(0, (20, 10)),
+            AdapterCommand::SetColor(0, (255, 255, 255, 255)),
+            AdapterCommand::SetVisible(0, false),
+            AdapterCommand::Remove(0),
+            AdapterCommand::SetVisible(0, false),
+            AdapterCommand::Remove(0),
+            AdapterCommand::SetVisible(0, true),
+        ]
+    );
 }
 
 #[ui]
@@ -75,7 +74,7 @@ fn test_combine_nested_structures_screen() {
                 rect! {
                     position: (r * 10, c * 10),
                     color: (255, 0, 0),
-                    
+
                     #[key_type((i32, i32))]
                     key: (r, c),
                 }
@@ -98,38 +97,38 @@ fn test_combine_nested_structures_screen() {
 fn test_combine_nested_structures() {
     let commands = TestHarness::run(test_combine_nested_structures_screen);
 
-    assert_eq!(commands, vec![
-        AdapterCommand::RemoveAll,
-        
-        // (r=0, c=0)
-        AdapterCommand::NewRect { layout: 1 },
-        AdapterCommand::SetHitGroup(0, 65535),
-        AdapterCommand::SetPosition(0, (0, 0)),
-        AdapterCommand::SetColor(0, (255, 0, 0, 255)),
-        // (r=0, c=1)
-        AdapterCommand::NewRect { layout: 1 },
-        AdapterCommand::SetHitGroup(0, 65535),
-        AdapterCommand::SetPosition(0, (0, 10)),
-        AdapterCommand::SetColor(0, (255, 0, 0, 255)),
-        // (r=1, c=0)
-        AdapterCommand::NewRect { layout: 1 },
-        AdapterCommand::SetHitGroup(0, 65535),
-        AdapterCommand::SetPosition(0, (10, 0)),
-        AdapterCommand::SetColor(0, (255, 0, 0, 255)),
-        // (r=1, c=1)
-        AdapterCommand::NewRect { layout: 1 },
-        AdapterCommand::SetHitGroup(0, 65535),
-        AdapterCommand::SetPosition(0, (10, 10)),
-        AdapterCommand::SetColor(0, (255, 0, 0, 255)),
-
-        AdapterCommand::SetVisible(0, false),
-        AdapterCommand::Remove(0), // Для (1, 0)
-        AdapterCommand::SetVisible(0, false),
-        AdapterCommand::Remove(0), // Для (1, 1)
-
-        AdapterCommand::SetVisible(0, false),
-        AdapterCommand::Remove(0),
-        AdapterCommand::SetVisible(0, false),
-        AdapterCommand::Remove(0),
-    ]);
+    assert_eq!(
+        commands,
+        vec![
+            AdapterCommand::RemoveAll,
+            // (r=0, c=0)
+            AdapterCommand::NewRect { layout: 1 },
+            AdapterCommand::SetHitGroup(0, 65535),
+            AdapterCommand::SetPosition(0, (0, 0)),
+            AdapterCommand::SetColor(0, (255, 0, 0, 255)),
+            // (r=0, c=1)
+            AdapterCommand::NewRect { layout: 1 },
+            AdapterCommand::SetHitGroup(0, 65535),
+            AdapterCommand::SetPosition(0, (0, 10)),
+            AdapterCommand::SetColor(0, (255, 0, 0, 255)),
+            // (r=1, c=0)
+            AdapterCommand::NewRect { layout: 1 },
+            AdapterCommand::SetHitGroup(0, 65535),
+            AdapterCommand::SetPosition(0, (10, 0)),
+            AdapterCommand::SetColor(0, (255, 0, 0, 255)),
+            // (r=1, c=1)
+            AdapterCommand::NewRect { layout: 1 },
+            AdapterCommand::SetHitGroup(0, 65535),
+            AdapterCommand::SetPosition(0, (10, 10)),
+            AdapterCommand::SetColor(0, (255, 0, 0, 255)),
+            AdapterCommand::SetVisible(0, false),
+            AdapterCommand::Remove(0), // Для (1, 0)
+            AdapterCommand::SetVisible(0, false),
+            AdapterCommand::Remove(0), // Для (1, 1)
+            AdapterCommand::SetVisible(0, false),
+            AdapterCommand::Remove(0),
+            AdapterCommand::SetVisible(0, false),
+            AdapterCommand::Remove(0),
+        ]
+    );
 }

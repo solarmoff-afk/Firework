@@ -4,7 +4,7 @@
 mod common;
 
 use crate::common::TestHarness;
-use firework_ui::{ui, AdapterCommand};
+use firework_ui::{AdapterCommand, ui};
 
 #[ui]
 fn test_ui_rect_screen() {
@@ -26,38 +26,42 @@ fn test_ui_dynamic_rect_test() {
 }
 
 #[test]
-fn test_ui_rect() { 
+fn test_ui_rect() {
     let commands = TestHarness::run(test_ui_rect_screen);
 
-    assert_eq!(commands, vec![
-        AdapterCommand::RemoveAll,
-        AdapterCommand::NewRect { layout: 1, },
-        AdapterCommand::SetHitGroup(0, 65535),
-        AdapterCommand::SetPosition(0, (10, 10)),
-        AdapterCommand::SetColor(0, (255, 255, 255, 255)),
-    ]);
+    assert_eq!(
+        commands,
+        vec![
+            AdapterCommand::RemoveAll,
+            AdapterCommand::NewRect { layout: 1 },
+            AdapterCommand::SetHitGroup(0, 65535),
+            AdapterCommand::SetPosition(0, (10, 10)),
+            AdapterCommand::SetColor(0, (255, 255, 255, 255)),
+        ]
+    );
 }
 
 #[test]
-fn test_ui_dynamic_rect() { 
-    let commands = TestHarness::run(test_ui_dynamic_rect_test); 
-    
-    assert_eq!(commands, vec![
-        AdapterCommand::RemoveAll,
-        AdapterCommand::NewRect { layout: 1, },
-        AdapterCommand::SetHitGroup(0, 65535),
-        AdapterCommand::SetPosition(0, (0, 10)),
-        AdapterCommand::SetColor(0, (255, 255, 255, 255)),
+fn test_ui_dynamic_rect() {
+    let commands = TestHarness::run(test_ui_dynamic_rect_test);
 
-        // В NullAdapter системы айди нет
-        AdapterCommand::NewRect { layout: 1, },
-        AdapterCommand::SetHitGroup(0, 65535),
-        AdapterCommand::SetPosition(0, (10, 10)),
-        AdapterCommand::SetColor(0, (255, 255, 255, 255)),
-
-        AdapterCommand::NewRect { layout: 1, },
-        AdapterCommand::SetHitGroup(0, 65535),
-        AdapterCommand::SetPosition(0, (20, 10)),
-        AdapterCommand::SetColor(0, (255, 255, 255, 255)),
-    ]);
+    assert_eq!(
+        commands,
+        vec![
+            AdapterCommand::RemoveAll,
+            AdapterCommand::NewRect { layout: 1 },
+            AdapterCommand::SetHitGroup(0, 65535),
+            AdapterCommand::SetPosition(0, (0, 10)),
+            AdapterCommand::SetColor(0, (255, 255, 255, 255)),
+            // В NullAdapter системы айди нет
+            AdapterCommand::NewRect { layout: 1 },
+            AdapterCommand::SetHitGroup(0, 65535),
+            AdapterCommand::SetPosition(0, (10, 10)),
+            AdapterCommand::SetColor(0, (255, 255, 255, 255)),
+            AdapterCommand::NewRect { layout: 1 },
+            AdapterCommand::SetHitGroup(0, 65535),
+            AdapterCommand::SetPosition(0, (20, 10)),
+            AdapterCommand::SetColor(0, (255, 255, 255, 255)),
+        ]
+    );
 }

@@ -17,7 +17,7 @@ impl<'ast> Analyzer {
         if self.validate_element(i, &name) {
             return;
         }
-       
+
         // Лайаут это конструкция layout_name! { // Обычный раст код }; все токены
         // внутри нужно распарсить как обычный раст код через block (Не file и не expr)
         // установка настроек лайаута идёт через специальный функциональный виджет
@@ -43,10 +43,9 @@ impl<'ast> Analyzer {
                     //   field1: 10,
                     //   field2: 20,
                     // }
-                    self.context.errors.push(compile_error_spanned(
-                        i.tokens.clone(),
-                        WIDGET_PARSE_ERROR, 
-                    ));
+                    self.context
+                        .errors
+                        .push(compile_error_spanned(i.tokens.clone(), WIDGET_PARSE_ERROR));
 
                     // Выход чтобы не продолжать
                     return;
@@ -73,11 +72,11 @@ impl<'ast> Analyzer {
                     sparks: Vec::new(),
                     string: prop.value.to_token_stream().to_string(),
                     token_stream: prop.value.to_token_stream(),
-                    
+
                     // Изначально это не замыкание
                     is_fn: false,
                 };
-                
+
                 let mut finder = SparkFinderWithId {
                     scope: &self.lifetime_manager.scope,
                     found: &mut this_field.sparks,
@@ -85,11 +84,10 @@ impl<'ast> Analyzer {
 
                 finder.visit_expr(&prop.value);
 
-                if let Expr::Closure(closure) = &prop.value { 
+                if let Expr::Closure(closure) = &prop.value {
                     let saved_parent = self.context.statement.parent_widget_id;
-                    
-                    self.context.statement.parent_widget_id =
-                        Some(self.context.widget_counter);
+
+                    self.context.statement.parent_widget_id = Some(self.context.widget_counter);
                     self.visit_expr(&closure.body);
                     self.context.statement.parent_widget_id = saved_parent;
 
@@ -111,7 +109,7 @@ impl<'ast> Analyzer {
             // Если в инициализации виджета есть поле skin то это должна быть структура с
             // методом build
             let mut _skin_struct: Option<String> = None;
-            
+
             if let Some(skin) = has_skin {
                 _skin_struct = Some(skin.clone());
             } else {
@@ -122,23 +120,25 @@ impl<'ast> Analyzer {
 
             // Микрорантайм это контейнер который может хранится на куче (Vec или Smallvec)
             // и нужен в динамических списках чтобы разместить хэндлы рендер движка для
-            // примитивных объектов созданных из виджетов внутри цикла 
+            // примитивных объектов созданных из виджетов внутри цикла
             let mut has_microruntime = false;
-            
+
             // У функциональных виджетов нет скина, а если поле _skin_struct пустое
             // то значит это функиональный виджет
             let mut skin_field = _skin_struct.clone().unwrap_or("".to_string());
-            
+
             if self.is_loop {
                 has_microruntime = true;
-                self.context.microruntime_widgets.has_widgets = true; 
+                self.context.microruntime_widgets.has_widgets = true;
 
                 skin_field = format!("firework_ui::DynList<{}, {}>", key_type, skin_field);
-                self.context.ir.screen_dynamic_widgets
+                self.context
+                    .ir
+                    .screen_dynamic_widgets
                     .entry(self.context.statement.screen_index)
                     .or_insert_with(Vec::new)
                     .push(self.context.widget_counter);
-                
+
                 if !has_key {
                     self.context.errors.push(compile_error_spanned(
                         i.tokens.clone(),
@@ -156,33 +156,36 @@ impl<'ast> Analyzer {
             );
 
             self.context.statement.string = i.to_token_stream().to_string();
-            self.context.statement.action = FireworkAction::WidgetBlock(
-                WidgetDescription {
-                    widget_type: name.clone(),
-                    fields: fields_map,
-                    is_functional: is_functional_widget(&name),
-                    id: self.context.widget_counter,
-                    has_microruntime, 
-                    skin: _skin_struct.unwrap_or("".to_string()),
+            self.context.statement.action = FireworkAction::WidgetBlock(WidgetDescription {
+                widget_type: name.clone(),
+                fields: fields_map,
+                is_functional: is_functional_widget(&name),
+                id: self.context.widget_counter,
+                has_microruntime,
+                skin: _skin_struct.unwrap_or("".to_string()),
 
-                    is_maybe: if self.context.is_maybe {
-                        for spark in &self.context.spark_stack {
-                            self.context.spark_widget_map.entry(spark.1)
-                                .or_insert_with(Vec::new)
-                                .push(self.context.maybe_widgets_counter);
-                        }
+                is_maybe: if self.context.is_maybe {
+                    for spark in &self.context.spark_stack {
+                        self.context
+                            .spark_widget_map
+                            .entry(spark.1)
+                            .or_insert_with(Vec::new)
+                            .push(self.context.maybe_widgets_counter);
+                    }
 
-                        Some(self.context.maybe_widgets_counter)
-                    } else {
-                        None
-                    },
-                }
-            );
+                    Some(self.context.maybe_widgets_counter)
+                } else {
+                    None
+                },
+            });
             self.context.ir.push(self.context.statement.clone());
             self.statement_index += 1;
 
             if has_microruntime {
-                self.context.microruntime_widgets.widgets.push(self.context.widget_counter);
+                self.context
+                    .microruntime_widgets
+                    .widgets
+                    .push(self.context.widget_counter);
                 self.context.microruntime_widgets.count += 1;
             }
 
@@ -237,12 +240,11 @@ impl<'ast> Analyzer {
             // До входа в новый лайаут блок снимает флаг чтобы при конфигурации
             // нового лайаута не было FE009, делаем это до прохода по командам
             // внутри лайаут блока
-            self.descript_layout = false; 
+            self.descript_layout = false;
 
-            self.context.statement.action = FireworkAction::LayoutBlock(
-                name.clone(), has_microruntime,
-            );
-            
+            self.context.statement.action =
+                FireworkAction::LayoutBlock(name.clone(), has_microruntime);
+
             self.context.statement.screen_index = self.lifetime_manager.scope.screen_index;
             self.context.statement.depth = self.lifetime_manager.scope.depth;
             self.context.ir.push(self.context.statement.clone());
@@ -253,27 +255,26 @@ impl<'ast> Analyzer {
             // Добавление перед парсингом вложенных команд
             self.context.layouts_count += 1;
 
-            for statement in block.stmts { 
+            for statement in block.stmts {
                 // Парсинг всех команд внутри
                 self.visit_stmt(&statement);
             }
 
-            self.context.layouts_count -= 1; 
-           
+            self.context.layouts_count -= 1;
+
             self.lifetime_manager.scope.depth -= 1;
             self.context.statement.depth -= 1;
             self.context.statement.action = FireworkAction::DefaultCode;
             self.context.statement.string = "}".to_string();
             self.statement_index += 1;
 
-            self.context.ir.push(self.context.statement.clone()); 
+            self.context.ir.push(self.context.statement.clone());
         } else {
             // FE008, невалидный синтаксис в лайауте. Как уже было сказанно ранее,
             // лайаут требует полностью валидный раст синтаксис
-            self.context.errors.push(compile_error_spanned(
-                i.tokens.clone(),
-                LAYOUT_PARSE_ERROR,
-            ));
+            self.context
+                .errors
+                .push(compile_error_spanned(i.tokens.clone(), LAYOUT_PARSE_ERROR));
 
             return;
         }
@@ -290,19 +291,20 @@ impl<'ast> Analyzer {
                     LAYOUT_MULTIPLE_ERROR,
                 ));
 
-                // Если это функциональный виджет layout то нужно выйти 
+                // Если это функциональный виджет layout то нужно выйти
                 return true;
             }
 
             self.descript_layout = true;
         }
 
-        if (is_layout(&name) || is_widget(&name)) && !matches!(i.delimiter, MacroDelimiter::Brace(_)) {
-            self.context.errors.push(compile_error_spanned(
-                i,
-                MACRO_BRACE_ERROR,
-            ));
-            
+        if (is_layout(&name) || is_widget(&name))
+            && !matches!(i.delimiter, MacroDelimiter::Brace(_))
+        {
+            self.context
+                .errors
+                .push(compile_error_spanned(i, MACRO_BRACE_ERROR));
+
             return true;
         }
 

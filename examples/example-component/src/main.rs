@@ -1,4 +1,4 @@
-use firework_ui::{ui, component, Prop, ComponentContext};
+use firework_ui::{ComponentContext, Prop, component, ui};
 
 /*
 component! {
@@ -38,7 +38,7 @@ fn test_screen() {
         println!("Больше 0, {}", my_spark);
     }
 
-    spark2 = 20; 
+    spark2 = 20;
 }
 */
 

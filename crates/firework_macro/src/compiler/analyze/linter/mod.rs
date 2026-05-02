@@ -7,8 +7,8 @@ mod warnings;
 
 use cycle_checker::CycleChecker;
 use proc_macro2::{Span, TokenStream};
-use std::collections::HashMap;
 use rand::Rng;
+use std::collections::HashMap;
 
 /// Линтер нужен чтобы анализировать код пользователя на наличие поведения которое не явлется
 /// ошибкой, но может работать неожиданно для пользователя. Линтер должен дать подробное
@@ -19,7 +19,7 @@ pub struct FireworkLinter {
     // собираются как TokenStream и добавляются к сгенерированному коду с оригинальным
     // спаном
     pub warnings: Vec<TokenStream>,
-    
+
     // Карта айди спарка -> (Имя, строка кода). Используется для составления предупреждений
     // которые связаны с реактиностью и состоянием
     pub nodes_map: HashMap<usize, (String, String)>,
@@ -65,14 +65,9 @@ impl FireworkLinter {
         if let Some(cycle_path) = self.cycle_checker.depend(id_parent, id_child) {
             self.reset_counter();
 
-            let warning = self.generate_cycle_warning(
-                id_parent,
-                id_child,
-                &cycle_path,
-                span,
-            );
+            let warning = self.generate_cycle_warning(id_parent, id_child, &cycle_path, span);
 
-            self.warnings.push(warning); 
+            self.warnings.push(warning);
         }
     }
 

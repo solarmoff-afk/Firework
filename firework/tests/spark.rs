@@ -4,7 +4,7 @@
 mod common;
 
 use crate::common::TestHarness;
-use firework_ui::{ui, AdapterCommand};
+use firework_ui::{AdapterCommand, ui};
 
 #[ui]
 fn test_spark_rect_screen() {
@@ -16,7 +16,7 @@ fn test_spark_rect_screen() {
     }
 
     pos = (20, 20); // Теперь это должно перезапустить реактивный цикл и переустановить
-                    // позицию прямоугольника на (20, 20)
+    // позицию прямоугольника на (20, 20)
 }
 
 #[ui]
@@ -58,13 +58,13 @@ fn test_spark_derived_rect_screen() {
 
 #[ui]
 fn test_spark_dynamic_rect_screen() {
-    let mut count = spark!(3);  
+    let mut count = spark!(3);
 
     for i in 0..count {
         rect! {
             position: (10, 10),
             color: (255, 255, 255),
-            
+
             #[key_type(i32)]
             key: i,
         }
@@ -75,13 +75,13 @@ fn test_spark_dynamic_rect_screen() {
 
 #[ui]
 fn test_spark_dynamic_decrement_rect_screen() {
-    let mut count = spark!(3);  
+    let mut count = spark!(3);
 
     for i in 0..count {
         rect! {
             position: (10, 10),
             color: (255, 255, 255),
-            
+
             #[key_type(i32)]
             key: i,
         }
@@ -92,124 +92,131 @@ fn test_spark_dynamic_decrement_rect_screen() {
 }
 
 #[test]
-fn test_spark_rect() { 
+fn test_spark_rect() {
     let commands = TestHarness::run(test_spark_rect_screen);
 
-    assert_eq!(commands, vec![
-        AdapterCommand::RemoveAll,
-        AdapterCommand::NewRect { layout: 1, },
-        AdapterCommand::SetHitGroup(0, 65535),
-        AdapterCommand::SetPosition(0, (10, 10)),
-        AdapterCommand::SetColor(0, (255, 255, 255, 255)),
-        AdapterCommand::SetPosition(0, (20, 20)),
-    ]);
+    assert_eq!(
+        commands,
+        vec![
+            AdapterCommand::RemoveAll,
+            AdapterCommand::NewRect { layout: 1 },
+            AdapterCommand::SetHitGroup(0, 65535),
+            AdapterCommand::SetPosition(0, (10, 10)),
+            AdapterCommand::SetColor(0, (255, 255, 255, 255)),
+            AdapterCommand::SetPosition(0, (20, 20)),
+        ]
+    );
 }
 
 #[test]
-fn test_spark_conditional_rect() { 
+fn test_spark_conditional_rect() {
     let commands = TestHarness::run(test_spark_conditional_rect_screen);
 
-    assert_eq!(commands, vec![
-        AdapterCommand::RemoveAll,
-        AdapterCommand::NewRect { layout: 1, },
-        AdapterCommand::SetHitGroup(0, 65535),
-        AdapterCommand::SetPosition(0, (10, 10)),
-        AdapterCommand::SetColor(0, (255, 255, 255, 255)),
+    assert_eq!(
+        commands,
+        vec![
+            AdapterCommand::RemoveAll,
+            AdapterCommand::NewRect { layout: 1 },
+            AdapterCommand::SetHitGroup(0, 65535),
+            AdapterCommand::SetPosition(0, (10, 10)),
+            AdapterCommand::SetColor(0, (255, 255, 255, 255)),
+            // Промежуточного состояния (глитч condition = 1) не видно благодаря батчингу
 
-        // Промежуточного состояния (глитч condition = 1) не видно благодаря батчингу
-
-        // Теперь его не видно (condition = 2)
-        AdapterCommand::SetVisible(0, false),
-    ]);
+            // Теперь его не видно (condition = 2)
+            AdapterCommand::SetVisible(0, false),
+        ]
+    );
 }
 
 #[test]
-fn test_spark_derived_rect() { 
+fn test_spark_derived_rect() {
     let commands = TestHarness::run(test_spark_derived_rect_screen);
 
-    assert_eq!(commands, vec![
-        AdapterCommand::RemoveAll,
-        AdapterCommand::NewRect { layout: 1, },
-        AdapterCommand::SetHitGroup(0, 65535),
-        AdapterCommand::SetPosition(0, (10, 10)),
-        AdapterCommand::SetColor(0, (255, 255, 255, 255)),
-        AdapterCommand::SetPosition(0, (20, 10)),
-
-        // ???
-        AdapterCommand::SetPosition(0, (20, 10)),
-    ]);
+    assert_eq!(
+        commands,
+        vec![
+            AdapterCommand::RemoveAll,
+            AdapterCommand::NewRect { layout: 1 },
+            AdapterCommand::SetHitGroup(0, 65535),
+            AdapterCommand::SetPosition(0, (10, 10)),
+            AdapterCommand::SetColor(0, (255, 255, 255, 255)),
+            AdapterCommand::SetPosition(0, (20, 10)),
+            // ???
+            AdapterCommand::SetPosition(0, (20, 10)),
+        ]
+    );
 }
 
 #[test]
 fn test_spark_dynamic_rect() {
     let commands = TestHarness::run(test_spark_dynamic_rect_screen);
 
-    assert_eq!(commands, vec![
-        AdapterCommand::RemoveAll,
-        
-        // for i in 0..count {
-        //  // Iter 1
-        AdapterCommand::NewRect { layout: 1, },
-        AdapterCommand::SetHitGroup(0, 65535),
-        AdapterCommand::SetPosition(0, (10, 10)),
-        AdapterCommand::SetColor(0, (255, 255, 255, 255)),
-        //  // Iter 2 
-        AdapterCommand::NewRect { layout: 1, },
-        AdapterCommand::SetHitGroup(0, 65535),
-        AdapterCommand::SetPosition(0, (10, 10)),
-        AdapterCommand::SetColor(0, (255, 255, 255, 255)),
+    assert_eq!(
+        commands,
+        vec![
+            AdapterCommand::RemoveAll,
+            // for i in 0..count {
+            //  // Iter 1
+            AdapterCommand::NewRect { layout: 1 },
+            AdapterCommand::SetHitGroup(0, 65535),
+            AdapterCommand::SetPosition(0, (10, 10)),
+            AdapterCommand::SetColor(0, (255, 255, 255, 255)),
+            //  // Iter 2
+            AdapterCommand::NewRect { layout: 1 },
+            AdapterCommand::SetHitGroup(0, 65535),
+            AdapterCommand::SetPosition(0, (10, 10)),
+            AdapterCommand::SetColor(0, (255, 255, 255, 255)),
+            //  // Iter 3
+            AdapterCommand::NewRect { layout: 1 },
+            AdapterCommand::SetHitGroup(0, 65535),
+            AdapterCommand::SetPosition(0, (10, 10)),
+            AdapterCommand::SetColor(0, (255, 255, 255, 255)),
+            // }
 
-        //  // Iter 3
-        AdapterCommand::NewRect { layout: 1, },
-        AdapterCommand::SetHitGroup(0, 65535),
-        AdapterCommand::SetPosition(0, (10, 10)),
-        AdapterCommand::SetColor(0, (255, 255, 255, 255)),
-        // }
-        
-        // Здесь происходит count += 1, теперь count = 4, цикл перезапускается, но создаётся только
-        // один новый прямоугольник потому-что ключи оптимизируют создание. DynList видит что создан
-        // только 1 прямоугольник и вызывает конструктор только для него
-        
-        //  // Iter 4
-        AdapterCommand::NewRect { layout: 1, },
-        AdapterCommand::SetHitGroup(0, 65535),
-        AdapterCommand::SetPosition(0, (10, 10)),
-        AdapterCommand::SetColor(0, (255, 255, 255, 255)),
-    ]);
+            // Здесь происходит count += 1, теперь count = 4, цикл перезапускается, но создаётся только
+            // один новый прямоугольник потому-что ключи оптимизируют создание. DynList видит что создан
+            // только 1 прямоугольник и вызывает конструктор только для него
+
+            //  // Iter 4
+            AdapterCommand::NewRect { layout: 1 },
+            AdapterCommand::SetHitGroup(0, 65535),
+            AdapterCommand::SetPosition(0, (10, 10)),
+            AdapterCommand::SetColor(0, (255, 255, 255, 255)),
+        ]
+    );
 }
 
 #[test]
 fn test_spark_dynamic_decrement_rect() {
     let commands = TestHarness::run(test_spark_dynamic_decrement_rect_screen);
-    
-    assert_eq!(commands, vec![
-        AdapterCommand::RemoveAll,
-        
-        // for i in 0..count {
-        //  // Iter 1
-        AdapterCommand::NewRect { layout: 1, },
-        AdapterCommand::SetHitGroup(0, 65535),
-        AdapterCommand::SetPosition(0, (10, 10)),
-        AdapterCommand::SetColor(0, (255, 255, 255, 255)),
 
-        //  // Iter 2 
-        AdapterCommand::NewRect { layout: 1, },
-        AdapterCommand::SetHitGroup(0, 65535),
-        AdapterCommand::SetPosition(0, (10, 10)),
-        AdapterCommand::SetColor(0, (255, 255, 255, 255)),
+    assert_eq!(
+        commands,
+        vec![
+            AdapterCommand::RemoveAll,
+            // for i in 0..count {
+            //  // Iter 1
+            AdapterCommand::NewRect { layout: 1 },
+            AdapterCommand::SetHitGroup(0, 65535),
+            AdapterCommand::SetPosition(0, (10, 10)),
+            AdapterCommand::SetColor(0, (255, 255, 255, 255)),
+            //  // Iter 2
+            AdapterCommand::NewRect { layout: 1 },
+            AdapterCommand::SetHitGroup(0, 65535),
+            AdapterCommand::SetPosition(0, (10, 10)),
+            AdapterCommand::SetColor(0, (255, 255, 255, 255)),
+            //  // Iter 3
+            AdapterCommand::NewRect { layout: 1 },
+            AdapterCommand::SetHitGroup(0, 65535),
+            AdapterCommand::SetPosition(0, (10, 10)),
+            AdapterCommand::SetColor(0, (255, 255, 255, 255)),
+            // }
 
-        //  // Iter 3
-        AdapterCommand::NewRect { layout: 1, },
-        AdapterCommand::SetHitGroup(0, 65535),
-        AdapterCommand::SetPosition(0, (10, 10)),
-        AdapterCommand::SetColor(0, (255, 255, 255, 255)),
-
-        // }
-
-        // count -= 1
-        // Это размонтирует только последний виджет из DynList, он исчезнет и будет
-        // размонтирован через команду Remove(id)
-        AdapterCommand::SetVisible(0, false),
-        AdapterCommand::Remove(0),
-    ]);
+            // count -= 1
+            // Это размонтирует только последний виджет из DynList, он исчезнет и будет
+            // размонтирован через команду Remove(id)
+            AdapterCommand::SetVisible(0, false),
+            AdapterCommand::Remove(0),
+        ]
+    );
 }

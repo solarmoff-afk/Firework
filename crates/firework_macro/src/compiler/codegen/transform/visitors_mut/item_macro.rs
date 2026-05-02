@@ -22,7 +22,7 @@ impl CodegenVisitor<'_> {
 
         if should_remove {
             *i = Item::Verbatim(Default::default());
-        } else { 
+        } else {
             visit_mut::visit_item_mut(self, i);
         }
     }

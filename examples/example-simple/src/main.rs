@@ -23,7 +23,7 @@ fn test_combine_nested_structures_screen() {
             rect! {
                 position: (10 * i, 10),
                 color: (255, 255, 255),
-                
+
                 #[key_type(i32)]
                 key: i,
             }
@@ -31,15 +31,17 @@ fn test_combine_nested_structures_screen() {
     }
 
     if items_count == 0 {
-        items_count = 3; 
+        items_count = 3;
     } else if !filter_active {
-        filter_active = true; 
+        filter_active = true;
     } else if items_count == 3 {
-        items_count = 1; 
+        items_count = 1;
     }
 }
 
-
 fn main() {
-    firework_ui::run_with_adapter(firework_ui::null_adapter, test_combine_nested_structures_screen);
+    firework_ui::run_with_adapter(
+        firework_ui::null_adapter,
+        test_combine_nested_structures_screen,
+    );
 }

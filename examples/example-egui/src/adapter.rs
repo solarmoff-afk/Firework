@@ -58,8 +58,13 @@ pub fn egui_adapter(cmd: AdapterCommand) -> AdapterResult {
     let mut state = ADAPTER_STATE.lock().unwrap();
 
     match cmd {
-        AdapterCommand::RunLoop { title, width, height, listener } => {
-            state.listener = Some(listener); 
+        AdapterCommand::RunLoop {
+            title,
+            width,
+            height,
+            listener,
+        } => {
+            state.listener = Some(listener);
             drop(state);
 
             let options = eframe::NativeOptions {
@@ -75,7 +80,7 @@ pub fn egui_adapter(cmd: AdapterCommand) -> AdapterResult {
             );
 
             AdapterResult::Void
-        },
+        }
 
         AdapterCommand::RemoveAll => {
             for obj in state.objects.iter_mut() {
@@ -83,7 +88,7 @@ pub fn egui_adapter(cmd: AdapterCommand) -> AdapterResult {
             }
 
             AdapterResult::Void
-        },
+        }
 
         AdapterCommand::NewRect { layout: _ } => {
             if let Some(index) = state.objects.iter().position(|obj| !obj.alive) {
@@ -98,7 +103,7 @@ pub fn egui_adapter(cmd: AdapterCommand) -> AdapterResult {
             } else {
                 AdapterResult::Fail
             }
-        },
+        }
 
         AdapterCommand::SetPosition(id, pos) => {
             if let Some(obj) = state.objects.get_mut(id) {
@@ -106,7 +111,7 @@ pub fn egui_adapter(cmd: AdapterCommand) -> AdapterResult {
             }
 
             AdapterResult::Void
-        },
+        }
 
         AdapterCommand::SetSize(id, size) => {
             if let Some(obj) = state.objects.get_mut(id) {
@@ -114,7 +119,7 @@ pub fn egui_adapter(cmd: AdapterCommand) -> AdapterResult {
             }
 
             AdapterResult::Void
-        },
+        }
 
         AdapterCommand::SetColor(id, color) => {
             if let Some(obj) = state.objects.get_mut(id) {
@@ -122,7 +127,7 @@ pub fn egui_adapter(cmd: AdapterCommand) -> AdapterResult {
             }
 
             AdapterResult::Void
-        },
+        }
 
         AdapterCommand::SetZ(id, z) => {
             if let Some(obj) = state.objects.get_mut(id) {
@@ -131,7 +136,7 @@ pub fn egui_adapter(cmd: AdapterCommand) -> AdapterResult {
             }
 
             AdapterResult::Void
-        },
+        }
 
         AdapterCommand::SetVisible(id, visible) => {
             if let Some(obj) = state.objects.get_mut(id) {
@@ -139,7 +144,7 @@ pub fn egui_adapter(cmd: AdapterCommand) -> AdapterResult {
             }
 
             AdapterResult::Void
-        },
+        }
 
         AdapterCommand::Remove(id) => {
             if let Some(obj) = state.objects.get_mut(id) {
@@ -148,7 +153,7 @@ pub fn egui_adapter(cmd: AdapterCommand) -> AdapterResult {
             }
 
             AdapterResult::Void
-        },
+        }
 
         AdapterCommand::SetHitGroup(id, group) => {
             if let Some(obj) = state.objects.get_mut(id) {
@@ -156,7 +161,7 @@ pub fn egui_adapter(cmd: AdapterCommand) -> AdapterResult {
             }
 
             AdapterResult::Void
-        },
+        }
 
         AdapterCommand::ResolveHit(group, (ax, ay, aw, ah)) => {
             let mut highest_z = i32::MIN;
@@ -168,16 +173,16 @@ pub fn egui_adapter(cmd: AdapterCommand) -> AdapterResult {
             let a_bottom = ay + ah;
 
             for (id, obj) in state.objects.iter().enumerate() {
-                if obj.alive && obj.visible && obj.hit_group == group { 
+                if obj.alive && obj.visible && obj.hit_group == group {
                     let b_left = obj.pos.0;
                     let b_right = obj.pos.0 + obj.size.0;
                     let b_top = obj.pos.1;
                     let b_bottom = obj.pos.1 + obj.size.1;
 
-                    let intersects = a_left < b_right && 
-                                     a_right > b_left && 
-                                     a_top < b_bottom && 
-                                     a_bottom > b_top;
+                    let intersects = a_left < b_right
+                        && a_right > b_left
+                        && a_top < b_bottom
+                        && a_bottom > b_top;
 
                     if intersects && obj.z_index >= highest_z {
                         highest_z = obj.z_index;
@@ -190,11 +195,9 @@ pub fn egui_adapter(cmd: AdapterCommand) -> AdapterResult {
                 Some(id) => AdapterResult::Handle(id),
                 None => AdapterResult::Fail,
             }
-        },
-
-        AdapterCommand::Render => {
-            AdapterResult::Void
         }
+
+        AdapterCommand::Render => AdapterResult::Void,
     }
 }
 
@@ -238,10 +241,10 @@ impl eframe::App for FireworkEguiApp {
             });
         }
 
-        let mut objects_to_draw = Vec::new(); 
+        let mut objects_to_draw = Vec::new();
         {
             let mut state = ADAPTER_STATE.lock().unwrap();
-            
+
             for obj in state.objects.iter() {
                 if obj.alive && obj.visible {
                     objects_to_draw.push(*obj);
@@ -252,27 +255,30 @@ impl eframe::App for FireworkEguiApp {
                 objects_to_draw.sort_by_key(|o| o.z_index);
                 state.dirty = false;
             }
-        } 
+        }
 
         egui::CentralPanel::default()
             .frame(egui::Frame::none())
             .show(ctx, |ui| {
                 let painter = ui.painter();
-                
-                for obj in objects_to_draw { 
+
+                for obj in objects_to_draw {
                     let rect = egui::Rect::from_min_size(
                         egui::pos2(obj.pos.0 as f32, obj.pos.1 as f32),
                         egui::vec2(obj.size.0 as f32, obj.size.1 as f32),
                     );
-                    
+
                     let color = egui::Color32::from_rgba_unmultiplied(
-                        obj.color.0, obj.color.1, obj.color.2, obj.color.3,
+                        obj.color.0,
+                        obj.color.1,
+                        obj.color.2,
+                        obj.color.3,
                     );
-                    
+
                     painter.rect_filled(rect, 0.0, color);
                 }
             });
-        
+
         ctx.request_repaint();
     }
 }

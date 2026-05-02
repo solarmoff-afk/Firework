@@ -5,8 +5,8 @@ use super::super::*;
 
 impl CodegenVisitor<'_> {
     pub fn generate_flash_pass(&self, id: u128, function_name: &str) -> Block {
-        let struct_name_raw = format!("ApplicationUiBlockStruct{}", id); 
-        let instance_name = struct_name_raw.to_uppercase(); 
+        let struct_name_raw = format!("ApplicationUiBlockStruct{}", id);
+        let instance_name = struct_name_raw.to_uppercase();
 
         let mut output = String::new();
 
@@ -17,11 +17,11 @@ impl CodegenVisitor<'_> {
 
         let fields = self.ir.screen_structs.get(&struct_name_raw);
         output.push_str(&init_instance(
-            &instance_name, 
+            &instance_name,
             &struct_name_raw,
             fields.unwrap_or(&vec![]),
         ));
-        
+
         // [FLASH PASS]
         // Flash pass это форма функции или метода которая позволяет использовать
         // одну функцию для нескольких вариантов цикла жизни. Если id экрана не
@@ -40,8 +40,8 @@ impl CodegenVisitor<'_> {
         output.push_str(CHECK_EVENT);
         output.push_str(SET_FOCUS);
         output.push_str(&format!("\tfirework_ui::set_focus({});\n", function_name));
-        
-        // Код пользователя и реактивный цикл 
+
+        // Код пользователя и реактивный цикл
         output.push('}');
 
         let flash_pass_block: Block = parse_str(&output).unwrap();

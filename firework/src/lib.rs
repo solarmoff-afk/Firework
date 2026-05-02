@@ -1,19 +1,19 @@
 // Часть проекта Firework с открытым исходным кодом.
 // Лицензия EPL 2.0, подробнее в файле LICENSE. Copyright (c) 2026 Firework
 
-pub mod skins;
 pub mod dyn_list;
 pub mod null_adapter;
+pub mod skins;
 
 mod runtime_errors;
 
-pub use firework_macro::{ui, shared, component, effect};
-pub use firework_adapter::{AdapterCommand, AdapterEvent, AdapterClickPhase, AdapterResult};
+pub use firework_adapter::{AdapterClickPhase, AdapterCommand, AdapterEvent, AdapterResult};
+pub use firework_macro::{component, effect, shared, ui};
 
-pub use runtime_errors::RENDER_ADAPTER_MISSING_ERROR;
-pub use skins::DefaultRectSkin;
 pub use dyn_list::{DynList, ListEntry};
 pub use null_adapter::null_adapter;
+pub use runtime_errors::RENDER_ADAPTER_MISSING_ERROR;
+pub use skins::DefaultRectSkin;
 
 pub const TOUCH_HIT_GROUP: u16 = u16::MAX;
 
@@ -27,9 +27,7 @@ pub struct ComponentContext {
 
 impl ComponentContext {
     pub fn new() -> Self {
-        Self {
-            depth: 0,
-        }
+        Self { depth: 0 }
     }
 }
 
@@ -72,7 +70,10 @@ pub fn set_current_event(event: CurrentEvent) {
 
 #[cfg(feature = "safety-multithread")]
 pub fn set_current_event(event: CurrentEvent) {
-    *CURRENT_EVENT.get_or_init(|| Mutex::new(CurrentEvent::None)).lock().unwrap() = event;
+    *CURRENT_EVENT
+        .get_or_init(|| Mutex::new(CurrentEvent::None))
+        .lock()
+        .unwrap() = event;
 }
 
 /// Получить и ОЧИСТИТЬ текущее событие (заменить на None)
@@ -87,7 +88,10 @@ pub fn take_current_event() -> CurrentEvent {
 
 #[cfg(feature = "safety-multithread")]
 pub fn take_current_event() -> CurrentEvent {
-    let mut lock = CURRENT_EVENT.get_or_init(|| Mutex::new(CurrentEvent::None)).lock().unwrap();
+    let mut lock = CURRENT_EVENT
+        .get_or_init(|| Mutex::new(CurrentEvent::None))
+        .lock()
+        .unwrap();
     let event = *lock;
     *lock = CurrentEvent::None;
     event
@@ -121,7 +125,8 @@ use std::sync::{Mutex, OnceLock};
 static CURRENT_FOCUS: OnceLock<Mutex<Option<fn()>>> = OnceLock::new();
 
 #[cfg(feature = "safety-multithread")]
-static CURRENT_ADAPTER: OnceLock<Mutex<Option<fn(AdapterCommand) -> AdapterResult>>> = OnceLock::new();
+static CURRENT_ADAPTER: OnceLock<Mutex<Option<fn(AdapterCommand) -> AdapterResult>>> =
+    OnceLock::new();
 
 #[cfg(feature = "safety-multithread")]
 static CURRENT_FOCUS_ID: OnceLock<Mutex<Option<u128>>> = OnceLock::new();
@@ -135,7 +140,11 @@ pub fn get_focus() -> fn() {
 
 #[cfg(feature = "safety-multithread")]
 pub fn get_focus() -> fn() {
-    CURRENT_FOCUS.get_or_init(|| Mutex::new(None)).lock().unwrap().unwrap_or(|| {})
+    CURRENT_FOCUS
+        .get_or_init(|| Mutex::new(None))
+        .lock()
+        .unwrap()
+        .unwrap_or(|| {})
 }
 
 /// Устанавливает текущий слайд в глобальный фокус
@@ -155,12 +164,20 @@ pub fn set_adapter(f: fn(AdapterCommand) -> AdapterResult) {
 
 #[cfg(feature = "safety-multithread")]
 pub fn set_adapter(f: fn(AdapterCommand) -> AdapterResult) {
-    CURRENT_ADAPTER.get_or_init(|| Mutex::new(Some(f))).lock().unwrap().expect(RENDER_ADAPTER_MISSING_ERROR);
+    CURRENT_ADAPTER
+        .get_or_init(|| Mutex::new(Some(f)))
+        .lock()
+        .unwrap()
+        .expect(RENDER_ADAPTER_MISSING_ERROR);
 }
 
 #[cfg(feature = "safety-multithread")]
 pub fn get_adapter() -> fn(AdapterCommand) -> AdapterResult {
-    CURRENT_ADAPTER.get_or_init(|| Mutex::new(None)).lock().unwrap().expect(RENDER_ADAPTER_MISSING_ERROR)
+    CURRENT_ADAPTER
+        .get_or_init(|| Mutex::new(None))
+        .lock()
+        .unwrap()
+        .expect(RENDER_ADAPTER_MISSING_ERROR)
 }
 
 #[cfg(not(feature = "safety-multithread"))]
@@ -170,7 +187,10 @@ pub fn get_adapter() -> fn(AdapterCommand) -> AdapterResult {
 
 #[cfg(feature = "safety-multithread")]
 pub fn set_focus(f: fn()) {
-    *CURRENT_FOCUS.get_or_init(|| Mutex::new(None)).lock().unwrap() = Some(f);
+    *CURRENT_FOCUS
+        .get_or_init(|| Mutex::new(None))
+        .lock()
+        .unwrap() = Some(f);
 }
 
 #[cfg(not(feature = "safety-multithread"))]
@@ -180,7 +200,11 @@ pub fn get_focus_id() -> u128 {
 
 #[cfg(feature = "safety-multithread")]
 pub fn get_focus_id() -> u128 {
-    CURRENT_FOCUS_ID.get_or_init(|| Mutex::new(None)).lock().unwrap().unwrap_or(0)
+    CURRENT_FOCUS_ID
+        .get_or_init(|| Mutex::new(None))
+        .lock()
+        .unwrap()
+        .unwrap_or(0)
 }
 
 #[cfg(not(feature = "safety-multithread"))]
@@ -192,7 +216,10 @@ pub fn set_focus_id(id: u128) {
 
 #[cfg(feature = "safety-multithread")]
 pub fn set_focus_id(id: u128) {
-    *CURRENT_FOCUS_ID.get_or_init(|| Mutex::new(None)).lock().unwrap() = Some(id);
+    *CURRENT_FOCUS_ID
+        .get_or_init(|| Mutex::new(None))
+        .lock()
+        .unwrap() = Some(id);
 }
 
 pub fn adapter_command(command: AdapterCommand) -> AdapterResult {
@@ -201,7 +228,7 @@ pub fn adapter_command(command: AdapterCommand) -> AdapterResult {
 
 fn default_adapter(command: AdapterCommand) -> AdapterResult {
     match command {
-        _ => {},
+        _ => {}
     }
 
     AdapterResult::Void
@@ -226,30 +253,31 @@ pub fn after_first_flash() {
         title: "Test",
         width: 720,
         height: 1280,
-        listener: |event| {
-            match event {
-                AdapterEvent::Touch(x, y, phase) => {
-                    handle_touch_event(x, y, phase, TOUCH_HIT_GROUP);
-                },
-
-                AdapterEvent::Tick => {
-                    adapter_command(AdapterCommand::Render);
-                },
-                
-                _ => {},
+        listener: |event| match event {
+            AdapterEvent::Touch(x, y, phase) => {
+                handle_touch_event(x, y, phase, TOUCH_HIT_GROUP);
             }
+
+            AdapterEvent::Tick => {
+                adapter_command(AdapterCommand::Render);
+            }
+
+            _ => {}
         },
     });
 }
 
 pub fn handle_touch_event(x: u32, y: u32, phase: AdapterClickPhase, hit_group: u16) {
-    let hit_result = adapter_command(AdapterCommand::ResolveHit(hit_group, (x as i32, y as i32, 1, 1)));
-    
+    let hit_result = adapter_command(AdapterCommand::ResolveHit(
+        hit_group,
+        (x as i32, y as i32, 1, 1),
+    ));
+
     let hit_object_id = match hit_result {
         AdapterResult::Handle(id) => Some(id),
         _ => None,
     };
-    
+
     dispatch_event(CurrentEvent::Touch {
         x,
         y,

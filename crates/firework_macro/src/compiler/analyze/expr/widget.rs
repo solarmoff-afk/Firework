@@ -2,7 +2,7 @@
 // Лицензия EPL 2.0, подробнее в файле LICENSE. Copyright (c) 2026 Firework
 
 use syn::parse::{Parse, ParseStream};
-use syn::{Lit, Ident, Token, Expr, Result, punctuated::Punctuated};
+use syn::{Expr, Ident, Lit, Result, Token, punctuated::Punctuated};
 
 /// Струкутра для хранения информации о инициализация поля внутри декларативного виджета,
 /// пример:
@@ -12,7 +12,7 @@ use syn::{Lit, Ident, Token, Expr, Result, punctuated::Punctuated};
 ///  field1: 10, // Имя/name (field1) и выражение/expr (10)
 /// );
 pub struct WidgetProperty {
-    // Левая часть, имя поля 
+    // Левая часть, имя поля
     pub name: Ident,
 
     // Правая часть, выражение которое задаётся для этого поля
@@ -29,13 +29,13 @@ impl Parse for WidgetProperty {
             attrs.push(attr);
         }
 
-        // Левая часть, имя поля куда задаётся значение 
+        // Левая часть, имя поля куда задаётся значение
         let name: Ident = input.parse()?;
 
         // Центральная часть, пропускается так как не нужна. Двоеточие которое
         // разделяет левую и правую часть (a: b)
         let _: Token![:] = input.parse()?;
-        
+
         // Правая часть, выражение которое может быть замыканием с телом в фигурных скобках
         let value: Expr = if input.peek(syn::token::Brace) {
             // Возможно замыкание
@@ -45,11 +45,7 @@ impl Parse for WidgetProperty {
             input.parse()?
         };
 
-        Ok(WidgetProperty {
-            attrs,
-            name,
-            value,
-        })
+        Ok(WidgetProperty { attrs, name, value })
     }
 }
 
@@ -84,12 +80,12 @@ impl Parse for WidgetArgs {
 /// Эта функция нужна чтобы определить явлется ли имя макроса декларативным виджетом
 /// firework. Виджеты это строительные блоки пользовательского интерфейса которые
 /// разворачиваются в примитивы. Синтаксис виджета это widget_name!(field1: 10);
-pub fn is_widget(name: &str) -> bool { 
+pub fn is_widget(name: &str) -> bool {
     name == "rect"      ||
     name == "text"      ||
     name == "button"    ||
     name == "app_bar"   ||
-    
+
     // Функциональные виджеты, они не имеют набора рендер примитивов (скина) и
     // нужны для выполнения логики с синтаксисом DSL виджет
     name == "component" ||
@@ -102,19 +98,15 @@ pub fn is_widget(name: &str) -> bool {
 ///
 /// Пример:
 /// vertical! {
-///    // Код 
+///    // Код
 /// };
-pub fn is_layout(name: &str) -> bool { 
-    name == "vertical"   ||
-    name == "horizontal" ||
-    name == "stack"      ||
-    name == "absoulute"
+pub fn is_layout(name: &str) -> bool {
+    name == "vertical" || name == "horizontal" || name == "stack" || name == "absoulute"
 }
 
 /// Является ли это функциональным виджетом
 pub fn is_functional_widget(name: &str) -> bool {
-    name == "layout"     ||
-    name == "component"
+    name == "layout" || name == "component"
 }
 
 /// Принимает имя виджета, возвращает тип скина который использует этот виджет. Это структура
@@ -122,8 +114,8 @@ pub fn is_functional_widget(name: &str) -> bool {
 /// примитивов
 pub fn map_skin(widget_name: &str) -> Option<String> {
     match widget_name {
-        "rect" => Some("firework_ui::skins::DefaultRectSkin".to_string()), 
-       
+        "rect" => Some("firework_ui::skins::DefaultRectSkin".to_string()),
+
         // Не имеет скина так как явлется функциональным виджетом
         _ => None,
     }
@@ -163,17 +155,18 @@ impl Parse for WidgetPropertyAttribute {
         let _: Token![#] = input.parse()?;
         let content;
         syn::bracketed!(content in input);
-        
+
         let name: Ident = content.parse()?;
         let args = if content.peek(syn::token::Paren) {
             let args_content;
             syn::parenthesized!(args_content in content);
-            let args = Punctuated::<WidgetAttributeArg, Token![,]>::parse_terminated(&args_content)?;
+            let args =
+                Punctuated::<WidgetAttributeArg, Token![,]>::parse_terminated(&args_content)?;
             Some(args.into_iter().collect())
         } else {
             None
         };
-        
+
         Ok(WidgetPropertyAttribute { name, args })
     }
 }
@@ -184,7 +177,8 @@ impl WidgetAttributeArg {
             WidgetAttributeArg::Lit(lit) => quote::quote!(#lit).to_string(),
             WidgetAttributeArg::Ident(ident) => ident.to_string(),
             WidgetAttributeArg::Tuple(args) => {
-                let inner = args.iter()
+                let inner = args
+                    .iter()
                     .map(|arg| arg.to_string())
                     .collect::<Vec<_>>()
                     .join(", ");

@@ -8,7 +8,7 @@ use super::*;
 /// Хук нужен для того чтобы сохранить координаты записи в IR чтобы вернуться туда через
 /// время и прочитать или изменить
 #[derive(Debug, Clone)]
-pub struct IrHook { 
+pub struct IrHook {
     // Позиция в векторе стейтементов
     pub index: usize,
 
@@ -42,9 +42,13 @@ impl IrHook {
 
 impl<'ast> Analyzer {
     pub(crate) fn get_statement_from_hook(&mut self, hook: IrHook) -> &mut FireworkStatement {
-        match self.context.ir.get_statement_by_spankey(hook.key.0, hook.key.1) {
+        match self
+            .context
+            .ir
+            .get_statement_by_spankey(hook.key.0, hook.key.1)
+        {
             Some(statement) => statement,
-            
+
             // SAFETY: В коде хук создаётся только в местах где ключ точно валидный
             None => panic!("IE:3"),
         }

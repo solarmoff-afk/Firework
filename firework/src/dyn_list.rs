@@ -55,10 +55,9 @@ impl<K: Eq + PartialEq, T: SkinVisibility> DynList<K, T> {
 
     /// Поиск элемента по ключу
     pub fn entry(&mut self, key: K) -> ListEntry<'_, K, T> {
-        let found_idx = self.old_items.iter()
-            .position(|(k, _)| k == &key);
+        let found_idx = self.old_items.iter().position(|(k, _)| k == &key);
 
-        if let Some(idx) = found_idx { 
+        if let Some(idx) = found_idx {
             let item = self.old_items.swap_remove(idx);
             self.current_items.push(item);
             ListEntry::Occupied(&mut self.current_items.last_mut().unwrap().1)
@@ -134,12 +133,12 @@ impl<K: Eq + PartialEq, T: SkinVisibility> DynList<K, T> {
 
     fn insert_at_current(&mut self, key: K, value: T) -> &mut T {
         let pos = self.current_count;
-        
+
         // На 16 битном устройстве (embedded) 16 * 2 = 32 байта, это нормально
         if pos >= 16 {
             panic!("DynList is overflow, disable no-alloc mode");
         }
-        
+
         self.current_items[pos] = Some((key, value));
         self.current_count += 1;
         &mut self.current_items[pos].as_mut().unwrap().1

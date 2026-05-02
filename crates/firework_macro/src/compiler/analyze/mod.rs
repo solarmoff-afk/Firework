@@ -1,41 +1,41 @@
 // Часть проекта Firework с открытым исходным кодом.
 // Лицензия EPL 2.0, подробнее в файле LICENSE. Copyright (c) 2026 Firework
 
-mod marks;
-mod expr;
-mod visitors;
-mod type_inference;
-mod linter;
-mod context;
-mod lifetime;
-mod hook;
 mod components;
+mod context;
+mod expr;
+mod hook;
+mod lifetime;
+mod linter;
+mod marks;
+mod type_inference;
+mod visitors;
 
 #[cfg(test)]
 mod tests;
 
-use proc_macro2::{TokenStream, Span};
 use proc_macro2::extra::DelimSpan;
-use syn::*;
-use syn::visit::Visit;
-use std::collections::HashMap;
+use proc_macro2::{Span, TokenStream};
 use quote::ToTokens;
+use std::collections::HashMap;
+use syn::visit::Visit;
+use syn::*;
 
-use expr::widget::{is_widget, is_layout, map_skin, WidgetArgs};
-use expr::spark::{SparkValidator, SparkFinderWithId, get_root_variable_name};
 use context::AnalyzeContext;
-use lifetime::{Variable, Scope, LifetimeManager};
-use type_inference::mut_check::is_mutable_method;
-use linter::FireworkLinter;
+use expr::spark::{SparkFinderWithId, SparkValidator, get_root_variable_name};
+use expr::widget::{WidgetArgs, is_layout, is_widget, map_skin};
 use hook::IrHook;
+use lifetime::{LifetimeManager, Scope, Variable};
+use linter::FireworkLinter;
+use type_inference::mut_check::is_mutable_method;
 
-use crate::compiler::codegen::ir::{
-    FireworkIR, FireworkStatement, FireworkAction, FireworkWidgetField, FireworkReactiveBlock,
-};
-use crate::compiler::error::*;
+use crate::CompileType;
 use crate::compiler::CompileFlags;
 use crate::compiler::codegen::ir::SpanKey;
-use crate::CompileType;
+use crate::compiler::codegen::ir::{
+    FireworkAction, FireworkIR, FireworkReactiveBlock, FireworkStatement, FireworkWidgetField,
+};
+use crate::compiler::error::*;
 
 /// Нельзя хранить String поэтому используется &str, при использовании нужно использовать
 /// String::from, но это позволяет не тянуть lazy_static или другой крейт
@@ -94,7 +94,7 @@ impl Analyzer {
 
             // Был ли настроен текущий лайаут, этот флаг нужен чтобы исключить двойной
             // вызов функционального виджета layout
-            descript_layout: false, 
+            descript_layout: false,
 
             function_name: None,
 
@@ -113,7 +113,7 @@ impl Analyzer {
         #[cfg(feature = "debug_output")]
         println!("{:#?}", self.lifetime_manager.scope.variables);
     }
-   
+
     /// Метод обёртка над SparkFinder чтобы быстро найти наличие спарка в выражении
     /// используется в коде чтобы проверить явлется ли блок реактивным и получить вектор
     /// спарков который содержит кортеж (имя, айди)
@@ -126,7 +126,7 @@ impl Analyzer {
         };
 
         finder.visit_expr(&expr);
-        
+
         found
     }
 
@@ -140,17 +140,20 @@ impl Analyzer {
                 // Вне режима компиляции Component now_component никогда не станет Some,
                 // так как он становится таким только в Impl визиторе, а там стоит ранний
                 // выход если режим компиляции в флагах не Component
-
                 Some(_) => self.add_field_to_component(field_name, field_type),
-                None => self.add_field_to_screen(field_name, field_type), 
+                None => self.add_field_to_screen(field_name, field_type),
             }
         }
     }
 
     fn add_field_to_screen(&mut self, field_name: String, field_type: String) {
-        self.context.ir.screen_structs.entry(
-            format!("ApplicationUiBlockStruct{}",
-                self.lifetime_manager.scope.screen_index.to_string()))
+        self.context
+            .ir
+            .screen_structs
+            .entry(format!(
+                "ApplicationUiBlockStruct{}",
+                self.lifetime_manager.scope.screen_index.to_string()
+            ))
             .or_insert_with(Vec::new)
             .push((field_name, field_type));
     }
@@ -158,8 +161,10 @@ impl Analyzer {
     fn add_field_to_component(&mut self, field_name: String, field_type: String) {
         // SAFETY: Этот метож вызывается только из add_field_to_struct и только если
         // now_component это Some
-        self.context.ir.component_structs.entry(self.context.now_component.clone()
-                .expect("IE:7"))
+        self.context
+            .ir
+            .component_structs
+            .entry(self.context.now_component.clone().expect("IE:7"))
             .or_insert_with(Vec::new)
             .push((field_name.clone(), field_type.clone()));
 
@@ -176,7 +181,7 @@ impl Analyzer {
         &mut self,
         sparks: Vec<(String, usize)>,
         is_loop: bool,
-        open_code: String, 
+        open_code: String,
         action: FireworkAction,
         visit_fn: impl FnOnce(&mut Self) -> DelimSpan,
     ) {
@@ -188,7 +193,7 @@ impl Analyzer {
         let state = self.reactive_block;
         let is_loop_state = self.is_loop;
         let first_block_state = self.context.first_ui_reactive_block.clone();
-        
+
         // Стейтемент для открытия реактивного блока чтобы кодогенератор мог правильно
         // сгенерировать реактивный блок
         let mut open_statement = self.context.statement.clone();
@@ -199,14 +204,14 @@ impl Analyzer {
         // Reactive флэши его не трогают
         let mut is_null_effect = false;
         let condition_has_spark = !sparks.is_empty();
-        
+
         // Если это эффект
         if let FireworkAction::ReactiveBlock(FireworkReactiveBlock::Effect, vec, _) = &action {
             // Нулевой эффект должен быть пустым
             is_null_effect = vec.is_empty();
         }
 
-        // Вызов в любом случае, даже если в условии нет спарков 
+        // Вызов в любом случае, даже если в условии нет спарков
         self.reactive_block = Some((self.statement_index, is_loop));
 
         // Если в условии есть спарки то мы входим в реактивный блок. Реактивные блоки
@@ -215,7 +220,7 @@ impl Analyzer {
         // есть спарки то это сделает true condition_has_spark, а если это эффект без спарков
         // то is_null_effect
         let is_reactive = condition_has_spark || is_null_effect;
-        
+
         if is_reactive {
             open_statement.action = action.clone();
             open_statement.is_reactive_block = true;
@@ -229,7 +234,7 @@ impl Analyzer {
             }
 
             open_statement.is_reactive_block = false;
-        } 
+        }
 
         // Открывающий стейтемент реактивного блока
         self.context.ir.push(open_statement);
@@ -254,14 +259,14 @@ impl Analyzer {
             // стейтемента, а спан задаётся в стейтементе всегда поэтому get_current_span
             // здесь есть всегда
             let span = self.context.ir.get_current_span().expect("IE:1").clone();
-            let count = self.context.ir.get_current_statements_count().expect("IE:2");
+            let count = self
+                .context
+                .ir
+                .get_current_statements_count()
+                .expect("IE:2");
             let local_index = count.checked_sub(1).expect("IE:4");
 
-            hook = IrHook::new(
-                index,
-                span,
-                local_index,
-            );
+            hook = IrHook::new(index, span, local_index);
 
             self.context.reactive_block_stack.push(hook.clone());
 
@@ -274,7 +279,7 @@ impl Analyzer {
         }
 
         self.statement_index += 1;
-        
+
         // let _saved_action = self.statement.action.clone();
         self.context.statement.action = FireworkAction::DefaultCode;
 
@@ -284,7 +289,7 @@ impl Analyzer {
         let spark_stack_snapshot = self.context.spark_stack.clone();
         self.context.spark_stack.extend(sparks);
         self.context.spark_stack.dedup();
-        
+
         // Замыкание чтобы выполнить все блоки, self передаётся из-за того что в
         // расте нельзя использовать self внутри метода этой же структуры поэтому
         // здесь передаётся self как аргумент замыкания
@@ -298,7 +303,7 @@ impl Analyzer {
             // есть выше. Это нужно так как action из аргументов уже не является актуальным,
             // так как is_ui заполняет visit_fn
             let mut statement = self.get_statement_from_hook(hook.clone()).clone();
-            
+
             // После replace значение будет возвращено ниже
             let action = std::mem::replace(&mut statement.action, FireworkAction::DefaultCode);
 
@@ -306,7 +311,7 @@ impl Analyzer {
             // контекст как первый ui реактивный блок. Это нужно для того чтобы выполнить
             // слияние условий
             let new_action = match action {
-                FireworkAction::ReactiveBlock(block_type, sparks, is_ui) 
+                FireworkAction::ReactiveBlock(block_type, sparks, is_ui)
                     if block_type != FireworkReactiveBlock::Effect =>
                 {
                     if let Some(ref first_hook) = first_block_state {
@@ -315,7 +320,7 @@ impl Analyzer {
                     } else {
                         FireworkAction::ReactiveBlock(block_type, sparks, is_ui)
                     }
-                },
+                }
 
                 action => action,
             };
@@ -340,7 +345,7 @@ impl Analyzer {
 
         // Закрывающая фигурная скобка также является частью реактивного блока
         self.context.statement.is_reactive_block = true;
-        
+
         self.reactive_block = state;
         self.is_loop = is_loop_state;
         self.context.first_ui_reactive_block = first_block_state;
@@ -366,8 +371,10 @@ impl Analyzer {
 
     pub fn update_scope(&mut self, scope: Scope, set_scope: bool) {
         let base_stmt = self.context.statement.clone();
-        let drop_statements = self.lifetime_manager.update_scope(scope, set_scope, &base_stmt);
-        
+        let drop_statements = self
+            .lifetime_manager
+            .update_scope(scope, set_scope, &base_stmt);
+
         for stmt in drop_statements {
             self.context.ir.push(stmt);
             self.statement_index += 1;
@@ -402,13 +409,16 @@ impl<'ast> Visit<'ast> for Analyzer {
     }
 
     fn visit_pat_ident(&mut self, i: &'ast PatIdent) {
-        self.pending_vars.push((i.ident.to_string(), Variable {
-            variable_type: self.current_type.clone(),
-            is_mut: i.mutability.is_some(),
-            is_spark: false,
-            spark_id: 0,
-            is_spark_ref: None,
-        })); 
+        self.pending_vars.push((
+            i.ident.to_string(),
+            Variable {
+                variable_type: self.current_type.clone(),
+                is_mut: i.mutability.is_some(),
+                is_spark: false,
+                spark_id: 0,
+                is_spark_ref: None,
+            },
+        ));
 
         // На всякий случай
         visit::visit_pat_ident(self, i);
@@ -451,11 +461,11 @@ impl<'ast> Visit<'ast> for Analyzer {
     fn visit_expr_while(&mut self, i: &'ast ExprWhile) {
         self.analyze_expr_while(i);
     }
-    
+
     fn visit_expr_for_loop(&mut self, i: &'ast ExprForLoop) {
         self.analyze_expr_for_loop(i);
     }
-    
+
     fn visit_expr_match(&mut self, i: &'ast ExprMatch) {
         self.analyze_expr_match(i);
     }
@@ -480,7 +490,7 @@ impl<'ast> Visit<'ast> for Analyzer {
         self.analyze_expr_closure(i)
     }
 
-    fn visit_item_struct(&mut self, _i: &'ast ItemStruct) { 
+    fn visit_item_struct(&mut self, _i: &'ast ItemStruct) {
         // self.context.output.extend(node.to_token_stream());
     }
 
@@ -490,11 +500,11 @@ impl<'ast> Visit<'ast> for Analyzer {
         }
 
         let self_type = &_i.self_ty;
-        
+
         if let Type::Path(type_path) = &**self_type {
             if let Some(segment) = type_path.path.segments.last() {
                 let struct_name = &segment.ident;
-                
+
                 // Структура для которой идёт реализация становится текущим компонентом
                 self.context.now_component = Some(struct_name.to_string())
             } else {
@@ -513,7 +523,7 @@ impl<'ast> Visit<'ast> for Analyzer {
 
         // Теперь никакой компонент не реализуется
         self.context.now_component = None;
-        
+
         // visit::visit_item_impl(self, _i);
     }
 
@@ -525,8 +535,12 @@ impl<'ast> Visit<'ast> for Analyzer {
 pub fn prepare_tokens(
     file: File,
     flags: CompileFlags,
-    _id: u64
-) -> (proc_macro2::TokenStream, Option<proc_macro2::TokenStream>, Option<FireworkIR>) {
+    _id: u64,
+) -> (
+    proc_macro2::TokenStream,
+    Option<proc_macro2::TokenStream>,
+    Option<FireworkIR>,
+) {
     let mut analyzer = Analyzer::new();
     analyzer.lifetime_manager.scope.screen_index_generate();
     analyzer.context.flags = flags;
@@ -537,17 +551,24 @@ pub fn prepare_tokens(
     }
 
     #[cfg(feature = "debug_output")]
-    println!("IR len: {}, IR: {:#?}",
-        analyzer.context.ir.snapshot.statements.len(), analyzer.context.ir);
-    
+    println!(
+        "IR len: {}, IR: {:#?}",
+        analyzer.context.ir.snapshot.statements.len(),
+        analyzer.context.ir
+    );
+
     if !analyzer.context.errors.is_empty() {
         let mut final_error = analyzer.context.errors[0].clone();
-        
+
         for error in analyzer.context.errors.iter().skip(1) {
             final_error.combine(error.clone());
         }
 
-        (analyzer.context.output, Some(final_error.to_compile_error()), Some(analyzer.context.ir))
+        (
+            analyzer.context.output,
+            Some(final_error.to_compile_error()),
+            Some(analyzer.context.ir),
+        )
     } else {
         (analyzer.context.output, None, Some(analyzer.context.ir))
     }

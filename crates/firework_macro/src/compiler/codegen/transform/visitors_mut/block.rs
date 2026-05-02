@@ -9,7 +9,7 @@ impl CodegenVisitor<'_> {
     pub(crate) fn analyze_block_mut(&mut self, i: &mut Block) {
         let mut new_statements = Vec::new();
 
-        let original_statements = std::mem::take(&mut i.stmts); 
+        let original_statements = std::mem::take(&mut i.stmts);
 
         for mut statement in original_statements {
             let span = statement.span();

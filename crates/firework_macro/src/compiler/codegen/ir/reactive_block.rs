@@ -7,13 +7,13 @@ pub enum FireworkReactiveBlock {
     // Условие
     ReactiveIf,
 
-    // Цикл for 
+    // Цикл for
     ReactiveFor,
 
-    // Цикл while 
+    // Цикл while
     ReactiveWhile,
 
-    // Match 
+    // Match
     ReactiveMatch,
 
     // Эффект, реактивный блок без условия

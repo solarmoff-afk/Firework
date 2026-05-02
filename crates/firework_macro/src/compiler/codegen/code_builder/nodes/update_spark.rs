@@ -9,8 +9,11 @@ impl CodeBuilder {
     /// Спарк это не обёртка или умный указатель, а просто T который реактивный
     /// благодаря магии компилятора
     pub fn node_update_spark(
-        &self, span: Span, final_tokens: &mut TokenStream,
-        statement: &FireworkStatement, processed_body: &TokenStream,
+        &self,
+        span: Span,
+        final_tokens: &mut TokenStream,
+        statement: &FireworkStatement,
+        processed_body: &TokenStream,
     ) -> bool {
         match &statement.action {
             FireworkAction::UpdateSpark(_, id, _) => {
@@ -39,7 +42,7 @@ impl CodeBuilder {
                 // изменении состояния чтобы если условие было пропущено то виджет исчез.
                 // Для локальных переменных зомби виджета остаются и это не считается
                 // проблемой так как если итерация цикла >1 то был обновлён именно спарк
-                // 
+                //
                 // Это можно представить как: "Спарк изменился и я больше не уверен что
                 // этот виджет всё ещё должен существовать, я выключаю его и в следующей
                 // итерации он должен сказать жив ли он"
@@ -59,23 +62,27 @@ impl CodeBuilder {
                 //
                 //  // Это сработает только если _fwc_event это Build или Navigate,
                 //  // как только значение изменится и в битовой маске появится
-                //  // активный бит то _fwc_event станет LifeCycle::Reactive 
+                //  // активный бит то _fwc_event станет LifeCycle::Reactive
                 //  // из-за чего этот код не будет выполнен и не начнёт обновлять
                 //  // битовую маску каждую итерацию
                 //  spark1 += 1;
                 // }
-                let need_condition = !statement.is_reactive_block
-                    && statement.parent_widget_id.is_none();
- 
-                let statement = format!("{};", set_flag(
-                    format!("_fwc_bitmask{}", mask).as_str(),
-                    
-                    // Используется айди спарка как бит для отслеживания, но
-                    // перед этим он проходит через нормализацию (id % 64)
-                    // который позволяет использовать даже айди больше 64 
-                    // для множества битовых масок
-                    normalize_bit_index(*id),
-                )).to_stmt().expect("Update_spark node parse error: bitmask"); 
+                let need_condition =
+                    !statement.is_reactive_block && statement.parent_widget_id.is_none();
+
+                let statement = format!(
+                    "{};",
+                    set_flag(
+                        format!("_fwc_bitmask{}", mask).as_str(),
+                        // Используется айди спарка как бит для отслеживания, но
+                        // перед этим он проходит через нормализацию (id % 64)
+                        // который позволяет использовать даже айди больше 64
+                        // для множества битовых масок
+                        normalize_bit_index(*id),
+                    )
+                )
+                .to_stmt()
+                .expect("Update_spark node parse error: bitmask");
 
                 if need_condition {
                     final_tokens.extend(quote_spanned!(span=>
@@ -83,7 +90,7 @@ impl CodeBuilder {
                                 firework_ui::LifeCycle::Navigate) ||
                             firework_ui::tiny_matches!(_fwc_event,
                                 firework_ui::LifeCycle::Build) {
-                            
+
                             #statement
                             #update_widgets_statement
                             #processed_body
@@ -98,9 +105,9 @@ impl CodeBuilder {
                 }
 
                 return true;
-            },
+            }
 
-            _ => {},
+            _ => {}
         };
 
         false

@@ -10,7 +10,7 @@ pub struct DefaultRectSkin {
     _layout: u16,
 }
 
-impl DefaultRectSkin { 
+impl DefaultRectSkin {
     pub fn new(layout: u16) -> Option<Self> {
         match adapter_command(AdapterCommand::NewRect { layout }) {
             AdapterResult::Handle(handle) => {
@@ -40,7 +40,10 @@ impl DefaultRectSkin {
 
     /// Устанавливает цвет прямоугольника
     pub fn color(self, color: (u8, u8, u8)) -> Self {
-        let _ = adapter_command(AdapterCommand::SetColor(self.handle, (color.0, color.1, color.2, 255)));
+        let _ = adapter_command(AdapterCommand::SetColor(
+            self.handle,
+            (color.0, color.1, color.2, 255),
+        ));
         self
     }
 
@@ -80,9 +83,7 @@ impl crate::dyn_list::SkinVisibility for DefaultRectSkin {
 
     fn unmount(self) {
         self.visible(false);
-        
-        crate::adapter_command(
-            crate::AdapterCommand::Remove(self.__id()) 
-        );
+
+        crate::adapter_command(crate::AdapterCommand::Remove(self.__id()));
     }
 }

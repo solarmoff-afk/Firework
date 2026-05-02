@@ -31,15 +31,21 @@ impl CodeBuilder {
         statement: &FireworkStatement,
     ) -> bool {
         match &statement.action {
-            FireworkAction::InitialSpark { id, expr_body, name, is_mut, .. } => {
+            FireworkAction::InitialSpark {
+                id,
+                expr_body,
+                name,
+                is_mut,
+                ..
+            } => {
                 let field_name = format!("spark_{}", id);
                 let struct_name_upper = struct_name.to_uppercase();
-                
+
                 let set_field_str = static_gen::set_field(&struct_name, &field_name, expr_body);
                 let set_field_expr = Self::convert_string_to_syn(&set_field_str);
 
                 // Если спарк инициализирован как мутабельный то нужно создать мутабельную
-                // переменную для аренды из статики. Если спарк был инициализирован без mut 
+                // переменную для аренды из статики. Если спарк был инициализирован без mut
                 // то переменная создаётся также без mut чтобы не было предупреждения.
                 // Ключевая хитрость в том что вместо
                 //  let mut a = spark!(0);
@@ -51,11 +57,11 @@ impl CodeBuilder {
                 if *is_mut {
                     modifier = quote!(mut);
                 }
-                
+
                 let ident = format_ident!("{}", name);
                 let take_field_str = static_gen::take_field(&struct_name_upper, &field_name);
                 let take_field_expr = Self::convert_string_to_syn(&take_field_str);
-                
+
                 final_tokens.extend(quote_spanned!(span=>
                     if firework_ui::tiny_matches!(_fwc_event, firework_ui::LifeCycle::Build) {
                         #set_field_expr
@@ -65,9 +71,9 @@ impl CodeBuilder {
                 ));
 
                 return true;
-            },
+            }
 
-            _ => {},
+            _ => {}
         };
 
         false

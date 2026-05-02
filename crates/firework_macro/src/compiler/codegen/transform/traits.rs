@@ -12,9 +12,7 @@ pub(crate) trait ToTokenStreams {
 
 impl ToTokenStreams for Vec<String> {
     fn to_token_streams(self) -> syn::Result<Vec<TokenStream>> {
-        self.into_iter()
-            .map(|s| parse_str(&s))
-            .collect()
+        self.into_iter().map(|s| parse_str(&s)).collect()
     }
 }
 

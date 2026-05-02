@@ -16,19 +16,26 @@ impl CodeBuilder {
         span: Span,
         struct_name: String,
         final_tokens: &mut TokenStream,
-        statement: &FireworkStatement, 
+        statement: &FireworkStatement,
     ) -> bool {
         match &statement.action {
-            FireworkAction::SparkRef { name, id, is_mut, root, local_id, .. } => {
+            FireworkAction::SparkRef {
+                name,
+                id,
+                is_mut,
+                root,
+                local_id,
+                ..
+            } => {
                 let field_name = format!("spark_{}", id);
-               
+
                 // Если переменная для записи мутабельная то и ссылка нужна мутабельная,
                 // если нет то немутабельная
                 let ref_field_str = match *is_mut {
                     true => static_gen::get_field_ref_mut(&struct_name, &field_name, &name),
                     false => static_gen::get_field_ref(&struct_name, &field_name, &name),
                 };
-                
+
                 let ref_field_expr = Self::convert_string_to_syn(&ref_field_str);
 
                 // Условие на изменение спарк ссылки в битовой маске. При изменении ссылки
@@ -51,7 +58,7 @@ impl CodeBuilder {
                 let func_effects = self.ir.shared.effects.get(root).unwrap_or(&temp);
                 let mut func_effects_statements = Vec::new();
 
-                // Проход по всем функциональным эффектам которые привязаны к этому 
+                // Проход по всем функциональным эффектам которые привязаны к этому
                 // функциональному состоянию и генерация вызовов
                 for effect in func_effects {
                     let ident = format_ident!("{}", effect);
@@ -62,7 +69,7 @@ impl CodeBuilder {
 
                 // Генерация ссылки и проверки на изменение чтобы вызвать функциональные
                 // эффекты
-                final_tokens.extend(quote_spanned!(span=> 
+                final_tokens.extend(quote_spanned!(span=>
                     #ref_field_expr
 
                     if #condition_statement {
@@ -71,9 +78,9 @@ impl CodeBuilder {
                 ));
 
                 return true;
-            },
+            }
 
-            _ => {},
+            _ => {}
         };
 
         false

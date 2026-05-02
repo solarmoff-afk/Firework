@@ -8,7 +8,7 @@ impl CodegenVisitor<'_> {
     pub fn generate_reactive(&self, id: u128) -> ReactiveGenerateOutput {
         // [REACTIVE_LOOP]
         // Реализация реактивного цикла: Реактивный цикл это loop в который
-        // оборачивается пользовательский код второй фазы. Для каждых 64 
+        // оборачивается пользовательский код второй фазы. Для каждых 64
         // спарков создаётся битовая маска типа u64
         //
         // > Выход из цикла
@@ -42,7 +42,7 @@ impl CodegenVisitor<'_> {
         let mut bitmask_strings: Vec<String> = Vec::new();
         let mut bitmask_clone_strings: Vec<String> = Vec::new();
         let mut bitmask_check_string = String::new();
-       
+
         // Генерация начала цикла реактивности, он нужен чтобы правильно очистить
         // битовые маски для каждого шага цикла, но при этом иметь возможность
         // сравнивать бит для проверки изменения реактивности. Это нужно выполнить
@@ -51,34 +51,34 @@ impl CodegenVisitor<'_> {
             // Первое, делается клон (копия, так как маска u64) каждой битовой
             // маски. Он нужен чтобы ЧИТАТЬ его и проверять измненение состояния.
             // Это локальная переменная которая будет дропнута
-            bitmask_strings.push(format!("let mut _fwc_bitmask{} = 0u64;\n",
-                mask_index + 1));
+            bitmask_strings.push(format!("let mut _fwc_bitmask{} = 0u64;\n", mask_index + 1));
 
             // Первое, делается клон (копия, так как маска u64) каждой битовой
             // маски. Он нужен чтобы ЧИТАТЬ его и проверять измненение состояния.
             // Это локальная переменная которая будет дропнута
-            bitmask_clone_strings.push(
-                format!("let _fwc_bitmask{}_clone = _fwc_bitmask{};",
-                    mask_index + 1, mask_index + 1));
+            bitmask_clone_strings.push(format!(
+                "let _fwc_bitmask{}_clone = _fwc_bitmask{};",
+                mask_index + 1,
+                mask_index + 1
+            ));
 
             // Второе, обнуляется оригинальная маска после того как сделан клон.
             // Это нужно чтобы ПИСАТЬ в неё по мере нахождения UpdateSpark. На
             // следующем шаге цикла (если цикл не будет завершёе из-за превышения
             // максимального количества итераций или отсуствия обновлений в маске)
             // эта оригинальная маска где при UpdateSpark будут записаны
-            // обновления будет скопирована для чтения, а сама маска обнулится 
+            // обновления будет скопирована для чтения, а сама маска обнулится
             // чтобы в неё сами писали. Это самый элегантный способ реализации,
             // так как, например, точечный сброс бита имеют огромные недостатки
-            bitmask_clone_strings.push(
-                format!("_fwc_bitmask{} = 0;\n", mask_index + 1));
+            bitmask_clone_strings.push(format!("_fwc_bitmask{} = 0;\n", mask_index + 1));
 
             // Генерация условия проверки всех битовых масок. Только если все
             // битовые маски пустые (== 0, не содержат активных битов) то
             // тогда нужно завершить цикл реактивности, либо если _fwc_guard
             // больше 64 (Для того чтобы безопасно разрешить циклическую
             // зависимость)
-            bitmask_check_string.push_str(format!("_fwc_bitmask{} == 0 && ",
-                mask_index + 1).as_str());
+            bitmask_check_string
+                .push_str(format!("_fwc_bitmask{} == 0 && ", mask_index + 1).as_str());
         }
 
         // Небольшой хак. Вторая часть выражения сгенерирует код типа
@@ -91,13 +91,13 @@ impl CodegenVisitor<'_> {
         // Стейтементы инициализации битовых масок (вектор)
         //  - let mut _fwc_bitmask{} = 0u64;
         let bitmask_statements = bitmask_strings.to_token_streams().unwrap();
-        
+
         // Стейтементы клонирование битовой маски (создания снапшота) и обнуления оригинала
         // для разделения записи и чтения
         //  - let _fwc_bitmask{}_clone = _fwc_bitmask{};
         //  - _fwc_bitmask{} = 0;
         let bitmask_clone_statements = bitmask_clone_strings.to_token_streams().unwrap();
-        
+
         // Выражение проверки всех битовых масок для условия
         //  - _fwc_bitmask{} == 0 && true
         let bitmask_check_expr = parse_str::<Expr>(&bitmask_check_string).unwrap();

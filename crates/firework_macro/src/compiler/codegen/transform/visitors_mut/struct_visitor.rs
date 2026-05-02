@@ -6,10 +6,7 @@ pub use super::super::*;
 use crate::CompileType;
 
 impl CodegenVisitor<'_> {
-    pub fn codegen_item_struct(
-        &self,
-        item_struct: &mut ItemStruct,
-    ) {
+    pub fn codegen_item_struct(&self, item_struct: &mut ItemStruct) {
         if !matches!(self.flags.compile_type, CompileType::Component) {
             return;
         }
@@ -22,7 +19,7 @@ impl CodegenVisitor<'_> {
                 for (field_name, field_type) in fields {
                     let field_name_ident = format_ident!("{}", field_name);
                     let type_ident = format_ident!("{}", field_type);
-                    
+
                     let new_field: syn::Field = parse_quote! {
                         pub #field_name_ident: core::option::Option<#type_ident>
                     };
@@ -30,6 +27,6 @@ impl CodegenVisitor<'_> {
                     fields_named.named.push(new_field);
                 }
             }
-        } 
+        }
     }
 }

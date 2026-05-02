@@ -3,25 +3,29 @@
 
 use super::super::*;
 
-impl CodeBuilder { 
+impl CodeBuilder {
     pub fn node_dynamic_list(
-        &self, span: Span, final_tokens: &mut TokenStream, _struct_name: String,
-        statement: &FireworkStatement, processed_body: &TokenStream,
+        &self,
+        span: Span,
+        final_tokens: &mut TokenStream,
+        _struct_name: String,
+        statement: &FireworkStatement,
+        processed_body: &TokenStream,
     ) -> bool {
         match &statement.action {
-            FireworkAction::DynamicLoopBegin(_depth, _widgets) => { 
-                final_tokens.extend(quote_spanned!(span=> 
+            FireworkAction::DynamicLoopBegin(_depth, _widgets) => {
+                final_tokens.extend(quote_spanned!(span=>
                     // #list_inits
                     #processed_body
                     // #list_ends
                 ));
 
                 return true;
-            },
+            }
 
-            _ => {},
+            _ => {}
         };
-        
+
         false
     }
 }

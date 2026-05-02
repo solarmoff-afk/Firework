@@ -3,21 +3,21 @@
 
 #![allow(dead_code)]
 
-pub mod snapshot;
 pub mod actions;
 pub mod reactive_block;
-pub mod widget;
 pub mod shared;
+pub mod snapshot;
+pub mod widget;
 
 use proc_macro2::Span;
 use std::collections::HashMap;
 
-pub use snapshot::{Snapshot, SpanKey};
 pub use actions::FireworkAction;
-pub use shared::SharedData;
-pub use widget::{FireworkWidgetField, WidgetDescription};
 pub use reactive_block::FireworkReactiveBlock;
 pub use shared::FireworkSharedState;
+pub use shared::SharedData;
+pub use snapshot::{Snapshot, SpanKey};
+pub use widget::{FireworkWidgetField, WidgetDescription};
 
 /// Раст команда (statement) записанная анализатором
 #[derive(Debug, Clone)]
@@ -25,7 +25,7 @@ pub struct FireworkStatement {
     // Семантическая метка которая кратко говорит что делает эта строка, создаёт спарк,
     // обновляет спарк, дропает спарк и так далее
     pub action: FireworkAction,
-    
+
     // Явлется ли это реактивным блоком
     pub is_reactive_block: bool,
 
@@ -56,9 +56,9 @@ pub struct FireworkIR {
     pub statements: Vec<FireworkStatement>,
 
     // Карта Спан -> Виртуальный стейтемент
-    pub snapshot: Snapshot, 
+    pub snapshot: Snapshot,
 
-    // Последний спан который был задан. Используется чтобы разместить 
+    // Последний спан который был задан. Используется чтобы разместить
     pub last_span: Option<SpanKey>,
 
     // Соотвествие экрана (название функции) и структуры экрана в формате вектора
@@ -112,7 +112,7 @@ impl FireworkIR {
     pub fn new() -> Self {
         Self {
             statements: Vec::new(),
-            snapshot: Snapshot::new(), 
+            snapshot: Snapshot::new(),
             last_span: None,
             screen_structs: HashMap::new(),
             component_structs: HashMap::new(),
@@ -124,27 +124,27 @@ impl FireworkIR {
             span: Span::call_site(),
         }
     }
-   
+
     /// Добавляет виртуальный стейтемент в IR, использует текущий спан который устанавливается
     /// через метод set_span как ключ в снапшоте чтобы записать туда виртуальный стейтемент
     pub fn push(&mut self, stmt: FireworkStatement) {
         let span_key = SpanKey::from_span(stmt.span);
         self.last_span = Some(span_key.clone());
-        
+
         // Теперь просто вставляем, без Vec
         self.snapshot
             .statements
             .entry(span_key.clone())
             .or_insert_with(Vec::new)
             .push(stmt.clone());
-        
+
         self.statements.push(stmt);
-        
+
         if !self.snapshot.order.contains(&span_key) {
             self.snapshot.order.push(span_key);
         }
     }
-    
+
     /// Устанавливает спан по которому будут добавлены виртуальные стейтементы через
     /// push после этого вызова
     pub fn set_span(&mut self, span: Span) {
@@ -194,12 +194,15 @@ impl FireworkIR {
     pub fn get_statement_by_spankey(
         &mut self,
         key: SpanKey,
-        index: usize
-    ) -> Option<&mut FireworkStatement> { 
+        index: usize,
+    ) -> Option<&mut FireworkStatement> {
         self.snapshot.statements.get_mut(&key)?.get_mut(index)
     }
 
-    pub fn get_statements_by_span_mut(&mut self, span: Span) -> Option<&mut Vec<FireworkStatement>> {
+    pub fn get_statements_by_span_mut(
+        &mut self,
+        span: Span,
+    ) -> Option<&mut Vec<FireworkStatement>> {
         let key = SpanKey::from_span(span);
         self.snapshot.statements.get_mut(&key)
     }

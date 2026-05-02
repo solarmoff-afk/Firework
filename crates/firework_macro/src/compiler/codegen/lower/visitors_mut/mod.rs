@@ -4,14 +4,14 @@
 mod block;
 mod item;
 
-use syn::*;
-use syn::visit_mut::VisitMut;
-use quote::quote;
 use proc_macro2::Span;
 use proc_macro2::TokenStream;
+use quote::quote;
+use syn::visit_mut::VisitMut;
+use syn::*;
 
-use crate::compiler::codegen::ir::FireworkIR;
 use crate::compiler::codegen::code_builder::CodeBuilder;
+use crate::compiler::codegen::ir::FireworkIR;
 
 pub struct LowerVisitor<'a> {
     // IR от анализатора, содержит плоские семантические метки для каждого стейтемента,
@@ -45,17 +45,17 @@ impl<'a> VisitMut for LowerVisitor<'a> {
 
     fn visit_stmt_mut(&mut self, stmt: &mut Stmt) {
         let old_drops = std::mem::take(&mut self.pending_drops);
-        
+
         syn::visit_mut::visit_stmt_mut(self, stmt);
 
         if !self.pending_drops.is_empty() {
             let drops = std::mem::take(&mut self.pending_drops);
-            
+
             let mut all_drops = TokenStream::new();
             for (_, tokens) in drops {
                 all_drops.extend(tokens);
             }
-            
+
             let new_stmt_tokens = quote! {{
                 #stmt
                 #all_drops

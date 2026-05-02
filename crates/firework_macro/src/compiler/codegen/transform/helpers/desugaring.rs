@@ -10,7 +10,11 @@ impl CodegenVisitor<'_> {
     /// Десахаризирует #[read] у разделяемого состояния. Позволяет автоматически сгенерировать
     /// геттер для него по имени get_{}, где {} это имя разделяемого состояния
     pub fn desugar_shared_read(
-        &self, span: Span, field_id: u128, field_name: &str, field_type: &Type,
+        &self,
+        span: Span,
+        field_id: u128,
+        field_name: &str,
+        field_type: &Type,
         struct_id: u128,
     ) -> Item {
         let function_name = format_ident!("get_{}", field_name);
@@ -18,9 +22,9 @@ impl CodegenVisitor<'_> {
         let field_access = format_ident!("spark_{}", field_id);
         let field_ident = format_ident!("{}", field_name);
         let build_name = format_ident!("_fwc_fn_build{}", struct_id);
-        
+
         let is_multithread = cfg!(feature = "safety-multithread");
-        
+
         let access_code = if is_multithread {
             quote! {
                 let _fwc_mutex_guard = #struct_name.get()
@@ -34,7 +38,7 @@ impl CodegenVisitor<'_> {
                 };
             }
         };
-        
+
         #[cfg(not(feature = "safety-multithread"))]
         let result = parse_quote_spanned!(span=>
             pub fn #function_name() -> &'static #field_type {
@@ -55,11 +59,15 @@ impl CodegenVisitor<'_> {
 
         result
     }
-    
+
     /// Десахаризирует #[write] у разделямого состояния, генерирует сеттер под именем
     /// set_{}
     pub fn desugar_shared_write(
-        &self, span: Span, field_id: u128, field_name: &str, field_type: &Type,
+        &self,
+        span: Span,
+        field_id: u128,
+        field_name: &str,
+        field_type: &Type,
         struct_id: u128,
     ) -> Item {
         let function_name = format_ident!("set_{}", field_name);
@@ -68,10 +76,10 @@ impl CodegenVisitor<'_> {
         let field_access = format_ident!("spark_{}", field_id);
         let new_value = format_ident!("new_{}", field_name);
         let field_ident = format_ident!("{}", field_name);
-       
+
         // Запущен ли компилятор в режиме безопасной многопоточности
         let is_multithread = cfg!(feature = "safety-multithread");
-        
+
         let access_code = if is_multithread {
             quote! {
                 let mut _fwc_mutex_guard = #struct_name.get()
@@ -86,30 +94,33 @@ impl CodegenVisitor<'_> {
                 };
             }
         };
-        
+
         let temp = Vec::new();
-        let func_effects = self.ir.shared.effects
+        let func_effects = self
+            .ir
+            .shared
+            .effects
             .get(&field_name.to_string())
             .unwrap_or(&temp);
         let mut func_effects_statements = Vec::new();
-        
+
         for effect in func_effects {
             let ident = format_ident!("{}", effect);
-            
+
             func_effects_statements.push(quote! {
                 #ident();
             });
         }
-        
-        parse_quote_spanned!(span=> 
+
+        parse_quote_spanned!(span=>
             pub fn #function_name(#new_value: #field_type) {
                 #build_name();
-                
+
                 {
                     #access_code
                     *#field_ident = #new_value;
                 }
-                
+
                 #(#func_effects_statements)*
             }
         )

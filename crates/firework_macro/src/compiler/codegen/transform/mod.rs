@@ -1,22 +1,22 @@
 // Часть проекта Firework с открытым исходным кодом.
 // Лицензия EPL 2.0, подробнее в файле LICENSE. Copyright (c) 2026 Firework
 
-pub mod traits;
 pub mod helpers;
+pub mod traits;
 mod visitors_mut;
 
-use syn::visit_mut::VisitMut;
-use syn::spanned::Spanned;
-use syn::*;
-use std::collections::HashMap;
-use quote::format_ident;
 use proc_macro2::TokenStream;
+use quote::format_ident;
+use std::collections::HashMap;
+use syn::spanned::Spanned;
+use syn::visit_mut::VisitMut;
+use syn::*;
 
-use super::generator::static_gen::*;
-use super::generator::bitmask_gen::*;
-use super::consts::{CHECK_EVENT, SET_FOCUS};
-use super::ir::{FireworkIR, FireworkStatement};
 use super::code_builder::CodeBuilder;
+use super::consts::{CHECK_EVENT, SET_FOCUS};
+use super::generator::bitmask_gen::*;
+use super::generator::static_gen::*;
+use super::ir::{FireworkIR, FireworkStatement};
 
 use crate::CompileFlags;
 use crate::compiler::codegen::ir::MaybeWidgets;
@@ -33,7 +33,7 @@ pub struct CodegenVisitor<'a> {
     pub ui_id: Option<u128>,
 
     pub builder: CodeBuilder,
-    
+
     pub mask_count: HashMap<u128, u8>,
     pub widget_mask_count: HashMap<u128, u8>,
 
@@ -46,7 +46,7 @@ impl<'a> CodegenVisitor<'a> {
         Self {
             builder: CodeBuilder::new(ir.clone()),
             ir,
-            ui_id: None, 
+            ui_id: None,
             mask_count: HashMap::new(),
             widget_mask_count: HashMap::new(),
             flags: CompileFlags::new(),
@@ -58,7 +58,12 @@ impl<'a> CodegenVisitor<'a> {
         self.flags = flags;
     }
 
-    pub fn generate_code(&mut self, stmt: &Stmt, statements: &[FireworkStatement], body: TokenStream) -> TokenStream {
+    pub fn generate_code(
+        &mut self,
+        stmt: &Stmt,
+        statements: &[FireworkStatement],
+        body: TokenStream,
+    ) -> TokenStream {
         self.find_mask_counts();
         self.find_widget_mask_counts();
         self.builder.build(stmt, statements, body)
@@ -73,7 +78,8 @@ impl<'a> CodegenVisitor<'a> {
 
             // Расчёт сколько нужно битовых масок на основе количество спарков
             // 1 -> 1, 19 -> 1, 64 -> 1, 67 -> 2, 98 -> 2, 128 -> 2, 136 -> 3
-            self.mask_count.insert(*screen_id, get_spark_mask(*spark_count)); 
+            self.mask_count
+                .insert(*screen_id, get_spark_mask(*spark_count));
         }
     }
 
@@ -81,8 +87,12 @@ impl<'a> CodegenVisitor<'a> {
         for (_screen_name, _screen_signature, screen_id) in self.ir.screens.iter() {
             // Вычисление количества битовых масок
             let default_temp = MaybeWidgets::new();
-            let widget_count = self.ir.screen_maybe_widgets.get(screen_id)
-                .unwrap_or(&default_temp).count;
+            let widget_count = self
+                .ir
+                .screen_maybe_widgets
+                .get(screen_id)
+                .unwrap_or(&default_temp)
+                .count;
 
             let mut count = get_spark_mask(widget_count);
             if widget_count == 0 {

@@ -10,7 +10,7 @@ pub struct AnalyzeContext {
     // Firework Error и заканчиваются числом из трёх цифр, это номер ошибки. Пример:
     // FE001, FE004
     pub errors: Vec<Error>,
-    
+
     // Выходные токены
     pub output: TokenStream,
 
@@ -22,7 +22,7 @@ pub struct AnalyzeContext {
 
     // Стэк спарков который содержит все спарки в верхних if/match/effect/for/while чтобы
     // определить от каких спарков зависит выполнение этого кода, используется в условных
-    // виджетах чтобы деактивировать нужный бит в случае обновления спарка от которого зависит 
+    // виджетах чтобы деактивировать нужный бит в случае обновления спарка от которого зависит
     // условный рендеринг
     pub spark_stack: Vec<(String, usize)>,
 
@@ -76,9 +76,9 @@ impl AnalyzeContext {
         Self {
             // При старте нет ошибок
             errors: Vec::new(),
-            
+
             output: TokenStream::new(),
-            
+
             statement: FireworkStatement {
                 action: FireworkAction::DefaultCode,
                 is_reactive_block: false,
@@ -89,15 +89,15 @@ impl AnalyzeContext {
                 reactive_loop: false,
                 depth: 0,
                 screen_index: 0,
-                
+
                 // Указаывает на место макроса по умолчанию, в визиторе будет изменён на
                 // span конкретного стейтемента
                 span: Span::call_site(),
             },
-            
+
             ir: FireworkIR::new(),
             spark_stack: Vec::new(),
-            
+
             // Счётчики
             widget_counter: 0,
             maybe_widgets_counter: 0,
@@ -121,7 +121,7 @@ impl AnalyzeContext {
 pub struct MicroruntimeWidgets {
     // Количество вложенных циклов на данный момент
     pub count: usize,
-   
+
     // Виджеты в этом цикле
     pub widgets: Vec<usize>,
 
@@ -129,7 +129,7 @@ pub struct MicroruntimeWidgets {
     pub is_dirty: bool,
 
     // Есть ли виджеты вообще тут либо в дочерних циклах
-    pub has_widgets: bool, 
+    pub has_widgets: bool,
 }
 
 impl MicroruntimeWidgets {
@@ -138,7 +138,7 @@ impl MicroruntimeWidgets {
             count: 0,
             widgets: Vec::new(),
             is_dirty: false,
-            has_widgets: false, 
+            has_widgets: false,
         }
     }
 }

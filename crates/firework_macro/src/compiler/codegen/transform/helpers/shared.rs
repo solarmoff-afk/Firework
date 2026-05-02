@@ -21,13 +21,11 @@ impl CodegenVisitor<'_> {
         }
 
         let default = Vec::new();
-        let fields_data = self.ir.screen_structs
-            .get(&struct_name)
-            .unwrap_or(&default);
+        let fields_data = self.ir.screen_structs.get(&struct_name).unwrap_or(&default);
 
-        let build_check = static_gen::init_instance(
-            &struct_name.to_uppercase(), &struct_name, &fields_data);
-        
+        let build_check =
+            static_gen::init_instance(&struct_name.to_uppercase(), &struct_name, &fields_data);
+
         let build_check_statement = CodeBuilder::convert_string_to_syn(&build_check);
 
         (statements, build_check_statement)
@@ -42,15 +40,17 @@ impl CodegenVisitor<'_> {
     /// }
     /// ```
     pub(crate) fn resolve_shared_desugar_attr(&self, new_items: &mut Vec<Item>) {
-        if let Some(id) = self.ui_id && matches!(self.flags.compile_type, CompileType::Shared) {
+        if let Some(id) = self.ui_id
+            && matches!(self.flags.compile_type, CompileType::Shared)
+        {
             for state in &self.ir.shared.state {
                 for attr in &state.attributes {
                     let field_name = &state.name;
                     let field_type: Type = syn::parse_str(&state.spark_type).unwrap();
                     let field_id = state.id;
-                   
+
                     // Генерирует геттер для этого состояния, имя функции устанавливается
-                    // как get_{}, где {} это имя состояния. Геттер возвращает &'static T 
+                    // как get_{}, где {} это имя состояния. Геттер возвращает &'static T
                     // на это состояние
                     if attr == "read" {
                         let getter = self.desugar_shared_read(
@@ -62,7 +62,7 @@ impl CodegenVisitor<'_> {
                         );
                         new_items.push(getter);
                     }
-                    
+
                     // Генерирует сеттер для этого состояния который активирует эффекты
                     // которые подписаны на него (функциональные). Принимает значение типа
                     // T и ничего не возвращает, имя set_{}

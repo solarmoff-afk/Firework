@@ -1,13 +1,13 @@
 // Часть проекта Firework с открытым исходным кодом.
 // Лицензия EPL 2.0, подробнее в файле LICENSE. Copyright (c) 2026 Firework
 
-/// > ENG: Implements commands for sending to an adapter function pointer, does not use 
+/// > ENG: Implements commands for sending to an adapter function pointer, does not use
 /// heap-allocated types. The adapter allows implementing an abstraction over.
-/// When writing your own adapter, you must implement a match or another way to 
-/// iterate over possible commands, after which return one of the variants in the 
+/// When writing your own adapter, you must implement a match or another way to
+/// iterate over possible commands, after which return one of the variants in the
 /// AdapterResult enum. The adapter is designed to interact with the window, rendering,
 /// and the OS. The adapter works with handles (usize wrapper) for objects, textures,
-/// fonts and other entities that are created via AdapterCommand. The framework itself 
+/// fonts and other entities that are created via AdapterCommand. The framework itself
 /// and code generation are completely isolated from rendering and native calls
 /// > RU: Реализует команды для отправки в указатель на функцию адаптера, не использует типы
 /// которые хранятся в куче. Адаптер позволяет реализовать абстракцию над. При написании
@@ -35,11 +35,11 @@ pub enum AdapterCommand {
     /// you will store the array on the stack or in BSS/
     /// > RU: Эта команда выполняет удаление всех рендер объектов которые существуют сейчас на
     /// экране. Эта команда должна синхронно (за 1 кадр) пройтись по всем объектам которые
-    /// созданы и получили AdapterHandleObject (Текстуры и шрифты не AdapterHandleObject 
+    /// созданы и получили AdapterHandleObject (Текстуры и шрифты не AdapterHandleObject
     /// поэтому они не должны удаляться. Эта команда только для рендер объектов которые
     /// пользователь видит на экране). Фреймворк будет вызывать эту команду в сгенерированном
     /// макросом коде при навигации чтобы очистить все объекты которые были созданы предыдущим
-    /// экраном. Вызов RemoveAll должен быть безопасным, используйте систему реинкарнации ID 
+    /// экраном. Вызов RemoveAll должен быть безопасным, используйте систему реинкарнации ID
     /// если используйте кучу чтобы не вызывать реаллокации. Не допускайте паник при
     /// использовании команды, вместо очищения хранилища объектов рекомендуется осторожно
     /// их удалять по одному и записывать id как мёртвый чтобы его место заняли другие объекты.
@@ -83,9 +83,9 @@ pub enum AdapterCommand {
     SetHitGroup(usize, u16),
 }
 
-/// > ENG: Enumeration for implementing an abstraction over the EventLoop event. In your 
-/// adapter implementation, you use any crate to implement windowing (or JS Event Loop or 
-/// native  system loop) and send events to the listener closure that the framework provides 
+/// > ENG: Enumeration for implementing an abstraction over the EventLoop event. In your
+/// adapter implementation, you use any crate to implement windowing (or JS Event Loop or
+/// native  system loop) and send events to the listener closure that the framework provides
 /// for event processing.
 /// > RU: Перечисления для реализации абстракции над событием EventLoop. В своей реализации
 /// адаптера вы используете любой крейт для реализации работы с окном (или JS Event Loop или
@@ -93,7 +93,7 @@ pub enum AdapterCommand {
 /// обработки событий
 #[derive(Debug, Clone, Copy)]
 pub enum AdapterEvent {
-    /// > ENG: Screen click in x (u32), y (u32) format. The specification tries not to use 
+    /// > ENG: Screen click in x (u32), y (u32) format. The specification tries not to use
     /// f32 because Firework must support embedded devices in addition to mobile and desktop.
     /// Must be called. The third argument is the click phase.
     /// > RU: Клик по экрану в формате x (u32), y (u32). Спецификация старается не использовать
@@ -121,7 +121,7 @@ pub enum AdapterClickPhase {
     /// > ENG: Finger just pressed and is holding.
     /// > RU: Палец только нажал и держит
     Began,
-    
+
     /// > ENG: Finger pressed (Began) and is moving across the screen.
     /// > RU: Палец нажал (Began) и водит по экрану
     Moved,

@@ -4,17 +4,17 @@
 pub mod flags;
 
 mod analyze;
-mod error;
 mod codegen;
+mod error;
 
 use analyze::prepare_tokens;
-use codegen::transform::CodegenVisitor;
 use codegen::lower::visitors_mut::LowerVisitor;
+use codegen::transform::CodegenVisitor;
 use flags::CompileFlags;
 
 use proc_macro2::TokenStream;
-use syn::visit_mut::VisitMut;
 use syn::File;
+use syn::visit_mut::VisitMut;
 
 #[cfg(feature = "debug_output")]
 use syn::parse_str;
@@ -27,14 +27,16 @@ use crate::FireworkAst;
 pub fn run_firework_compiler(
     ast: FireworkAst,
     flags: CompileFlags,
-    id: u64
+    id: u64,
 ) -> (TokenStream, Option<TokenStream>) {
     let token_stream: TokenStream = ast.tokens.into();
     let mut file: File = syn::parse2(token_stream).unwrap();
 
     let output = prepare_tokens(file.clone(), flags, id);
 
-    if let Some(mut ir) = output.2 && output.1.is_none() {
+    if let Some(mut ir) = output.2
+        && output.1.is_none()
+    {
         {
             let mut visitor = LowerVisitor::new(&mut ir);
             // visitor.set_flags(flags);

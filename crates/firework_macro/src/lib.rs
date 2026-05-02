@@ -5,13 +5,13 @@ extern crate proc_macro;
 
 mod compiler;
 
+use compiler::flags::{CompileFlags, CompileType};
+use compiler::*;
 use proc_macro::TokenStream;
 use proc_macro2::TokenStream as TokenStream2;
-use syn::parse::{Parse, ParseStream};
-use syn::{parse_macro_input, Result};
 use std::sync::atomic::{AtomicU64, Ordering};
-use compiler::*;
-use compiler::flags::{CompileFlags, CompileType};
+use syn::parse::{Parse, ParseStream};
+use syn::{Result, parse_macro_input};
 
 static BLOCK_COUNTER: AtomicU64 = AtomicU64::new(1);
 
@@ -25,9 +25,7 @@ impl Parse for FireworkAst {
     fn parse(input: ParseStream) -> Result<Self> {
         let tokens: TokenStream2 = input.parse()?;
 
-        Ok(FireworkAst {
-            tokens
-        })
+        Ok(FireworkAst { tokens })
     }
 }
 
@@ -53,31 +51,32 @@ pub fn ui(_args: proc_macro::TokenStream, input: TokenStream) -> TokenStream {
 
 fn process_macro(input: TokenStream, compile_type: CompileType, use_counter: bool) -> TokenStream {
     let ast = parse_macro_input!(input as FireworkAst);
-    
-    let flags = CompileFlags {
-        compile_type,
-    };
-    
+
+    let flags = CompileFlags { compile_type };
+
     let id = if use_counter {
         BLOCK_COUNTER.fetch_add(1, Ordering::Relaxed)
     } else {
         0
     };
-    
+
     let (token_stream, error_tokens) = run_firework_compiler(ast, flags, id);
-    
+
     let mut output: proc_macro2::TokenStream = token_stream.into();
-    
+
     // Если есть ошибки компиляции - добавляем их к выходному потоку
     // Каждая ошибка уже содержит правильный спан через compile_error! макрос
     if let Some(err_tokens) = error_tokens {
         output.extend(err_tokens);
     }
-    
+
     output.into()
 }
 
 #[proc_macro_attribute]
-pub fn effect(_args: proc_macro::TokenStream, input: proc_macro::TokenStream) -> proc_macro::TokenStream {
+pub fn effect(
+    _args: proc_macro::TokenStream,
+    input: proc_macro::TokenStream,
+) -> proc_macro::TokenStream {
     input
 }

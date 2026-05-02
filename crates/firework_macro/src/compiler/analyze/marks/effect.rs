@@ -24,10 +24,10 @@ impl Analyzer {
     /// гличей (срабатывании при промежуточных данных в спарке)
     pub(crate) fn effect_marker<'ast>(&mut self, i: &'ast Macro) {
         let parser = punctuated::Punctuated::<Expr, syn::Token![,]>::parse_terminated;
-            
+
         if let Ok(punctuated) = parser.parse2(i.tokens.clone()) {
             let mut args: Vec<Expr> = punctuated.into_iter().collect();
-            
+
             // Последний аргумент должен быть блоком
             if let Some(Expr::Block(last_expr_block)) = args.pop() {
                 let mut effect_sparks = Vec::new();
@@ -45,25 +45,25 @@ impl Analyzer {
                     effect_sparks.clone(),
                     false,
                     "{ // effect".to_string(),
-                    FireworkAction::ReactiveBlock(FireworkReactiveBlock::Effect, effect_sparks,
-                        false),
+                    FireworkAction::ReactiveBlock(
+                        FireworkReactiveBlock::Effect,
+                        effect_sparks,
+                        false,
+                    ),
                     |this| {
                         for stmt in &last_expr_block.block.stmts {
                             this.visit_stmt(stmt);
                         }
 
                         last_expr_block.block.brace_token.span
-                    }
+                    },
                 );
             } else {
                 // [FE012]
                 // Эффект должен иметь блок последним аргументом
-                self.context.errors.push(
-                    compile_error_spanned(
-                        i,
-                        EFFECT_MISSING_BODY_ERROR,
-                    )
-                );
+                self.context
+                    .errors
+                    .push(compile_error_spanned(i, EFFECT_MISSING_BODY_ERROR));
 
                 return;
             }

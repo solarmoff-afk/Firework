@@ -14,7 +14,7 @@ use proc_macro2::TokenStream;
 pub struct FireworkWidgetField {
     // Какие спарки используются в поле
     pub sparks: Vec<(String, usize)>,
-    
+
     // Полная строка выражения поля
     pub string: String,
 
@@ -41,7 +41,7 @@ pub struct WidgetDescription {
 
     /// Является ли этот виджет функциональным (layout!, component!)
     pub is_functional: bool,
-    
+
     /// Айди виджета
     pub id: usize,
 

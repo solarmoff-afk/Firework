@@ -29,17 +29,17 @@ impl<'ast> Analyzer {
             self.context.statement.string = format!("{}! {{", layout_name);
         }
 
-        if let Some(_root_id) = self.reactive_block { 
+        if let Some(_root_id) = self.reactive_block {
             self.context.statement.is_reactive_block = true;
         }
-        
-        visit::visit_stmt(self, i); 
-        
+
+        visit::visit_stmt(self, i);
+
         self.statement_index += 1;
-        
+
         if should_push {
             // Если это лайаут блок то клонирование области видимости и пуш уже
-            // были и клонировать второй раз нет смысла 
+            // были и клонировать второй раз нет смысла
             self.context.statement.depth = self.lifetime_manager.scope.depth;
             self.context.ir.push(self.context.statement.clone());
         }

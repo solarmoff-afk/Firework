@@ -1,8 +1,8 @@
 // Часть проекта Firework с открытым исходным кодом.
 // Лицензия EPL 2.0, подробнее в файле LICENSE. Copyright (c) 2026 Firework
 
-use super::*;
 use super::super::macro_resolver::MacroResolver;
+use super::*;
 
 use crate::compiler::codegen::ir::FireworkAction;
 
@@ -27,15 +27,19 @@ impl LowerVisitor<'_> {
         }
 
         let closing_span = i.brace_token.span.close();
-        
+
         if let Some(ir_list) = self.ir.get_statements_by_span(closing_span).cloned() {
             let struct_name = format!("ApplicationUiBlockStruct{}", self.ui_id.unwrap_or(0));
             let mut drop_tokens = TokenStream::new();
 
             for stmt in ir_list {
                 if let FireworkAction::DropSpark { .. } = stmt.action {
-                    self.builder.node_drop_spark(closing_span, struct_name.clone(),
-                        &mut drop_tokens, &stmt);
+                    self.builder.node_drop_spark(
+                        closing_span,
+                        struct_name.clone(),
+                        &mut drop_tokens,
+                        &stmt,
+                    );
                 }
             }
 

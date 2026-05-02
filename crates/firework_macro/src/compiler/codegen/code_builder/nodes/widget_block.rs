@@ -3,10 +3,13 @@
 
 use super::super::*;
 
-impl CodeBuilder { 
+impl CodeBuilder {
     pub fn node_widget_block(
-        &mut self, span: Span, struct_name: String, final_tokens: &mut TokenStream,
-        statement: &FireworkStatement, 
+        &mut self,
+        span: Span,
+        struct_name: String,
+        final_tokens: &mut TokenStream,
+        statement: &FireworkStatement,
     ) -> bool {
         match &statement.action {
             FireworkAction::WidgetBlock(description) => {
@@ -76,7 +79,7 @@ impl CodeBuilder {
                             self.generate_check_spark_bit(&mut condition, *id);
                             condition.push_str(" ||");
                         }
-                        
+
                         // Для упрощения кодогенерации сюда добавляется false для условия
                         condition.push_str(" false ");
                         let condition_statement = condition.to_expr().unwrap();
@@ -103,27 +106,32 @@ impl CodeBuilder {
                 // рендеринг будет работать для любых условий
                 if let Some(local_id) = description.is_maybe {
                     let mask = get_spark_mask(local_id);
-                    let statement = format!("{};", set_flag(
-                        format!("_fwc_widget_bitmask{}", mask).as_str(), 
-                        normalize_bit_index(local_id),
-                    )).to_stmt().expect("Widget_block symtax error in bitmask");
+                    let statement = format!(
+                        "{};",
+                        set_flag(
+                            format!("_fwc_widget_bitmask{}", mask).as_str(),
+                            normalize_bit_index(local_id),
+                        )
+                    )
+                    .to_stmt()
+                    .expect("Widget_block symtax error in bitmask");
 
                     widget_update_bitmask.extend(quote! {
                         #statement
                     });
-                } 
+                }
 
                 // Генерация проверки на то, что бит виджета изменился в битовой маске
                 let mut condition = String::new();
-                
+
                 // Если description.is_maybe будет None то этот код просто не будет
                 // использован, поэтому unwrap_or(0) является нормой, так как 0 хардкод просто
                 // не будет использован
-                self.generate_check_widget_bit(&mut condition,description.is_maybe
-                    .unwrap_or(0));
+                self.generate_check_widget_bit(&mut condition, description.is_maybe.unwrap_or(0));
 
-                let condition_statement = condition.to_expr()
-                    .expect("Widget_block symtax error: Condition statement parse error"); 
+                let condition_statement = condition
+                    .to_expr()
+                    .expect("Widget_block symtax error: Condition statement parse error");
 
                 // Безопасный режим с Mutex
                 #[cfg(feature = "safety-multithread")]
@@ -150,7 +158,7 @@ impl CodeBuilder {
                         {
                             let mut _fwc_inst = #instance_ident_upper.get()
                                 .expect("Instance not initialized").lock().unwrap();
-                            
+
                             // SAFETY: List initialized before
                             let mut _fwc_list_ref = _fwc_inst.#field_ident.as_mut().unwrap();
 
@@ -167,8 +175,8 @@ impl CodeBuilder {
                     #[cfg(not(feature = "safety-multithread"))]
                     final_tokens.extend(quote_spanned!(span=>
                         {
-                            let mut _fwc_list_ref = unsafe { 
-                                (*::core::ptr::addr_of_mut!(#instance_ident_upper)).#field_ident.as_mut().unwrap() 
+                            let mut _fwc_list_ref = unsafe {
+                                (*::core::ptr::addr_of_mut!(#instance_ident_upper)).#field_ident.as_mut().unwrap()
                             };
 
                             let mut _fwc_wb_1 = match _fwc_list_ref.entry(#key_token) {
@@ -208,7 +216,7 @@ impl CodeBuilder {
                                 #widget_reactive
                                 #widget_update_bitmask
                             },
-                            
+
                             None => {
                                 unsafe {
                                     (*::core::ptr::addr_of_mut!(#instance_ident_upper)).#field_ident
@@ -236,9 +244,9 @@ impl CodeBuilder {
                 }
 
                 return true;
-            },
+            }
 
-            _ => {},
+            _ => {}
         };
 
         false
@@ -249,7 +257,7 @@ impl CodeBuilder {
 /// для кодогенератора)
 fn need_skip_props(props: &str) -> bool {
     props == "skin" ||    // Для того чтобы изменить отображение виджета
-    props == "key"        // Для динамических списков
+    props == "key" // Для динамических списков
 }
 
 fn is_event(props: &str) -> bool {
