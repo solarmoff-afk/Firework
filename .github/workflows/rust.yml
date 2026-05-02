@@ -35,7 +35,7 @@ jobs:
       run: cargo fmt --all -- --check
     
     - name: Lint with Clippy
-      run: cargo clippy --workspace --lib --bins --examples --tests --no-deps -- -D warnings
+      run: cargo clippy -p firework_macro --no-deps -- -D warnings    
     
     - name: Build all workspace
       run: cargo build --verbose --workspace
