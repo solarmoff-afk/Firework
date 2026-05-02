@@ -161,14 +161,14 @@ impl LifetimeManager {
     }
 }
 
-impl<'ast> Analyzer {
+impl Analyzer {
     /// Этот метод используется в break и continue чтобы найти последнюю область
     /// видимости которая явлется циклом, label нужен для циклов с именем, принимает
     /// опциональный Lifetime от syn, а возвращает область видимости которая была
     /// найдена в стэке
     pub(crate) fn get_target_scope(&mut self, label: &Option<Lifetime>) -> Scope {
         // Получение последней области видимости в стэке
-        let target_scope = if let Some(label_break) = label {
+        if let Some(label_break) = label {
             // Имя цикла который нужно остановить
             let label_name = label_break.ident.to_string();
 
@@ -179,7 +179,7 @@ impl<'ast> Analyzer {
                 .rev()
                 .find(|s| s.label.as_ref() == Some(&label_name))
                 .cloned()
-                .unwrap_or_else(|| Scope::new())
+                .unwrap_or_else(Scope::new)
         } else {
             // Если нет имени цикла в break {'имя} <- вот тут
             self.lifetime_manager
@@ -188,10 +188,8 @@ impl<'ast> Analyzer {
                 .rev()
                 .find(|s| s.is_cycle)
                 .cloned()
-                .unwrap_or_else(|| Scope::new())
-        };
-
-        target_scope
+                .unwrap_or_else(Scope::new)
+        }
     }
 }
 

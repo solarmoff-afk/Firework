@@ -29,7 +29,7 @@ pub fn run_firework_compiler(
     flags: CompileFlags,
     id: u64,
 ) -> (TokenStream, Option<TokenStream>) {
-    let token_stream: TokenStream = ast.tokens.into();
+    let token_stream: TokenStream = ast.tokens;
     let mut file: File = syn::parse2(token_stream).unwrap();
 
     let output = prepare_tokens(file.clone(), flags, id);

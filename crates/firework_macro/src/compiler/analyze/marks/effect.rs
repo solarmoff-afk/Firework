@@ -22,7 +22,7 @@ impl Analyzer {
     ///
     /// При множестве изменений за один флэш эффект будет выполнен один раз что защищает от
     /// гличей (срабатывании при промежуточных данных в спарке)
-    pub(crate) fn effect_marker<'ast>(&mut self, i: &'ast Macro) {
+    pub(crate) fn effect_marker(&mut self, i: &Macro) {
         let parser = punctuated::Punctuated::<Expr, syn::Token![,]>::parse_terminated;
 
         if let Ok(punctuated) = parser.parse2(i.tokens.clone()) {
@@ -64,8 +64,6 @@ impl Analyzer {
                 self.context
                     .errors
                     .push(compile_error_spanned(i, EFFECT_MISSING_BODY_ERROR));
-
-                return;
             }
         }
     }

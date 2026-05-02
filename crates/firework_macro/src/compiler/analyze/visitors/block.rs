@@ -81,7 +81,7 @@ impl<'ast> Analyzer {
 
         // Если в условии есть спарки то else блок будет реактивным, так как основное
         // условие реактивное
-        if sparks.len() > 0 {
+        if !sparks.len() > 0 {
             else_action = FireworkAction::ReactiveElse;
         }
 

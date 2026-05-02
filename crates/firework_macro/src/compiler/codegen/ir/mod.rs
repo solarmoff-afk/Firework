@@ -135,7 +135,7 @@ impl FireworkIR {
         self.snapshot
             .statements
             .entry(span_key.clone())
-            .or_insert_with(Vec::new)
+            .or_default()
             .push(stmt.clone());
 
         self.statements.push(stmt);
@@ -148,7 +148,7 @@ impl FireworkIR {
     /// Устанавливает спан по которому будут добавлены виртуальные стейтементы через
     /// push после этого вызова
     pub fn set_span(&mut self, span: Span) {
-        self.last_span = Some(SpanKey::from_span(span.clone()));
+        self.last_span = Some(SpanKey::from_span(span));
         self.span = span;
     }
 

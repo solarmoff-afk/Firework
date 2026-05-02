@@ -1,6 +1,7 @@
 // Часть проекта Firework с открытым исходным кодом.
 // Лицензия EPL 2.0, подробнее в файле LICENSE. Copyright (c) 2026 Firework
 
+use std::fmt;
 use syn::parse::{Parse, ParseStream};
 use syn::{Expr, Ident, Lit, Result, Token, punctuated::Punctuated};
 
@@ -171,18 +172,29 @@ impl Parse for WidgetPropertyAttribute {
     }
 }
 
-impl WidgetAttributeArg {
-    pub fn to_string(&self) -> String {
+impl fmt::Display for WidgetAttributeArg {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            WidgetAttributeArg::Lit(lit) => quote::quote!(#lit).to_string(),
-            WidgetAttributeArg::Ident(ident) => ident.to_string(),
+            WidgetAttributeArg::Lit(lit) => {
+                write!(f, "{}", quote::quote!(#lit))
+            }
+
+            WidgetAttributeArg::Ident(ident) => {
+                write!(f, "{}", ident)
+            }
+
             WidgetAttributeArg::Tuple(args) => {
-                let inner = args
-                    .iter()
-                    .map(|arg| arg.to_string())
-                    .collect::<Vec<_>>()
-                    .join(", ");
-                format!("({})", inner)
+                write!(f, "(")?;
+
+                for (position, argument) in args.iter().enumerate() {
+                    if position > 0 {
+                        write!(f, ", ")?;
+                    }
+
+                    write!(f, "{}", argument)?;
+                }
+
+                write!(f, ")")
             }
         }
     }

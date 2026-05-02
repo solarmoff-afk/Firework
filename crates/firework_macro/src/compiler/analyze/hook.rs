@@ -40,7 +40,7 @@ impl IrHook {
     }
 }
 
-impl<'ast> Analyzer {
+impl Analyzer {
     pub(crate) fn get_statement_from_hook(&mut self, hook: IrHook) -> &mut FireworkStatement {
         match self
             .context

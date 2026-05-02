@@ -30,7 +30,7 @@ impl CodeBuilder {
 
     pub fn convert_string_to_syn(code: &str) -> TokenStream {
         code.parse()
-            .expect(format!("Invalid syntax: {}", code).as_str())
+            .unwrap_or_else(|_| panic!("Invalid syntax: {}", code))
     }
 
     /// Сборка токенов из реального стейтемента и набора семантических меток. Через quote
@@ -55,9 +55,9 @@ impl CodeBuilder {
             let mut temp_tokens = TokenStream::new();
 
             let tokens = &mut temp_tokens;
-            if self.node_initial_spark(span, struct_name.clone(), tokens, &statement)
-                || self.node_spark_ref(span, struct_name.clone(), tokens, &statement)
-                || self.node_widget_block(span, struct_name.clone(), tokens, &statement)
+            if self.node_initial_spark(span, struct_name.clone(), tokens, statement)
+                || self.node_spark_ref(span, struct_name.clone(), tokens, statement)
+                || self.node_widget_block(span, struct_name.clone(), tokens, statement)
             {
                 processed_body = temp_tokens;
                 is_body_handled = true;
@@ -67,21 +67,21 @@ impl CodeBuilder {
 
         for statement in statements {
             let mut temp_tokens = TokenStream::new();
-            if let FireworkAction::UpdateSpark(..) = statement.action {
-                if self.node_update_spark(span, &mut temp_tokens, &statement, &processed_body) {
-                    processed_body = temp_tokens;
-                    is_body_handled = true;
-                }
+            if let FireworkAction::UpdateSpark(..) = statement.action
+                && self.node_update_spark(span, &mut temp_tokens, statement, &processed_body)
+            {
+                processed_body = temp_tokens;
+                is_body_handled = true;
             }
         }
 
         for statement in statements {
             let mut temp_tokens = TokenStream::new();
-            if let FireworkAction::ReactiveBlock(..) = statement.action {
-                if self.node_reactive_block(span, &mut temp_tokens, &statement, &processed_body) {
-                    processed_body = temp_tokens;
-                    is_body_handled = true;
-                }
+            if let FireworkAction::ReactiveBlock(..) = statement.action
+                && self.node_reactive_block(span, &mut temp_tokens, statement, &processed_body)
+            {
+                processed_body = temp_tokens;
+                is_body_handled = true;
             }
         }
 
@@ -93,7 +93,7 @@ impl CodeBuilder {
                     span,
                     &mut temp_tokens,
                     struct_name,
-                    &statement,
+                    statement,
                     &processed_body,
                 ) {
                     processed_body = temp_tokens;
@@ -108,7 +108,7 @@ impl CodeBuilder {
             if let FireworkAction::DropSpark { .. } = statement.action {
                 let struct_name = format!("ApplicationUiBlockStruct{}", statement.screen_index);
 
-                self.node_drop_spark(span, struct_name, &mut drop_tokens, &statement);
+                self.node_drop_spark(span, struct_name, &mut drop_tokens, statement);
             }
         }
 
@@ -165,26 +165,26 @@ impl CodeBuilder {
     ) -> TokenStream {
         let mut update_widgets_statements = TokenStream::new();
 
-        if let Some(map) = self.ir.screen_maybe_widgets.get(&statement.screen_index) {
-            if let Some(widgets) = map.spark_widget_map.get(spark_id) {
-                for widget in widgets {
-                    // Битовая маска этого условного виджета
-                    let mask = get_spark_mask(*widget);
+        if let Some(map) = self.ir.screen_maybe_widgets.get(&statement.screen_index)
+            && let Some(widgets) = map.spark_widget_map.get(spark_id)
+        {
+            for widget in widgets {
+                // Битовая маска этого условного виджета
+                let mask = get_spark_mask(*widget);
 
-                    let mask_statement = format!(
-                        "{};",
-                        unset_flag(
-                            format!("_fwc_widget_bitmask{}", mask).as_str(),
-                            normalize_bit_index(*widget),
-                        )
+                let mask_statement = format!(
+                    "{};",
+                    unset_flag(
+                        format!("_fwc_widget_bitmask{}", mask).as_str(),
+                        normalize_bit_index(*widget),
                     )
-                    .to_stmt()
-                    .expect("Generate widget spark update: parse mask error");
+                )
+                .to_stmt()
+                .expect("Generate widget spark update: parse mask error");
 
-                    update_widgets_statements.extend(quote! {
-                        #mask_statement
-                    });
-                }
+                update_widgets_statements.extend(quote! {
+                    #mask_statement
+                });
             }
         }
 

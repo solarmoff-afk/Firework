@@ -8,7 +8,7 @@ use crate::CompileType;
 impl Analyzer {
     /// Маркер spark_ref!(), используется в shared блоках чтобы взять мутабельную или
     /// немутабельную ссылку на поле в структуре shared блока (из сегмента state! {})
-    pub(crate) fn spark_ref_marker<'ast>(&mut self, i: &'ast Local) {
+    pub(crate) fn spark_ref_marker(&mut self, i: &Local) {
         if let Some(local_init) = &i.init {
             let mut found_spark_ref = false;
             let mut ref_name = String::new();
@@ -58,12 +58,12 @@ impl Analyzer {
                 var_data.is_spark_ref = Some(name.clone());
                 var_data.is_spark = true;
 
-                if let Some(value) = self.lifetime_manager.scope.variables.get(&name) {
-                    if value.is_spark {
-                        self.context
-                            .errors
-                            .push(compile_error_spanned(&i.pat, SPARK_UNIQUE_NAME_ERROR));
-                    }
+                if let Some(value) = self.lifetime_manager.scope.variables.get(&name)
+                    && value.is_spark
+                {
+                    self.context
+                        .errors
+                        .push(compile_error_spanned(&i.pat, SPARK_UNIQUE_NAME_ERROR));
                 }
 
                 // Нужно чтобы в битовых масках был бит

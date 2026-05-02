@@ -125,7 +125,7 @@ impl Analyzer {
             found: &mut found,
         };
 
-        finder.visit_expr(&expr);
+        finder.visit_expr(expr);
 
         found
     }
@@ -152,9 +152,9 @@ impl Analyzer {
             .screen_structs
             .entry(format!(
                 "ApplicationUiBlockStruct{}",
-                self.lifetime_manager.scope.screen_index.to_string()
+                self.lifetime_manager.scope.screen_index
             ))
-            .or_insert_with(Vec::new)
+            .or_default()
             .push((field_name, field_type));
     }
 
@@ -165,7 +165,7 @@ impl Analyzer {
             .ir
             .component_structs
             .entry(self.context.now_component.clone().expect("IE:7"))
-            .or_insert_with(Vec::new)
+            .or_default()
             .push((field_name.clone(), field_type.clone()));
 
         self.add_field_to_screen(field_name, field_type);
@@ -360,11 +360,11 @@ impl Analyzer {
     /// реактивного блока. Если в хуке эффект то он добавляет все эти спарки к спаркам
     /// реактивного блока на который указывает хук, а также удаляет дубликаты
     #[doc = "Firework/issues/2"]
-    fn merge_guard(&mut self, hook: IrHook, child_sparks: &Vec<(String, usize)>) {
+    fn merge_guard(&mut self, hook: IrHook, child_sparks: &[(String, usize)]) {
         let statement = self.get_statement_from_hook(hook);
 
         if let FireworkAction::ReactiveBlock(_type, sparks, _is_ui) = &mut statement.action {
-            sparks.extend(child_sparks.clone());
+            sparks.extend(child_sparks.iter().cloned());
             sparks.dedup();
         }
     }
@@ -513,11 +513,11 @@ impl<'ast> Visit<'ast> for Analyzer {
         }
 
         for item in &_i.items {
-            if let ImplItem::Fn(method) = item {
-                if method.sig.ident == "flash" {
-                    self.validate_flash_signature(method);
-                    self.analyze_item_fn(method);
-                }
+            if let ImplItem::Fn(method) = item
+                && method.sig.ident == "flash"
+            {
+                self.validate_flash_signature(method);
+                self.analyze_item_fn(method);
             }
         }
 

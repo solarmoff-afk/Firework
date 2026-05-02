@@ -39,7 +39,7 @@ impl<'ast> Analyzer {
             self.add_update_spark(
                 root_name,
                 || {
-                    errors.push(compile_error_spanned(&i, SPARK_MUT_REQUIRED_ERROR));
+                    errors.push(compile_error_spanned(i, SPARK_MUT_REQUIRED_ERROR));
                 },
                 &i.right,
             );
@@ -54,62 +54,58 @@ impl<'ast> Analyzer {
     /// spark %= 2, также требует обновления ui
     pub(crate) fn analyze_expr_binary(&mut self, i: &'ast ExprBinary) {
         // Является ли бинарная операция мутацией
-        let is_mutation = match i.op {
+        let is_mutation = matches!(
+            i.op,
             BinOp::AddAssign(_)
-            | BinOp::SubAssign(_)
-            | BinOp::MulAssign(_)
-            | BinOp::DivAssign(_)
-            | BinOp::RemAssign(_)
-            | BinOp::BitAndAssign(_)
-            | BinOp::BitOrAssign(_)
-            | BinOp::BitXorAssign(_)
-            | BinOp::ShlAssign(_)
-            | BinOp::ShrAssign(_) => true,
+                | BinOp::SubAssign(_)
+                | BinOp::MulAssign(_)
+                | BinOp::DivAssign(_)
+                | BinOp::RemAssign(_)
+                | BinOp::BitAndAssign(_)
+                | BinOp::BitOrAssign(_)
+                | BinOp::BitXorAssign(_)
+                | BinOp::ShlAssign(_)
+                | BinOp::ShrAssign(_)
+        );
 
-            _ => false,
-        };
+        if is_mutation && let Some(root_name) = get_root_variable_name(&i.left) {
+            let mut errors: Vec<Error> = Vec::new();
+            self.add_update_spark(
+                root_name,
+                || {
+                    errors.push(compile_error_spanned(i, SPARK_MUT_REQUIRED_ERROR));
+                },
+                &i.right,
+            );
 
-        if is_mutation {
-            if let Some(root_name) = get_root_variable_name(&i.left) {
-                let mut errors: Vec<Error> = Vec::new();
-                self.add_update_spark(
-                    root_name,
-                    || {
-                        errors.push(compile_error_spanned(&i, SPARK_MUT_REQUIRED_ERROR));
-                    },
-                    &i.right,
-                );
-
-                self.context.errors.extend(errors);
-            }
+            self.context.errors.extend(errors);
         }
 
         visit::visit_expr_binary(self, i);
     }
 
     pub(crate) fn analyze_expr_method_call(&mut self, i: &'ast syn::ExprMethodCall) {
-        if let Some(root_name) = get_root_variable_name(&i.receiver) {
-            if let Some(variable) = self.lifetime_manager.scope.variables.get(&root_name) {
-                if variable.is_spark {
-                    let method_name = i.method.to_string();
+        if let Some(root_name) = get_root_variable_name(&i.receiver)
+            && let Some(variable) = self.lifetime_manager.scope.variables.get(&root_name)
+            && variable.is_spark
+        {
+            let method_name = i.method.to_string();
 
-                    if !variable.is_mut {
-                        self.context
-                            .errors
-                            .push(compile_error_spanned(&i, SPARK_MUT_REQUIRED_ERROR));
-                    }
+            if !variable.is_mut {
+                self.context
+                    .errors
+                    .push(compile_error_spanned(i, SPARK_MUT_REQUIRED_ERROR));
+            }
 
-                    // Только мутабельные методы, узнать это можно по типу спарка
-                    // через хелпер, если это кастомный тип то используется хак и
-                    // все методы считаются мутабельными
-                    if is_mutable_method(&variable.variable_type, &method_name) {
-                        self.context.statement.action = FireworkAction::UpdateSpark(
-                            root_name,
-                            variable.spark_id,
-                            variable.is_spark_ref.clone(),
-                        );
-                    }
-                }
+            // Только мутабельные методы, узнать это можно по типу спарка
+            // через хелпер, если это кастомный тип то используется хак и
+            // все методы считаются мутабельными
+            if is_mutable_method(&variable.variable_type, &method_name) {
+                self.context.statement.action = FireworkAction::UpdateSpark(
+                    root_name,
+                    variable.spark_id,
+                    variable.is_spark_ref.clone(),
+                );
             }
         }
     }
@@ -125,7 +121,7 @@ impl<'ast> Analyzer {
         mut statement: FireworkStatement,
         root: (&String, usize),
     ) {
-        let mut effect_sparks = self.get_sparks(&right);
+        let mut effect_sparks = self.get_sparks(right);
 
         // Если в спарках есть корневая переменная то удаление из вектора, эффект не
         // будет создан если спарков не будет в выражении
@@ -136,7 +132,7 @@ impl<'ast> Analyzer {
                 .depend_spark(root.1, *id, right.to_token_stream().span());
         }
 
-        if effect_sparks.len() > 0 {
+        if !effect_sparks.is_empty() {
             // HACK: Эффекты от вычислительных спарков должны также проходить через
             // handle_reactive_block, но замыкание должно возвращать DelimSpan который
             // нельзя создать, но можно получить из группы. Здесь создаётся группа со
@@ -171,26 +167,26 @@ impl<'ast> Analyzer {
     where
         F: FnMut(),
     {
-        if let Some(variable) = self.lifetime_manager.scope.variables.get(&root_name) {
-            if variable.is_spark {
-                if !variable.is_mut {
-                    mut_error();
-                }
-
-                self.context.statement.action = FireworkAction::UpdateSpark(
-                    root_name.clone(),
-                    variable.spark_id,
-                    variable.is_spark_ref.clone(),
-                );
-
-                // Клоинрование стейтемента перед передачей нужно для того чтобы
-                // сохранилась семантическая метка (FireworkAction)
-                self.compute_spark(
-                    expr,
-                    self.context.statement.clone(),
-                    (&root_name, variable.spark_id),
-                );
+        if let Some(variable) = self.lifetime_manager.scope.variables.get(&root_name)
+            && variable.is_spark
+        {
+            if !variable.is_mut {
+                mut_error();
             }
+
+            self.context.statement.action = FireworkAction::UpdateSpark(
+                root_name.clone(),
+                variable.spark_id,
+                variable.is_spark_ref.clone(),
+            );
+
+            // Клоинрование стейтемента перед передачей нужно для того чтобы
+            // сохранилась семантическая метка (FireworkAction)
+            self.compute_spark(
+                expr,
+                self.context.statement.clone(),
+                (&root_name, variable.spark_id),
+            );
         }
     }
 }

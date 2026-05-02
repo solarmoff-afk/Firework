@@ -12,18 +12,14 @@ impl CodeBuilder {
         statement: &FireworkStatement,
         processed_body: &TokenStream,
     ) -> bool {
-        match &statement.action {
-            FireworkAction::DynamicLoopBegin(_depth, _widgets) => {
-                final_tokens.extend(quote_spanned!(span=>
-                    // #list_inits
-                    #processed_body
-                    // #list_ends
-                ));
+        if let FireworkAction::DynamicLoopBegin(_depth, _widgets) = &statement.action {
+            final_tokens.extend(quote_spanned!(span=>
+                // #list_inits
+                #processed_body
+                // #list_ends
+            ));
 
-                return true;
-            }
-
-            _ => {}
+            return true;
         };
 
         false

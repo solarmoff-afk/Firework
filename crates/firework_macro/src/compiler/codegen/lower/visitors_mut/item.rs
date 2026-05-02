@@ -20,10 +20,10 @@ impl LowerVisitor<'_> {
 
                 Item::Impl(mut item_impl) => {
                     for item in &mut item_impl.items {
-                        if let ImplItem::Fn(method) = item {
-                            if method.sig.ident == "flash" {
-                                self.lower_ui_function(&mut method.sig, &mut method.block);
-                            }
+                        if let ImplItem::Fn(method) = item
+                            && method.sig.ident == "flash"
+                        {
+                            self.lower_ui_function(&mut method.sig, &mut method.block);
                         }
                     }
                     new_items.push(Item::Impl(item_impl));

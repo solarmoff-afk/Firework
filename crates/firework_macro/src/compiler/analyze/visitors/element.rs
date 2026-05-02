@@ -97,12 +97,11 @@ impl<'ast> Analyzer {
 
                 fields_map.push((prop_name, this_field));
 
-                if let Some(attr) = prop.get_attribute("key_type") {
-                    if let Some(args) = &attr.args {
-                        if let Some(first) = args.first() {
-                            key_type = first.to_string();
-                        }
-                    }
+                if let Some(attr) = prop.get_attribute("key_type")
+                    && let Some(args) = &attr.args
+                    && let Some(first) = args.first()
+                {
+                    key_type = first.to_string();
                 }
             }
 
@@ -136,7 +135,7 @@ impl<'ast> Analyzer {
                     .ir
                     .screen_dynamic_widgets
                     .entry(self.context.statement.screen_index)
-                    .or_insert_with(Vec::new)
+                    .or_default()
                     .push(self.context.widget_counter);
 
                 if !has_key {
@@ -169,7 +168,7 @@ impl<'ast> Analyzer {
                         self.context
                             .spark_widget_map
                             .entry(spark.1)
-                            .or_insert_with(Vec::new)
+                            .or_default()
                             .push(self.context.maybe_widgets_counter);
                     }
 
@@ -275,8 +274,6 @@ impl<'ast> Analyzer {
             self.context
                 .errors
                 .push(compile_error_spanned(i.tokens.clone(), LAYOUT_PARSE_ERROR));
-
-            return;
         }
     }
 
@@ -298,8 +295,7 @@ impl<'ast> Analyzer {
             self.descript_layout = true;
         }
 
-        if (is_layout(&name) || is_widget(&name))
-            && !matches!(i.delimiter, MacroDelimiter::Brace(_))
+        if (is_layout(name) || is_widget(name)) && !matches!(i.delimiter, MacroDelimiter::Brace(_))
         {
             self.context
                 .errors

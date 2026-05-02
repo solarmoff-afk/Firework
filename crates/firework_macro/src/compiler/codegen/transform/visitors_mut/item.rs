@@ -39,14 +39,14 @@ impl CodegenVisitor<'_> {
 
                 Item::Impl(mut item_impl) => {
                     for item in &mut item_impl.items {
-                        if let ImplItem::Fn(method) = item {
-                            if method.sig.ident == "flash" {
-                                self.transform_ui_function(
-                                    &mut method.sig,
-                                    &mut method.block,
-                                    &mut new_items,
-                                );
-                            }
+                        if let ImplItem::Fn(method) = item
+                            && method.sig.ident == "flash"
+                        {
+                            self.transform_ui_function(
+                                &mut method.sig,
+                                &mut method.block,
+                                &mut new_items,
+                            );
                         }
                     }
                     new_items.push(Item::Impl(item_impl));

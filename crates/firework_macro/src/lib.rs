@@ -62,7 +62,7 @@ fn process_macro(input: TokenStream, compile_type: CompileType, use_counter: boo
 
     let (token_stream, error_tokens) = run_firework_compiler(ast, flags, id);
 
-    let mut output: proc_macro2::TokenStream = token_stream.into();
+    let mut output: proc_macro2::TokenStream = token_stream;
 
     // Если есть ошибки компиляции - добавляем их к выходному потоку
     // Каждая ошибка уже содержит правильный спан через compile_error! макрос

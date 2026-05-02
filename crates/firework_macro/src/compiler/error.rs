@@ -3,6 +3,7 @@
 
 use syn::Error;
 
+/*
 /// Маркер spark можно использовать только как значение для переменной. Это нужно чтобы
 /// сопоставить реактивную переменную в IR
 // [UNUSED_ERROR]
@@ -12,6 +13,7 @@ use syn::Error;
 //   = help: assign the spark to a variable: `let name = spark!(value);`
 //   = note: for more information, see: [WORK IN PROGRESS]
 // ";
+*/
 
 /// Нельзя затенять спарк переменную, это нужно для упрощения составления IR и кодогенерации
 /// на его основе. Продолжение этого правила: FE004
@@ -118,6 +120,7 @@ error[FE012]: effect!() requires a body block as the last argument
    = note: for more information, see: [WORK IN PROGRESS]
 ";
 
+/*
 /// Эффект должен отслеживать хотя бы один спарк иначе он никогда не сработает
 // [UNUSED_ERROR]
 // pub const EFFECT_NO_SPARKS_ERROR: &str = "\
@@ -127,6 +130,7 @@ error[FE012]: effect!() requires a body block as the last argument
 //   = help: example: `effect!(my_spark, { println!(\"changed!\"); });`
 //   = note: for more information, see: [WORK IN PROGRESS]
 // ";
+*/
 
 /// Запрещено инициализировать спарк в ветках match или if без использования блока
 pub const SPARK_BLOCK_REQUIRED_ERROR: &str = "\

@@ -59,12 +59,11 @@ impl<'ast> Visit<'ast> for SparkFinder<'_> {
     fn visit_expr_path(&mut self, i: &'ast ExprPath) {
         let var_name = i.path.to_token_stream().to_string();
 
-        if let Some(var) = self.scope.variables.get(&var_name) {
-            if var.is_spark {
-                if !self.found.contains(&var_name) {
-                    self.found.push(var_name);
-                }
-            }
+        if let Some(var) = self.scope.variables.get(&var_name)
+            && var.is_spark
+            && !self.found.contains(&var_name)
+        {
+            self.found.push(var_name);
         }
     }
 }
@@ -78,13 +77,13 @@ impl<'ast> Visit<'ast> for SparkFinderWithId<'_> {
     fn visit_expr_path(&mut self, i: &'ast ExprPath) {
         let var_name = i.path.to_token_stream().to_string();
 
-        if let Some(var) = self.scope.variables.get(&var_name) {
-            if var.is_spark {
-                let id = var.spark_id;
+        if let Some(var) = self.scope.variables.get(&var_name)
+            && var.is_spark
+        {
+            let id = var.spark_id;
 
-                if !self.found.contains(&(var_name.clone(), id)) {
-                    self.found.push((var_name, id));
-                }
+            if !self.found.contains(&(var_name.clone(), id)) {
+                self.found.push((var_name, id));
             }
         }
     }

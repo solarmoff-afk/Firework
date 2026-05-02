@@ -8,25 +8,25 @@
 /// без точки с запятой
 pub(crate) fn set_flag(mask_name: &str, flag: u8) -> String {
     assert!(flag < 64, "Flag bit index must be < 64");
-    return format!("{} |= 1 << {}", mask_name, flag);
+    format!("{} |= 1 << {}", mask_name, flag)
 }
 
 /// Прнимает имя битовой маски и нужный бит после чего снимает его (делает нулевым)
 pub(crate) fn unset_flag(mask_name: &str, flag: u8) -> String {
     assert!(flag < 64, "Flag bit index must be < 64");
-    return format!("{} &= !(1 << {})", mask_name, flag);
+    format!("{} &= !(1 << {})", mask_name, flag)
 }
 
 /// Генерирует строку которая проверяет конкретный бит в битовой маске. Используется в условиях
 /// чтобы проверить бит. Ограничение в 64 бита, строка идёт без точки с запятой
 pub(crate) fn check_flag(mask_name: &str, flag: u8) -> String {
     assert!(flag < 64, "Flag bit index must be < 64");
-    return format!("({} & (1 << {})) != 0", mask_name, flag);
+    format!("({} & (1 << {})) != 0", mask_name, flag)
 }
 
 /// Генерирует строку которая очищает маску, строка без точки с запятой
 pub(crate) fn clear_mask(mask_name: &str) -> String {
-    return format!("{} = 0", mask_name);
+    format!("{} = 0", mask_name)
 }
 
 /// Нормализирует бит чтобы он влезал в диапазон от 0 до 63 и мог быть битом в битовой

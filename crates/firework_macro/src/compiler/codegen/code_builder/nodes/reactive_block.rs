@@ -42,39 +42,35 @@ impl CodeBuilder {
         statement: &FireworkStatement,
         processed_body: &TokenStream,
     ) -> bool {
-        match &statement.action {
-            FireworkAction::ReactiveBlock(_block_type, sparks, is_ui) => {
-                let mut condition = String::new();
+        if let FireworkAction::ReactiveBlock(_block_type, sparks, is_ui) = &statement.action {
+            let mut condition = String::new();
 
-                // Генерация условия на то, что хотя-бы одна зависимость в снапшотах битовых
-                // масках изменилась
-                for (_, id) in sparks.iter() {
-                    self.generate_check_spark_bit(&mut condition, *id);
-                    condition.push_str(" ||");
-                }
-
-                // Дополнительное условие что контекст Build или Navigate (Более привычный
-                // синоним это монтирование). Если реактивный блок является частью декларации
-                // UI то ему также нужен и Event чтобы не ломать динамические списки
-                match is_ui {
-                    true => condition.push_str(format!(" {} ", CHECK_DEC_RB).as_str()),
-                    false => condition.push_str(format!(" {} ", CHECK_NAVIGATE).as_str()),
-                };
-
-                let condition_statement = condition
-                    .to_expr()
-                    .expect("Syntax error in reactive_block node: is_ui parse failed");
-
-                final_tokens.extend(quote_spanned!(span=>
-                    if #condition_statement {
-                        #processed_body
-                    }
-                ));
-
-                return true;
+            // Генерация условия на то, что хотя-бы одна зависимость в снапшотах битовых
+            // масках изменилась
+            for (_, id) in sparks.iter() {
+                self.generate_check_spark_bit(&mut condition, *id);
+                condition.push_str(" ||");
             }
 
-            _ => {}
+            // Дополнительное условие что контекст Build или Navigate (Более привычный
+            // синоним это монтирование). Если реактивный блок является частью декларации
+            // UI то ему также нужен и Event чтобы не ломать динамические списки
+            match is_ui {
+                true => condition.push_str(format!(" {} ", CHECK_DEC_RB).as_str()),
+                false => condition.push_str(format!(" {} ", CHECK_NAVIGATE).as_str()),
+            };
+
+            let condition_statement = condition
+                .to_expr()
+                .expect("Syntax error in reactive_block node: is_ui parse failed");
+
+            final_tokens.extend(quote_spanned!(span=>
+                if #condition_statement {
+                    #processed_body
+                }
+            ));
+
+            return true;
         };
 
         false

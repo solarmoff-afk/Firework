@@ -17,7 +17,7 @@ pub(crate) fn static_declaration(
 
     // Нужно генерировать код только если у структуры есть поля, их отсуствие невозможно,
     // но для надёжности это имеет смысл
-    if fields.len() > 0 {
+    if !fields.is_empty() {
         output.push_str(
             format!(
                 "static mut {}_INSTANCE: {} = {} {{\n",

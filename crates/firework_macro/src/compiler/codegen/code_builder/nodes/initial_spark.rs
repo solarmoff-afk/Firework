@@ -30,50 +30,47 @@ impl CodeBuilder {
         final_tokens: &mut TokenStream,
         statement: &FireworkStatement,
     ) -> bool {
-        match &statement.action {
-            FireworkAction::InitialSpark {
-                id,
-                expr_body,
-                name,
-                is_mut,
-                ..
-            } => {
-                let field_name = format!("spark_{}", id);
-                let struct_name_upper = struct_name.to_uppercase();
+        if let FireworkAction::InitialSpark {
+            id,
+            expr_body,
+            name,
+            is_mut,
+            ..
+        } = &statement.action
+        {
+            let field_name = format!("spark_{}", id);
+            let struct_name_upper = struct_name.to_uppercase();
 
-                let set_field_str = static_gen::set_field(&struct_name, &field_name, expr_body);
-                let set_field_expr = Self::convert_string_to_syn(&set_field_str);
+            let set_field_str = static_gen::set_field(&struct_name, &field_name, expr_body);
+            let set_field_expr = Self::convert_string_to_syn(&set_field_str);
 
-                // Если спарк инициализирован как мутабельный то нужно создать мутабельную
-                // переменную для аренды из статики. Если спарк был инициализирован без mut
-                // то переменная создаётся также без mut чтобы не было предупреждения.
-                // Ключевая хитрость в том что вместо
-                //  let mut a = spark!(0);
-                // Создаётся примерно
-                //  let mut a = {instance_name}.spark0.take();
-                // Владение полностью у пользователя, никаких обёрток, ссылок и уиных
-                // указателей
-                let mut modifier = TokenStream::new();
-                if *is_mut {
-                    modifier = quote!(mut);
-                }
-
-                let ident = format_ident!("{}", name);
-                let take_field_str = static_gen::take_field(&struct_name_upper, &field_name);
-                let take_field_expr = Self::convert_string_to_syn(&take_field_str);
-
-                final_tokens.extend(quote_spanned!(span=>
-                    if firework_ui::tiny_matches!(_fwc_event, firework_ui::LifeCycle::Build) {
-                        #set_field_expr
-                    }
-
-                    let #modifier #ident = #take_field_expr;
-                ));
-
-                return true;
+            // Если спарк инициализирован как мутабельный то нужно создать мутабельную
+            // переменную для аренды из статики. Если спарк был инициализирован без mut
+            // то переменная создаётся также без mut чтобы не было предупреждения.
+            // Ключевая хитрость в том что вместо
+            //  let mut a = spark!(0);
+            // Создаётся примерно
+            //  let mut a = {instance_name}.spark0.take();
+            // Владение полностью у пользователя, никаких обёрток, ссылок и уиных
+            // указателей
+            let mut modifier = TokenStream::new();
+            if *is_mut {
+                modifier = quote!(mut);
             }
 
-            _ => {}
+            let ident = format_ident!("{}", name);
+            let take_field_str = static_gen::take_field(&struct_name_upper, &field_name);
+            let take_field_expr = Self::convert_string_to_syn(&take_field_str);
+
+            final_tokens.extend(quote_spanned!(span=>
+                if firework_ui::tiny_matches!(_fwc_event, firework_ui::LifeCycle::Build) {
+                    #set_field_expr
+                }
+
+                let #modifier #ident = #take_field_expr;
+            ));
+
+            return true;
         };
 
         false

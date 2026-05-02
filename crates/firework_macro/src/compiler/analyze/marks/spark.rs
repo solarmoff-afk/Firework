@@ -7,7 +7,7 @@ use super::super::type_inference::auto_type::guess_type_from_expr;
 
 impl Analyzer {
     /// Маркер spark!()
-    pub(crate) fn spark_marker<'ast>(&mut self, i: &'ast Local) {
+    pub(crate) fn spark_marker(&mut self, i: &Local) {
         if let Some(local_init) = &i.init {
             // Валидатор сам сделает подсчёт спарков в выражении
             let mut validator = SparkValidator {
@@ -58,7 +58,7 @@ impl Analyzer {
                 }
 
                 let mut spark_type = var_data.variable_type.clone();
-                if var_data.variable_type == NO_TYPE.to_string() {
+                if var_data.variable_type == NO_TYPE {
                     let mut guessed_type = None;
 
                     // Если содержимое маркера удалось распарсить как выражение то
@@ -102,12 +102,12 @@ impl Analyzer {
                 };
 
                 // FE004, нельзя затенить спарк
-                if let Some(value) = self.lifetime_manager.scope.variables.get(&name) {
-                    if value.is_spark {
-                        self.context
-                            .errors
-                            .push(compile_error_spanned(&i.pat, SPARK_UNIQUE_NAME_ERROR));
-                    }
+                if let Some(value) = self.lifetime_manager.scope.variables.get(&name)
+                    && value.is_spark
+                {
+                    self.context
+                        .errors
+                        .push(compile_error_spanned(&i.pat, SPARK_UNIQUE_NAME_ERROR));
                 }
 
                 self.lifetime_manager.scope.variables.insert(name, var_data);

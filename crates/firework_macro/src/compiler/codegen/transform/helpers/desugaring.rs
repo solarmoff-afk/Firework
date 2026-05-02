@@ -96,12 +96,7 @@ impl CodegenVisitor<'_> {
         };
 
         let temp = Vec::new();
-        let func_effects = self
-            .ir
-            .shared
-            .effects
-            .get(&field_name.to_string())
-            .unwrap_or(&temp);
+        let func_effects = self.ir.shared.effects.get(field_name).unwrap_or(&temp);
         let mut func_effects_statements = Vec::new();
 
         for effect in func_effects {

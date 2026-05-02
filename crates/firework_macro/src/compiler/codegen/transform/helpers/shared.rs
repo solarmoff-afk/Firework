@@ -24,7 +24,7 @@ impl CodegenVisitor<'_> {
         let fields_data = self.ir.screen_structs.get(&struct_name).unwrap_or(&default);
 
         let build_check =
-            static_gen::init_instance(&struct_name.to_uppercase(), &struct_name, &fields_data);
+            static_gen::init_instance(&struct_name.to_uppercase(), &struct_name, fields_data);
 
         let build_check_statement = CodeBuilder::convert_string_to_syn(&build_check);
 

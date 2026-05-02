@@ -18,7 +18,7 @@ impl CodegenVisitor<'_> {
             let mask_name = format!("_fwc_widget_bitmask{}", mask_index + 1);
             bitmask_strings.push(format!("let mut {} = 0u64;\n", mask_name));
 
-            let copy_field_str = static_gen::copy_field(&struct_name, &mask_name, &mask_name);
+            let copy_field_str = static_gen::copy_field(struct_name, &mask_name, &mask_name);
 
             bitmask_strings.push(format!(
                 "if {} {{ {} }}",
@@ -26,7 +26,6 @@ impl CodegenVisitor<'_> {
             ));
         }
 
-        let bitmask_statements = bitmask_strings.to_token_streams().unwrap();
-        bitmask_statements
+        bitmask_strings.to_token_streams().unwrap()
     }
 }

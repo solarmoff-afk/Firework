@@ -20,26 +20,22 @@ impl CodeBuilder {
         final_tokens: &mut TokenStream,
         statement: &FireworkStatement,
     ) -> bool {
-        match &statement.action {
-            // Генерация возврата владения в BSS
-            // TODO: Могут возникнуть ошибки компиляции на уровне rustc если
-            // пользователь переместит владение, так как возврат владения сделать
-            // будет нельзя (Ибо rustc проверит владение на этой строке). Нужно
-            // добавить магию компилятора в будущем
-            FireworkAction::DropSpark { name, id } => {
-                let field_name = format!("spark_{}", id);
-                let set_field_str = static_gen::set_field(&struct_name, &field_name, name);
-                let set_field_expr = Self::convert_string_to_syn(&set_field_str);
+        // Генерация возврата владения в BSS
+        // TODO: Могут возникнуть ошибки компиляции на уровне rustc если
+        // пользователь переместит владение, так как возврат владения сделать
+        // будет нельзя (Ибо rustc проверит владение на этой строке). Нужно
+        // добавить магию компилятора в будущем
+        if let FireworkAction::DropSpark { name, id } = &statement.action {
+            let field_name = format!("spark_{}", id);
+            let set_field_str = static_gen::set_field(&struct_name, &field_name, name);
+            let set_field_expr = Self::convert_string_to_syn(&set_field_str);
 
-                final_tokens.extend(quote!(
-                    #set_field_expr
-                ));
+            final_tokens.extend(quote!(
+                #set_field_expr
+            ));
 
-                return true;
-            }
-
-            _ => {}
-        };
+            return true;
+        }
 
         false
     }

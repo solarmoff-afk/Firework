@@ -13,10 +13,10 @@ impl CodegenVisitor<'_> {
             // В Shared режиме компиляции макрос state явлется просто декларацией глобального
             // состояния на которое функции shared блок могут брать мутабельные ссылки. Это
             // позволяет писать сервисы и провайдеры состояния
-            if matches!(self.flags.compile_type, CompileType::Shared) {
-                if _macro.mac.path.is_ident("state") {
-                    should_remove = true;
-                }
+            if matches!(self.flags.compile_type, CompileType::Shared)
+                && _macro.mac.path.is_ident("state")
+            {
+                should_remove = true;
             }
         }
 

@@ -32,21 +32,23 @@ impl<'ast> Analyzer {
                     && path.segments[1].ident == "effect");
 
             let is_shared = matches!(self.context.flags.compile_type, CompileType::Shared);
-            if is_effect && matches!(&attr.meta, syn::Meta::List(_)) && is_shared {
-                if let syn::Meta::List(list) = &attr.meta {
-                    let parser = Punctuated::<syn::Path, Token![,]>::parse_terminated;
+            if is_effect
+                && matches!(&attr.meta, syn::Meta::List(_))
+                && is_shared
+                && let syn::Meta::List(list) = &attr.meta
+            {
+                let parser = Punctuated::<syn::Path, Token![,]>::parse_terminated;
 
-                    if let Ok(args) = parser.parse2(list.tokens.clone()) {
-                        for arg in args {
-                            if let Some(ident) = arg.get_ident() {
-                                self.context
-                                    .ir
-                                    .shared
-                                    .effects
-                                    .entry(ident.to_string())
-                                    .or_insert(Vec::new())
-                                    .push(node.sig().ident.to_string());
-                            }
+                if let Ok(args) = parser.parse2(list.tokens.clone()) {
+                    for arg in args {
+                        if let Some(ident) = arg.get_ident() {
+                            self.context
+                                .ir
+                                .shared
+                                .effects
+                                .entry(ident.to_string())
+                                .or_default()
+                                .push(node.sig().ident.to_string());
                         }
                     }
                 }

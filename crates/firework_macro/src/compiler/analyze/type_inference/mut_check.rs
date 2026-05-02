@@ -293,40 +293,28 @@ fn check_type_mutable(type_name: &str, method: &str) -> bool {
 
             if box_mutable_methods.contains(&method) {
                 true
+            } else if let Some(inner) = type_name
+                .split('<')
+                .nth(1)
+                .and_then(|s| s.split('>').next())
+            {
+                parse_nested_types(inner)
+                    .iter()
+                    .any(|t| check_type_mutable(t, method))
             } else {
-                if let Some(inner) = type_name
-                    .split('<')
-                    .nth(1)
-                    .and_then(|s| s.split('>').next())
-                {
-                    parse_nested_types(inner)
-                        .iter()
-                        .any(|t| check_type_mutable(t, method))
-                } else {
-                    false
-                }
+                false
             }
         }
 
         // Уиные указали (кроме Box)
         "Rc" => {
             let rc_mutable_methods: [&str; 0] = [];
-
-            if rc_mutable_methods.contains(&method) {
-                true
-            } else {
-                false
-            }
+            rc_mutable_methods.contains(&method)
         }
 
         "Arc" => {
             let arc_mutable_methods: [&str; 0] = [];
-
-            if arc_mutable_methods.contains(&method) {
-                true
-            } else {
-                false
-            }
+            arc_mutable_methods.contains(&method)
         }
 
         "Cell" => {
