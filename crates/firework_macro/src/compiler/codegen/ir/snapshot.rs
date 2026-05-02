@@ -22,6 +22,12 @@ impl SpanKey {
             inner: format!("{:?}", span),
         }
     }
+
+    pub fn null() -> Self {
+        Self {
+            inner: "null".to_string(),
+        }
+    }
 }
 
 impl PartialEq for SpanKey {

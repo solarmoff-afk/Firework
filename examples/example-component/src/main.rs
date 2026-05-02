@@ -1,5 +1,6 @@
 use firework_ui::{ui, component, Prop, ComponentContext};
 
+/*
 component! {
     pub struct Button {
         pub example_prop: Prop<bool>,
@@ -23,6 +24,7 @@ component! {
         }
     }
 }
+*/
 
 /*
 #[ui]

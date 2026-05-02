@@ -59,6 +59,8 @@ fn test_combine_dynamic_filter() {
 
         AdapterCommand::SetVisible(0, false),
         AdapterCommand::Remove(0),
+
+        AdapterCommand::SetVisible(0, true),
     ]);
 }
 

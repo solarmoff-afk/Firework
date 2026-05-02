@@ -49,6 +49,10 @@ pub enum FireworkAction {
         /* Является ли блок декларацией UI */ bool
     ),
 
+    // Специальная версия метки реактивного блока которая остаётся для дебага, но CodeBuilder
+    // её пропустит
+    ReactiveBlockIgnore(FireworkReactiveBlock, Vec<(String, usize)>, bool),
+
     // Блок else который является частью реактивного условия
     ReactiveElse,
 

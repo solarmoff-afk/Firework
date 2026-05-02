@@ -31,6 +31,13 @@ impl IrHook {
             key: (span, index_in_snapshot),
         }
     }
+
+    pub fn null() -> Self {
+        Self {
+            index: usize::MAX,
+            key: (SpanKey::null(), usize::MAX),
+        }
+    }
 }
 
 impl<'ast> Analyzer {

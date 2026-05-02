@@ -187,6 +187,7 @@ impl Analyzer {
         // Текущее состояние
         let state = self.reactive_block;
         let is_loop_state = self.is_loop;
+        let first_block_state = self.context.first_ui_reactive_block.clone();
         
         // Стейтемент для открытия реактивного блока чтобы кодогенератор мог правильно
         // сгенерировать реактивный блок
@@ -206,7 +207,8 @@ impl Analyzer {
         }
 
         // Вызов в любом случае, даже если в условии нет спарков 
-        
+        self.reactive_block = Some((self.statement_index, is_loop));
+
         // Если в условии есть спарки то мы входим в реактивный блок. Реактивные блоки
         // в реактивных блоках не работают. То есть реактивный блок будет создан если в
         // условии есть спарки или если это эффект без спарков. Если это эффект у которого
@@ -215,7 +217,7 @@ impl Analyzer {
         let is_reactive = condition_has_spark || is_null_effect;
         
         if is_reactive {
-            open_statement.action = action;
+            open_statement.action = action.clone();
             open_statement.is_reactive_block = true;
         } else {
             // Иначе это может быть else реактивного блока
@@ -238,13 +240,14 @@ impl Analyzer {
             index = last_index;
         }
 
-        self.reactive_block = Some((self.statement_index, is_loop));
-        
         if !self.is_loop {
             self.is_loop = is_loop;
         }
 
-        // Если это реактивный блок то он добавляется в стэк реактивных блоков 
+        // Если это реактивный блок то он добавляется в стэк реактивных блоков. Необходимо
+        // испоьзовать только в условии на is_reactive чтобы не было паники
+        let mut hook = IrHook::null();
+
         if is_reactive {
             // SAFETY: Unwrap безопасен так как в handle_reactive_block можно попасть
             // только из if/if else/else/for/match/loop/while/effect, а они все требуют
@@ -254,13 +257,20 @@ impl Analyzer {
             let count = self.context.ir.get_current_statements_count().expect("IE:2");
             let local_index = count.checked_sub(1).expect("IE:4");
 
-            self.context.reactive_block_stack.push(
-                IrHook::new(
-                    index,
-                    span,
-                    local_index,
-                )
+            hook = IrHook::new(
+                index,
+                span,
+                local_index,
             );
+
+            self.context.reactive_block_stack.push(hook.clone());
+
+            // Если хук на первый реактивный блок не установлен то он устанавливается, этот
+            // блок находится здесь так как это нужно выполнить до выполнение замыкания и
+            // обхода остального дерева
+            if self.context.first_ui_reactive_block.is_none() {
+                self.context.first_ui_reactive_block = Some(hook.clone());
+            }
         }
 
         self.statement_index += 1;
@@ -283,6 +293,39 @@ impl Analyzer {
         // После выполнения обработки блока идёт снятие реактивного блока из стэка
         if is_reactive {
             self.context.reactive_block_stack.pop();
+
+            // Хук задаётся только если условие is_reactive верно, а здесь это условие
+            // есть выше. Это нужно так как action из аргументов уже не является актуальным,
+            // так как is_ui заполняет visit_fn
+            let mut statement = self.get_statement_from_hook(hook.clone()).clone();
+            
+            // После replace значение будет возвращено ниже
+            let action = std::mem::replace(&mut statement.action, FireworkAction::DefaultCode);
+
+            // Если это не эффект до этого не было реактивных блоков то хук помещается в
+            // контекст как первый ui реактивный блок. Это нужно для того чтобы выполнить
+            // слияние условий
+            let new_action = match action {
+                FireworkAction::ReactiveBlock(block_type, sparks, is_ui) 
+                    if block_type != FireworkReactiveBlock::Effect =>
+                {
+                    if let Some(ref first_hook) = first_block_state {
+                        self.merge_guard(first_hook.clone(), &sparks);
+                        FireworkAction::ReactiveBlockIgnore(block_type, sparks, is_ui)
+                    } else {
+                        FireworkAction::ReactiveBlock(block_type, sparks, is_ui)
+                    }
+                },
+
+                action => action,
+            };
+
+            statement.action = new_action;
+
+            // Чтобы обойти бороу чекер работа идёт с клоном, а потом оригинал заменяется на
+            // клон по мутабельной ссылке
+            let statement_ref = self.get_statement_from_hook(hook.clone());
+            *statement_ref = statement;
         }
 
         // Восстановление стэка спарков
@@ -300,10 +343,24 @@ impl Analyzer {
         
         self.reactive_block = state;
         self.is_loop = is_loop_state;
-        
+        self.context.first_ui_reactive_block = first_block_state;
+
         // Защита от переполнения
         if self.lifetime_manager.scope.depth > 0 {
             self.lifetime_manager.scope.depth -= 1;
+        }
+    }
+
+    /// Этот метод принимает хук на нужный реактивный блок, а также спарки от другого
+    /// реактивного блока. Если в хуке эффект то он добавляет все эти спарки к спаркам
+    /// реактивного блока на который указывает хук, а также удаляет дубликаты
+    #[doc = "Firework/issues/2"]
+    fn merge_guard(&mut self, hook: IrHook, child_sparks: &Vec<(String, usize)>) {
+        let statement = self.get_statement_from_hook(hook);
+
+        if let FireworkAction::ReactiveBlock(_type, sparks, _is_ui) = &mut statement.action {
+            sparks.extend(child_sparks.clone());
+            sparks.dedup();
         }
     }
 

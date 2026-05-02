@@ -64,6 +64,9 @@ pub struct AnalyzeContext {
     // этот реактивный блок помечается как часть декларации UI
     pub reactive_block_stack: Vec<IrHook>,
 
+    // Первый реактивный блок у которого есть is_ui
+    pub first_ui_reactive_block: Option<IrHook>,
+
     // Какой компонент сейчас реализуется
     pub now_component: Option<String>,
 }
@@ -108,6 +111,7 @@ impl AnalyzeContext {
             microruntime_widgets: MicroruntimeWidgets::new(),
             cycle_depth: 0,
             reactive_block_stack: Vec::new(),
+            first_ui_reactive_block: None,
             now_component: None,
         }
     }

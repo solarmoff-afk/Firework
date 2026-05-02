@@ -86,7 +86,8 @@ impl CodeBuilder {
             let mut temp_tokens = TokenStream::new();
             if let FireworkAction::DynamicLoopBegin(..) = statement.action {
                 let struct_name = format!("ApplicationUiBlockStruct{}", statement.screen_index);
-                if self.node_dynamic_list(span, &mut temp_tokens, struct_name, &statement, &processed_body) {
+                if self.node_dynamic_list(span, &mut temp_tokens, struct_name, &statement,
+                        &processed_body) {
                     processed_body = temp_tokens;
                     is_body_handled = true;
                 }
@@ -108,9 +109,9 @@ impl CodeBuilder {
         if is_body_handled && !processed_body.is_empty() {
             final_tokens.extend(processed_body);
         } else {
-            final_tokens.extend(quote_spanned!(span=> {
+            final_tokens.extend(quote_spanned!(span=>
                 #processed_body
-            }));
+            ));
         }
 
         // DropSpark всегда идёт вне контекстных условий
