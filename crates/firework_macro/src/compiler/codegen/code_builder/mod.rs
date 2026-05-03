@@ -1,23 +1,22 @@
 // Часть проекта Firework с открытым исходным кодом.
 // Лицензия EPL 2.0, подробнее в файле LICENSE. Copyright (c) 2026 Firework
 
-mod nodes;
 mod cache;
+mod nodes;
 
 #[cfg(feature = "trace")]
 use tracing::instrument;
 
+use cache::CodeBuilderCache;
 use proc_macro2::{Span, TokenStream};
 use quote::{format_ident, quote, quote_spanned};
-use syn::spanned::Spanned;
-use cache::CodeBuilderCache;
 use std::collections::BTreeMap;
+use syn::spanned::Spanned;
 
-use super::consts::CHECK_NAVIGATE;
 use super::generator::bitmask_gen::*;
 use super::generator::static_gen;
 use super::ir::{FireworkAction, FireworkIR, FireworkStatement};
-use super::transform::traits::{ToExpr, ToStmt};
+use super::transform::traits::ToExpr;
 
 use crate::CompileFlags;
 
@@ -48,13 +47,7 @@ impl CodeBuilder {
     /// Сборка токенов из реального стейтемента и набора семантических меток. Через quote
     /// генерируется набор токенов и возвращается после чего вставляется на место стейтемента.
     /// Ноды сами решают использовать ли оригинальный стейтемент
-    #[tracing::instrument(skip_all, 
-        fields(
-            node = %quote!(#stmt), 
-            span = ?stmt.span(),
-            statements = ?statements,
-        )
-    )]
+    #[cfg_attr(feature = "trace", tracing::instrument(skip_all, fields(node = %quote!(#stmt), span = ?stmt.span(), statements = ?statements)))]
     pub fn build(
         &mut self,
         stmt: &syn::Stmt,
@@ -155,10 +148,6 @@ impl CodeBuilder {
         self.generate_check(code, id, "_fwc_bitmask", "_clone");
     }
 
-    pub(crate) fn generate_check_widget_bit(&self, code: &mut String, id: usize) {
-        self.generate_check(code, id, "_fwc_widget_bitmask", "");
-    }
-
     fn generate_check(&self, code: &mut String, id: usize, mask_name: &str, mask_suffix: &str) {
         // Получение маски на основе айди спарка
         let mask = get_spark_mask(id);
@@ -193,7 +182,7 @@ impl CodeBuilder {
                 // Битовая маска этого условного виджета
                 let mask_idx = get_spark_mask(*widget);
                 let bit_idx = normalize_bit_index(*widget);
-                
+
                 // Комбинирование здесь используется для оптимизиации, 940 мкс -> 783 мкс
                 mask_groups.entry(mask_idx).or_default().push(bit_idx);
             }

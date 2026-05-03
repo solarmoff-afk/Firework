@@ -12,7 +12,7 @@ pub use super::super::*;
 use crate::CompileType;
 
 impl CodegenVisitor<'_> {
-    #[instrument(skip_all, fields(node = %quote!(#i)))]
+    #[cfg_attr(feature = "trace", tracing::instrument(skip_all, fields(node = %quote!(#i))))]
     pub(crate) fn analyze_item_mut(&mut self, i: &mut Item) {
         let mut should_remove = false;
 

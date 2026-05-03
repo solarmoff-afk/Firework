@@ -1,17 +1,23 @@
 // Часть проекта Firework с открытым исходным кодом.
 // Лицензия EPL 2.0, подробнее в файле LICENSE. Copyright (c) 2026 Firework
 
+#[cfg(feature = "trace")]
+use tracing::instrument;
+
 use quote::quote;
 
 use super::super::*;
 
 impl CodegenVisitor<'_> {
-    #[tracing::instrument(skip_all, fields(function_name = ?function_name))]
+    #[cfg_attr(feature = "trace", instrument(skip_all, fields(function_name = ?function_name)))]
     pub fn generate_flash_pass(&self, id: u128, function_name: &str) -> Block {
         let struct_name_raw = format!("ApplicationUiBlockStruct{}", id);
         let instance_name = struct_name_raw.to_uppercase();
 
-        let fields = self.ir.screen_structs.get(&struct_name_raw)
+        let fields = self
+            .ir
+            .screen_structs
+            .get(&struct_name_raw)
             .map(|v| v.as_slice())
             .unwrap_or(&[]);
 

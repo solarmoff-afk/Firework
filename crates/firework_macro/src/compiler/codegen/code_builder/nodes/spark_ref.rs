@@ -11,7 +11,7 @@ impl CodeBuilder {
     /// немутабельной. Также изменение в одной функции не выполнит логику в другой
     /// автоматически, реактивность работает только в каждой функции локально, но у функций
     /// есть общее хранилище данных
-    #[tracing::instrument(skip_all, fields(span = ?span))]
+    #[cfg_attr(feature = "trace", tracing::instrument(skip_all, fields(span = ?span)))]
     pub fn node_spark_ref(
         &self,
         span: Span,

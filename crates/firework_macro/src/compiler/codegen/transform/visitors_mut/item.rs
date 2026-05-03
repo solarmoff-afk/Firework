@@ -1,13 +1,10 @@
 // Часть проекта Firework с открытым исходным кодом.
 // Лицензия EPL 2.0, подробнее в файле LICENSE. Copyright (c) 2026 Firework
 
-use proc_macro2::{Span, Group};
+use proc_macro2::{Group, Span};
 use quote::quote;
 use quote::quote_spanned;
 use syn::parse_quote;
-
-#[cfg(feature = "trace")]
-use tracing::instrument;
 
 pub use super::super::*;
 
@@ -18,7 +15,7 @@ use crate::compiler::codegen::transform::visitors_mut::self_visitor::SelfFieldAd
 impl CodegenVisitor<'_> {
     /// Обрабатывает верхний уровень в вызове компилятора (item), функции, структуры и так
     /// далее. Генерирует flash pass и реактивный цикл
-    #[instrument(skip_all)]
+    #[cfg_attr(feature = "trace", tracing::instrument(skip_all))]
     pub(crate) fn analyze_file_mut(&mut self, i: &mut File) {
         let mut new_items = Vec::new();
 
@@ -77,7 +74,7 @@ impl CodegenVisitor<'_> {
         i.items = new_items;
     }
 
-    #[tracing::instrument(skip_all, fields(sig = ?sig, block = %quote!(#block)))]
+    #[cfg_attr(feature = "trace", tracing::instrument(skip_all, fields(sig = ?sig, block = %quote!(#block))))]
     fn transform_ui_function(
         &mut self,
         sig: &mut Signature,
@@ -194,10 +191,8 @@ impl CodegenVisitor<'_> {
 
             {
                 #[cfg(feature = "trace")]
-                let _span = tracing::warn_span!(
-                    "final_block_generation",
-                    has_return = has_return
-                ).entered();
+                let _span = tracing::warn_span!("final_block_generation", has_return = has_return)
+                    .entered();
 
                 let parse_batch = |token_stream: TokenStream| -> Vec<Stmt> {
                     if token_stream.is_empty() {
@@ -205,7 +200,8 @@ impl CodegenVisitor<'_> {
                     }
 
                     syn::parse2::<Block>(quote!({ #token_stream }))
-                        .expect("IE: Final Batch Parse Error").stmts
+                        .expect("IE: Final Batch Parse Error")
+                        .stmts
                 };
 
                 let mut final_stmts = Vec::new();
@@ -223,7 +219,7 @@ impl CodegenVisitor<'_> {
 
                 if !has_return {
                     let mut loop_stmts = Vec::new();
-                    
+
                     loop_stmts.extend(parse_batch(quote! {
                         #(#bitmask_clone_statements)*
                         #dyn_lists_begin
@@ -246,15 +242,18 @@ impl CodegenVisitor<'_> {
                         if _fwc_guard > 64 { break; }
                     }));
 
-                    final_stmts.push(syn::Stmt::Expr(syn::Expr::Loop(syn::ExprLoop {
-                        attrs: Vec::new(),
-                        label: None,
-                        loop_token: Default::default(),
-                        body: Block {
-                            brace_token: Default::default(),
-                            stmts: loop_stmts
-                        },
-                    }), None));
+                    final_stmts.push(syn::Stmt::Expr(
+                        syn::Expr::Loop(syn::ExprLoop {
+                            attrs: Vec::new(),
+                            label: None,
+                            loop_token: Default::default(),
+                            body: Block {
+                                brace_token: Default::default(),
+                                stmts: loop_stmts,
+                            },
+                        }),
+                        None,
+                    ));
                 } else {
                     final_stmts.extend(parse_batch(quote! {
                         #(#bitmask_statements)*
@@ -279,7 +278,7 @@ impl CodegenVisitor<'_> {
 
     /// Генерирует набор полей для вставки по ссылке на fields и возвращает вектор сырых
     /// полей (Имя, тип)
-    #[tracing::instrument(skip_all, fields(id = ?id, fields = ?fields))]
+    #[cfg_attr(feature = "trace", tracing::instrument(skip_all, fields(id = ?id, fields = ?fields)))]
     fn generate_fields(
         &self,
         id: u128,
@@ -300,12 +299,14 @@ impl CodegenVisitor<'_> {
         for (field_name_raw, field_type_raw) in fields_data {
             // Имя и тип поля
             let field_name = format_ident!("{}", field_name_raw);
-            let field_type_tokens: TokenStream = field_type_raw.parse()
+            let field_type_tokens: TokenStream = field_type_raw
+                .parse()
                 .expect("Failed to parse field_type to tokens");
 
             let field_type: Type = syn::parse2(quote_spanned! { span=>
                 core::option::Option<#field_type_tokens>
-            }).expect("IE: Failed to parse field type");
+            })
+            .expect("IE: Failed to parse field type");
 
             // Кодогенерация поля
             let field = Field {
@@ -349,7 +350,7 @@ impl CodegenVisitor<'_> {
 
     /// Генерирует код для функции Build в Shared режиме и записывает новую функцию в
     /// new_item по мутабельной ссылке
-    #[tracing::instrument(skip_all, fields(id = ?id))]
+    #[cfg_attr(feature = "trace", tracing::instrument(skip_all, fields(id = ?id)))]
     fn generate_build(
         &self,
         new_items: &mut Vec<Item>,
@@ -371,7 +372,7 @@ impl CodegenVisitor<'_> {
         // HACK: Создание DelimSpan из Span для struct_duf
         let mut dummy_group = Group::new(proc_macro2::Delimiter::Brace, TokenStream::new());
         dummy_group.set_span(span);
-        
+
         // Структура экрана где хранится состояние, компоненты и виджеты. Используется
         // создание вручную что позволяет достичь более высокой скорости компиляции
         let struct_def = Item::Struct(syn::ItemStruct {
@@ -381,7 +382,9 @@ impl CodegenVisitor<'_> {
             ident: struct_name,
             generics: Generics::default(),
             fields: Fields::Named(syn::FieldsNamed {
-                brace_token: token::Brace { span: dummy_group.delim_span(), },
+                brace_token: token::Brace {
+                    span: dummy_group.delim_span(),
+                },
                 named: fields_punctuated,
             }),
             semi_token: None,

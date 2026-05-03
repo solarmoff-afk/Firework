@@ -25,7 +25,7 @@ impl CodeBuilder {
     /// но анализатор иногда может угадать тип если он очевиден. Спарки без mut менять нельзя
     /// что позволяет создать данные которые защищены от изменения, но при этом которые
     /// не пересчитываются каждый раз
-    #[tracing::instrument(skip_all, fields(span = ?span))]
+    #[cfg_attr(feature = "trace", tracing::instrument(skip_all, fields(span = ?span)))]
     pub fn node_initial_spark(
         &self,
         span: Span,
@@ -74,19 +74,12 @@ impl CodeBuilder {
                 }
 
                 _ => {
-                    let set_field_str = static_gen::set_field(
-                        &struct_name,
-                        &field_name,
-                        expr_body
-                    );
+                    let set_field_str = static_gen::set_field(&struct_name, &field_name, expr_body);
 
                     let set_field_expr = Self::convert_string_to_syn(&set_field_str);
-                    
-                    let take_field_str = static_gen::take_field(
-                        &struct_name_upper,
-                        &field_name
-                    );
-                    
+
+                    let take_field_str = static_gen::take_field(&struct_name_upper, &field_name);
+
                     let take_field_expr = Self::convert_string_to_syn(&take_field_str);
 
                     final_tokens.extend(quote_spanned!(span=>

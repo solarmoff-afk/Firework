@@ -12,7 +12,7 @@ pub use super::super::*;
 use crate::CompileType;
 
 impl CodegenVisitor<'_> {
-    #[instrument(skip_all, fields(node = %quote!(#item_struct)))]
+    #[cfg_attr(feature = "trace", tracing::instrument(skip_all, fields(node = %quote!(#item_struct))))]
     pub fn codegen_item_struct(&self, item_struct: &mut ItemStruct) {
         if !matches!(self.flags.compile_type, CompileType::Component) {
             return;

@@ -1,6 +1,9 @@
 // Часть проекта Firework с открытым исходным кодом.
 // Лицензия EPL 2.0, подробнее в файле LICENSE. Copyright (c) 2026 Firework
 
+#[cfg(feature = "trace")]
+use tracing::instrument;
+
 use super::super::traits::ToTokenStreams;
 use super::super::*;
 
@@ -8,7 +11,7 @@ use crate::compiler::codegen::consts::CHECK_EVENT_INCODE;
 use crate::compiler::codegen::generator::static_gen;
 
 impl CodegenVisitor<'_> {
-    #[tracing::instrument(skip_all, fields(id = ?id))]
+    #[cfg_attr(feature = "trace", instrument(skip_all, fields(id = ?id)))]
     pub fn generate_widgets_mask(&self, id: u128, struct_name: &str) -> Vec<TokenStream> {
         let mask_count = self.widget_mask_count.get(&id).unwrap_or(&0);
 

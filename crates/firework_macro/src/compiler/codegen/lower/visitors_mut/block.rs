@@ -10,7 +10,7 @@ use super::*;
 use crate::compiler::codegen::ir::FireworkAction;
 
 impl LowerVisitor<'_> {
-    #[instrument(skip_all)]
+    #[cfg_attr(feature = "trace", tracing::instrument(skip_all))]
     pub(crate) fn lower_block_mut(&mut self, i: &mut Block) {
         let mut new_statements = Vec::new();
         let original_statements = i.stmts.clone();

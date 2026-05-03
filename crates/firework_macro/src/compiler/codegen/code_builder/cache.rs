@@ -1,8 +1,8 @@
 // Часть проекта Firework с открытым исходным кодом.
 // Лицензия EPL 2.0, подробнее в файле LICENSE. Copyright (c) 2026 Firework
 
-use quote::format_ident;
 use proc_macro2::{Ident, TokenStream};
+use quote::format_ident;
 use std::collections::HashMap;
 
 /// Это специальная структура которая позволяет оптимизировать парсинг (например format_ident)

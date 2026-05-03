@@ -20,6 +20,6 @@ rand = "0.8"
 prettyplease = "0.2"
 petgraph = "0.7"
 proc-macro-warning = "1.84.1"
-tracing = { version = "0.1", optional = true, features = ["attributes"] }
+tracing = { version = "0.1", optional = true,  features = ["attributes"] }
 tracing-subscriber = { version = "0.3", optional = true, features = ["env-filter"] }
 tracing-chrome = { version = "0.7", optional = true }

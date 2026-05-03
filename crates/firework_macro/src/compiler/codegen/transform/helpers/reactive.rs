@@ -1,11 +1,14 @@
 // Часть проекта Firework с открытым исходным кодом.
 // Лицензия EPL 2.0, подробнее в файле LICENSE. Copyright (c) 2026 Firework
 
+#[cfg(feature = "trace")]
+use tracing::instrument;
+
 use super::super::traits::ToTokenStreams;
 use super::super::*;
 
 impl CodegenVisitor<'_> {
-    #[tracing::instrument(skip_all, fields(id = ?id))]
+    #[cfg_attr(feature = "trace", instrument(skip_all, fields(id = ?id)))]
     pub fn generate_reactive(&self, id: u128) -> ReactiveGenerateOutput {
         // [REACTIVE_LOOP]
         // Реализация реактивного цикла: Реактивный цикл это loop в который

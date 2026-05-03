@@ -23,7 +23,7 @@ impl SelfFieldAdder {
 }
 
 impl VisitMut for SelfFieldAdder {
-    #[instrument(skip_all, fields(node = %quote!(#expr_struct)))]
+    #[cfg_attr(feature = "trace", tracing::instrument(skip_all, fields(node = %quote!(#expr_struct))))]
     fn visit_expr_struct_mut(&mut self, expr_struct: &mut ExprStruct) {
         if expr_struct.path.is_ident("Self") {
             for (field_name, _) in &self.fields {

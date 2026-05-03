@@ -9,7 +9,7 @@ use tracing::instrument;
 pub use super::super::*;
 
 impl CodegenVisitor<'_> {
-    #[instrument(skip_all)]
+    #[cfg_attr(feature = "trace", tracing::instrument(skip_all))]
     pub(crate) fn analyze_block_mut(&mut self, i: &mut Block) {
         let mut new_statements = Vec::new();
 
@@ -17,7 +17,7 @@ impl CodegenVisitor<'_> {
 
         for mut statement in original_statements {
             let span = statement.span();
-            
+
             let ir_statements = {
                 if let Some(ir_vec_ref) = self.ir.get_statements_by_span_mut(span) {
                     std::mem::take(ir_vec_ref)
@@ -29,16 +29,13 @@ impl CodegenVisitor<'_> {
             let mut body_statements = Vec::new();
 
             syn::visit_mut::visit_stmt_mut(self, &mut statement);
-            
+
             let body_tokens = quote!(#statement);
 
             if !ir_statements.is_empty() {
                 let generated_tokens = self.generate_code(&statement, &ir_statements, body_tokens);
 
-                new_statements.push(Stmt::Expr(
-                    Expr::Verbatim(generated_tokens),
-                    None
-                ));
+                new_statements.push(Stmt::Expr(Expr::Verbatim(generated_tokens), None));
             } else {
                 body_statements.push(statement);
                 new_statements.extend(body_statements);

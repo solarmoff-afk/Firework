@@ -391,22 +391,22 @@ impl Analyzer {
 impl<'ast> Visit<'ast> for Analyzer {
     /// Генерирует заглушки для функций чтобы компилятор не выдал ошибку "функция отсуствует"
     /// вероятно это временное решение. Также собирает сигнатуру функции для кодогенератора
-    #[instrument(skip_all, fields(node = %quote!(#i)))]
+    #[cfg_attr(feature = "trace", tracing::instrument(skip_all, fields(node = %quote!(#i))))]
     fn visit_item_fn(&mut self, i: &'ast ItemFn) {
         self.analyze_item_fn(i);
     }
 
-    #[instrument(skip_all, fields(node = %quote!(#i)))]
+    #[cfg_attr(feature = "trace", tracing::instrument(skip_all, fields(node = %quote!(#i))))]
     fn visit_fn_arg(&mut self, i: &'ast FnArg) {
         self.analyze_fn_arg(i);
     }
 
-    #[instrument(skip_all, fields(node = %quote!(#i)))]
+    #[cfg_attr(feature = "trace", tracing::instrument(skip_all, fields(node = %quote!(#i))))]
     fn visit_local(&mut self, i: &'ast Local) {
         self.analyze_local(i);
     }
 
-    #[instrument(skip_all, fields(node = %quote!(#i)))]
+    #[cfg_attr(feature = "trace", tracing::instrument(skip_all, fields(node = %quote!(#i))))]
     fn visit_pat_type(&mut self, i: &'ast PatType) {
         // Это строка нужна чтобы запомнить текущий тип дпнных, это будет нужно в ветке
         // ident для определения типа, что потребуется в других ветках
@@ -418,7 +418,7 @@ impl<'ast> Visit<'ast> for Analyzer {
         self.current_type = String::from(NO_TYPE);
     }
 
-    #[instrument(skip_all, fields(node = %quote!(#i)))]
+    #[cfg_attr(feature = "trace", tracing::instrument(skip_all, fields(node = %quote!(#i))))]
     fn visit_pat_ident(&mut self, i: &'ast PatIdent) {
         self.pending_vars.push((
             i.ident.to_string(),
@@ -436,82 +436,82 @@ impl<'ast> Visit<'ast> for Analyzer {
     }
 
     /// Вход в новую область видимости
-    #[instrument(skip_all, fields(node = %quote!(#i)))]
+    #[cfg_attr(feature = "trace", tracing::instrument(skip_all, fields(node = %quote!(#i))))]
     fn visit_block(&mut self, i: &'ast syn::Block) {
         self.analyze_block(i);
     }
 
     /// Макрос который используются не в выражении, а как отдельный statement (команда)
-    #[instrument(skip_all, fields(node = %quote!(#i)))]
+    #[cfg_attr(feature = "trace", tracing::instrument(skip_all, fields(node = %quote!(#i))))]
     fn visit_macro(&mut self, i: &'ast Macro) {
         self.analyze_macro(i);
     }
 
     /// Присваивание значения к переменной которая инициализирована как спарк считаетсч
     /// обновлением состояния и требует обновления UI
-    #[instrument(skip_all, fields(node = %quote!(#i)))]
+    #[cfg_attr(feature = "trace", tracing::instrument(skip_all, fields(node = %quote!(#i))))]
     fn visit_expr_assign(&mut self, i: &'ast ExprAssign) {
         self.analyze_expr_assign(i);
     }
 
     /// Кейс обновления состояния для бинарных операций, например spark += 1 или
     /// spark %= 2, также требует обновления ui
-    #[instrument(skip_all, fields(node = %quote!(#i)))]
+    #[cfg_attr(feature = "trace", tracing::instrument(skip_all, fields(node = %quote!(#i))))]
     fn visit_expr_binary(&mut self, i: &'ast ExprBinary) {
         self.analyze_expr_binary(i);
     }
 
-    #[instrument(skip_all, fields(node = %quote!(#i)))]
+    #[cfg_attr(feature = "trace", tracing::instrument(skip_all, fields(node = %quote!(#i))))]
     fn visit_expr_method_call(&mut self, i: &'ast syn::ExprMethodCall) {
         self.analyze_expr_method_call(i);
     }
 
-    #[instrument(skip_all, fields(node = %quote!(#i)))]
+    #[cfg_attr(feature = "trace", tracing::instrument(skip_all, fields(node = %quote!(#i))))]
     fn visit_stmt(&mut self, i: &'ast Stmt) {
         self.analyze_stmt(i);
     }
 
-    #[instrument(skip_all, fields(node = %quote!(#i)))]
+    #[cfg_attr(feature = "trace", tracing::instrument(skip_all, fields(node = %quote!(#i))))]
     fn visit_expr_if(&mut self, i: &'ast ExprIf) {
         self.analyze_expr_if(i);
     }
 
-    #[instrument(skip_all, fields(node = %quote!(#i)))]
+    #[cfg_attr(feature = "trace", tracing::instrument(skip_all, fields(node = %quote!(#i))))]
     fn visit_expr_while(&mut self, i: &'ast ExprWhile) {
         self.analyze_expr_while(i);
     }
 
-    #[instrument(skip_all, fields(node = %quote!(#i)))]
+    #[cfg_attr(feature = "trace", tracing::instrument(skip_all, fields(node = %quote!(#i))))]
     fn visit_expr_for_loop(&mut self, i: &'ast ExprForLoop) {
         self.analyze_expr_for_loop(i);
     }
 
-    #[instrument(skip_all, fields(node = %quote!(#i)))]
+    #[cfg_attr(feature = "trace", tracing::instrument(skip_all, fields(node = %quote!(#i))))]
     fn visit_expr_match(&mut self, i: &'ast ExprMatch) {
         self.analyze_expr_match(i);
     }
 
-    #[instrument(skip_all, fields(node = %quote!(#i)))]
+    #[cfg_attr(feature = "trace", tracing::instrument(skip_all, fields(node = %quote!(#i))))]
     fn visit_expr_loop(&mut self, i: &'ast ExprLoop) {
         self.analyze_expr_loop(i);
     }
 
-    #[instrument(skip_all, fields(node = %quote!(#i)))]
+    #[cfg_attr(feature = "trace", tracing::instrument(skip_all, fields(node = %quote!(#i))))]
     fn visit_expr_break(&mut self, i: &'ast ExprBreak) {
         self.analyze_expr_break(i);
     }
 
-    #[instrument(skip_all, fields(node = %quote!(#i)))]
+    #[cfg_attr(feature = "trace", tracing::instrument(skip_all, fields(node = %quote!(#i))))]
     fn visit_expr_continue(&mut self, i: &'ast ExprContinue) {
         self.analyze_expr_continue(i);
     }
 
-    #[instrument(skip_all, fields(node = %quote!(#i)))]
+    #[cfg_attr(feature = "trace", tracing::instrument(skip_all, fields(node = %quote!(#i))))]
     fn visit_expr_return(&mut self, i: &'ast ExprReturn) {
         self.analyze_expr_return(i);
     }
 
-    #[instrument(skip_all, fields(node = %quote!(#i)))]
+    #[cfg_attr(feature = "trace", tracing::instrument(skip_all, fields(node = %quote!(#i))))]
     fn visit_expr_closure(&mut self, i: &'ast ExprClosure) {
         self.analyze_expr_closure(i)
     }
@@ -520,7 +520,7 @@ impl<'ast> Visit<'ast> for Analyzer {
         // self.context.output.extend(node.to_token_stream());
     }
 
-    #[instrument(skip_all, fields(node = %quote!(#_i)))]
+    #[cfg_attr(feature = "trace", tracing::instrument(skip_all, fields(node = %quote!(#_i))))]
     fn visit_item_impl(&mut self, _i: &'ast ItemImpl) {
         if !matches!(self.context.flags.compile_type, CompileType::Component) {
             return;
@@ -554,7 +554,7 @@ impl<'ast> Visit<'ast> for Analyzer {
         // visit::visit_item_impl(self, _i);
     }
 
-    #[instrument(skip_all, fields(node = %quote!(#i)))]
+    #[cfg_attr(feature = "trace", tracing::instrument(skip_all, fields(node = %quote!(#i))))]
     fn visit_item_macro(&mut self, i: &'ast ItemMacro) {
         self.analyze_item_macro(i);
     }

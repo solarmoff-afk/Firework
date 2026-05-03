@@ -8,7 +8,7 @@ impl CodeBuilder {
     /// аналазитор отслеживает name = 10, name += 1, name.field = 1 и name.mut_fn()
     /// Спарк это не обёртка или умный указатель, а просто T который реактивный
     /// благодаря магии компилятора
-    #[tracing::instrument(skip_all, fields(span = ?span))]
+    #[cfg_attr(feature = "trace", tracing::instrument(skip_all, fields(span = ?span)))]
     pub fn node_update_spark(
         &self,
         span: Span,

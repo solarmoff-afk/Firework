@@ -1,12 +1,10 @@
 // Часть проекта Firework с открытым исходным кодом.
 // Лицензия EPL 2.0, подробнее в файле LICENSE. Copyright (c) 2026 Firework
 
-use proc_macro2::Ident;
-
 use super::super::*;
 
 impl CodeBuilder {
-    #[tracing::instrument(skip_all, fields(span = ?span))]
+    #[cfg_attr(feature = "trace", tracing::instrument(skip_all, fields(span = ?span)))]
     pub fn node_widget_block(
         &mut self,
         span: Span,
@@ -75,16 +73,14 @@ impl CodeBuilder {
 
                 if !field.sparks.is_empty() {
                     let mut condition = Vec::new();
-                    
+
                     // Генерация условия на то, что хотя-бы одна зависимость в снапшотах
                     // битовых масках изменилась
                     for (_, id) in field.sparks.iter() {
-                        condition.push(
-                            check_flag_tokens(
-                                &get_mask_name(*id),
-                                normalize_bit_index(*id)
-                            )
-                        );
+                        condition.push(check_flag_tokens(
+                            &get_mask_name(*id),
+                            normalize_bit_index(*id),
+                        ));
                     }
 
                     widget_reactive.extend(quote! {
@@ -110,8 +106,8 @@ impl CodeBuilder {
             let condition_statement = if let Some(local_id) = description.is_maybe {
                 let mask_id = get_spark_mask(local_id);
                 let bit = normalize_bit_index(local_id);
-                let mask_name = self.cache.cache_widget_bitmask(mask_id); 
-                
+                let mask_name = self.cache.cache_widget_bitmask(mask_id);
+
                 widget_update_bitmask.extend(quote! {
                     #mask_name |= 1 << #bit;
                 });

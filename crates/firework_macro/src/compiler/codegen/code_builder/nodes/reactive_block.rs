@@ -5,8 +5,6 @@ use proc_macro2::TokenStream;
 
 use super::super::*;
 
-use crate::compiler::codegen::consts::CHECK_DEC_RB;
-
 impl CodeBuilder {
     /// Реактивный блок это if, for, while, match или эффект (effect!()) который был создан
     /// с хотя-бы одним спарком (реактивной переменной) в условии. Реактивный блок
@@ -37,7 +35,7 @@ impl CodeBuilder {
     /// Реактивные блоки которые описывают внутри себя UI либо содержат реактивные блоки
     /// которые содержат внутри себя UI срабатывают ещё и при фазе Event, это определяется
     /// по наличию декларации виджета внутри одного из дочерних реактивных блоков
-    #[tracing::instrument(skip_all, fields(statements = ?statement))]
+    #[cfg_attr(feature = "trace", tracing::instrument(skip_all, fields(statements = ?statement)))]
     pub fn node_reactive_block(
         &self,
         span: Span,
@@ -61,19 +59,19 @@ impl CodeBuilder {
             // синоним это монтирование). Если реактивный блок является частью декларации
             // UI то ему также нужен и Event чтобы не ломать динамические списки
             let context_check = if *is_ui {
-                quote_spanned!(span=> 
-                    (::firework_ui::tiny_matches!(_fwc_event, 
-                        ::firework_ui::LifeCycle::Navigate | 
-                        ::firework_ui::LifeCycle::Build | 
+                quote_spanned!(span=>
+                    (::firework_ui::tiny_matches!(_fwc_event,
+                        ::firework_ui::LifeCycle::Navigate |
+                        ::firework_ui::LifeCycle::Build |
                         ::firework_ui::LifeCycle::Event
-                    )) 
+                    ))
                 )
             } else {
-                quote_spanned!(span=> 
-                    (::firework_ui::tiny_matches!(_fwc_event, 
-                        ::firework_ui::LifeCycle::Navigate | 
+                quote_spanned!(span=>
+                    (::firework_ui::tiny_matches!(_fwc_event,
+                        ::firework_ui::LifeCycle::Navigate |
                         ::firework_ui::LifeCycle::Build
-                    )) 
+                    ))
                 )
             };
 

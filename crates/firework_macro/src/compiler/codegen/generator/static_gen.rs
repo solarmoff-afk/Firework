@@ -3,9 +3,9 @@
 
 #![allow(dead_code)]
 
-use quote::quote;
-use quote::format_ident;
 use proc_macro2::TokenStream;
+use quote::format_ident;
+use quote::quote;
 
 /// Хелпер для декларации статического экземпляра структуры экрана (слайда), заполняет
 /// все поля как None, то есть требует чтобы все поля структуры были строго Option. Это

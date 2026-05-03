@@ -3,9 +3,9 @@
 
 #![allow(dead_code)]
 
+use proc_macro2::TokenStream;
 use quote::format_ident;
 use quote::quote;
-use proc_macro2::TokenStream;
 
 /// Генерирует строку которая устанавливает конкретный бит активным. Принимает имя битовой
 /// маски и номер бита, ограничение в 64 так как битовая маска u64 (64 бита). Строка идёт

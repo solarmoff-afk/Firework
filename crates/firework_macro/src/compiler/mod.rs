@@ -39,7 +39,7 @@ pub fn run_firework_compiler(
     id: u64,
 ) -> (TokenStream, Option<TokenStream>) {
     #[cfg(feature = "trace")]
-     let (_chrome_guard, _sub_guard) = {
+    let (_chrome_guard, _sub_guard) = {
         let (chrome_layer, chrome_guard) = tracing_chrome::ChromeLayerBuilder::new()
             .file(format!("target/trace_{}.json", id))
             .include_args(true)
@@ -48,9 +48,9 @@ pub fn run_firework_compiler(
         let sub_guard = tracing_subscriber::registry()
             .with(chrome_layer)
             .set_default();
-        
+
         info!(compiler_id = id, "Firework Compiler started");
-        
+
         (chrome_guard, sub_guard)
     };
 
@@ -60,7 +60,10 @@ pub fn run_firework_compiler(
     let output = {
         #[cfg(feature = "trace")]
         let _span = info_span!("analyze::prepare_tokens").entered();
-        
+
+        #[cfg(feature = "trace")]
+        println!("Hi?");
+
         prepare_tokens(file.clone(), flags, id)
     };
 

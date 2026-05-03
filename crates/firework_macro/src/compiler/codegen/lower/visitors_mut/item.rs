@@ -7,7 +7,7 @@ use tracing::instrument;
 pub use super::*;
 
 impl LowerVisitor<'_> {
-    #[instrument(skip_all)]
+    #[cfg_attr(feature = "trace", tracing::instrument(skip_all))]
     pub(crate) fn lower_file_mut(&mut self, i: &mut File) {
         let mut new_items = Vec::new();
 

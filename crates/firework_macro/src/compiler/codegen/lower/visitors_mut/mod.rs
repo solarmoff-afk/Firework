@@ -10,9 +10,9 @@ use quote::quote;
 use syn::visit_mut::VisitMut;
 use syn::*;
 
+use crate::CompileFlags;
 use crate::compiler::codegen::code_builder::CodeBuilder;
 use crate::compiler::codegen::ir::FireworkIR;
-use crate::CompileFlags;
 
 pub struct LowerVisitor<'a> {
     // IR от анализатора, содержит плоские семантические метки для каждого стейтемента,
