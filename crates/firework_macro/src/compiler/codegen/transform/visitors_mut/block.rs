@@ -29,11 +29,8 @@ impl CodegenVisitor<'_> {
             let mut body_statements = Vec::new();
 
             syn::visit_mut::visit_stmt_mut(self, &mut statement);
-            body_statements.push(statement.clone());
-
-            let body_tokens = quote!(
-                #(#body_statements)*
-            );
+            
+            let body_tokens = quote!(#statement);
 
             if !ir_statements.is_empty() {
                 let generated_tokens = self.generate_code(&statement, &ir_statements, body_tokens);
@@ -43,6 +40,7 @@ impl CodegenVisitor<'_> {
                     None
                 ));
             } else {
+                body_statements.push(statement);
                 new_statements.extend(body_statements);
             }
 
