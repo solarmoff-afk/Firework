@@ -1,6 +1,8 @@
 // Часть проекта Firework с открытым исходным кодом.
 // Лицензия EPL 2.0, подробнее в файле LICENSE. Copyright (c) 2026 Firework
 
+use proc_macro2::Ident;
+
 use super::super::*;
 
 impl CodeBuilder {
@@ -104,23 +106,15 @@ impl CodeBuilder {
             // в маске. Тем самым условные виджеты для которых не сработает условие
             // останутся нулями в битовой маске и будут скрыты. Тем самым условный
             // рендеринг будет работать для любых условий
-            if let Some(local_id) = description.is_maybe {
-                let mask_idx = get_spark_mask(local_id);
-                let mask_name = format_ident!("_fwc_widget_bitmask{}", mask_idx);
+            let condition_statement = if let Some(local_id) = description.is_maybe {
+                let mask_id = get_spark_mask(local_id);
                 let bit = normalize_bit_index(local_id);
+                let mask_name = self.cache.cache_widget_bitmask(mask_id); 
                 
                 widget_update_bitmask.extend(quote! {
                     #mask_name |= 1 << #bit;
                 });
-            }
 
-            // Если description.is_maybe будет None то этот код просто не будет
-            // использован, поэтому unwrap_or(0) является нормой, так как 0 хардкод просто
-            // не будет использован
-            let condition_statement = if let Some(local_id) = description.is_maybe {
-                let mask_idx = get_spark_mask(local_id);
-                let mask_name = format_ident!("_fwc_widget_bitmask{}", mask_idx);
-                let bit = normalize_bit_index(local_id);
                 quote! { (#mask_name & (1 << #bit)) != 0 }
             } else {
                 quote! { true }

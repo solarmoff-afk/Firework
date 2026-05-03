@@ -2,6 +2,7 @@
 // Лицензия EPL 2.0, подробнее в файле LICENSE. Copyright (c) 2026 Firework
 
 mod nodes;
+mod cache;
 
 #[cfg(feature = "trace")]
 use tracing::instrument;
@@ -9,6 +10,7 @@ use tracing::instrument;
 use proc_macro2::{Span, TokenStream};
 use quote::{format_ident, quote, quote_spanned};
 use syn::spanned::Spanned;
+use cache::CodeBuilderCache;
 
 use super::consts::CHECK_NAVIGATE;
 use super::generator::bitmask_gen::*;
@@ -22,6 +24,7 @@ pub struct CodeBuilder {
     /// Токены которые вставляются под конец функции за пределами цикла реактивности
     pub tokens: Vec<TokenStream>,
     pub flags: CompileFlags,
+    pub cache: CodeBuilderCache,
 
     ir: FireworkIR,
 }
@@ -31,6 +34,7 @@ impl CodeBuilder {
         Self {
             tokens: Vec::new(),
             flags,
+            cache: CodeBuilderCache::new(),
             ir,
         }
     }
