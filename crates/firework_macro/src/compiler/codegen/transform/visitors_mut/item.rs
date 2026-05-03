@@ -125,7 +125,7 @@ impl CodegenVisitor<'_> {
             // не реализует Default нужно использовать std::mem::replace, идёт
             // парсинг обычного пустого блока чтобы заменить на него оригинал, а
             // оригинальые данные забрать сюда чтобы избежать клонирования
-            let original_block = std::mem::replace(block, parse_quote!({}));
+            let mut original_block = std::mem::replace(block, parse_quote!({}));
 
             let reactive_output = self.generate_reactive(id);
             let generated_block = self.generate_flash_pass(id, &function_name);
@@ -191,53 +191,125 @@ impl CodegenVisitor<'_> {
                 (TokenStream::new(), TokenStream::new())
             };
 
-            // Если цикл совершил более 64 итераций (хардкод )то происходит выход
-            // из него это делается после добавления единицы к итерациям чтобы не
-            // отнимать единицу
-            // (64 - 1 = 63) от максимального количества итераций, так как:
-            //  - Нулевой шаг, +1, 1 итерация
-            //  - Первый шаг,  +1, 2 итерация
-            //  - 63 шаг, +1,  +1, 64 итерация, условие сработало
-            if !has_return {
-                *block = parse_quote_spanned!(span=> {
+            {
+                let _span = tracing::warn_span!(
+                    "final_block_generation",
+                    has_return = has_return
+                ).entered();
+
+                let parse_batch = |token_stream: TokenStream| -> Vec<Stmt> {
+                    if token_stream.is_empty() {
+                        return Vec::new();
+                    }
+
+                    syn::parse2::<Block>(quote!({ #token_stream }))
+                        .expect("IE: Final Batch Parse Error").stmts
+                };
+
+                let mut final_stmts = Vec::new();
+
+                final_stmts.extend(parse_batch(quote! {
                     let mut _fwc_event = firework_ui::LifeCycle::Navigate;
                     #init_code
-
                     let mut _fwc_guard: u8 = 0;
                     #(#bitmask_statements)*
                     #(#widget_bitmask_statement)*
+                }));
 
-                    loop {
+                if !has_return {
+                    let mut loop_stmts = Vec::new();
+                    
+                    loop_stmts.extend(parse_batch(quote! {
                         #(#bitmask_clone_statements)*
-
                         #dyn_lists_begin
-                        #original_block
-                        #dyn_lists_end
+                    }));
 
+                    loop_stmts.append(&mut original_block.stmts);
+
+                    loop_stmts.extend(parse_batch(quote! {
+                        #dyn_lists_end
                         if #bitmask_check_expr { break; }
                         _fwc_guard += 1;
                         _fwc_event = firework_ui::LifeCycle::Reactive;
                         if _fwc_guard > 64 { break; }
-                    }
+                    }));
 
+                    // Создаем Loop структуру вручную (мгновенно)
+                    final_stmts.push(syn::Stmt::Expr(syn::Expr::Loop(syn::ExprLoop {
+                        attrs: Vec::new(),
+                        label: None,
+                        loop_token: Default::default(),
+                        body: Block {
+                            brace_token: Default::default(),
+                            stmts: loop_stmts
+                        },
+                    }), None));
+                } else {
+                    final_stmts.extend(parse_batch(quote! {
+                        #(#bitmask_statements)*
+                        #(#bitmask_clone_statements)*
+                    }));
+
+                    final_stmts.append(&mut original_block.stmts);
+                }
+
+                final_stmts.extend(parse_batch(quote! {
                     #(#post_tokens)*
                     #widgets_gen_snapshot
-                });
-            } else {
-                // Если функция имеет возвращаемое значение то это не экран и не
-                // компонент, а значит виджетов у неё нет, а значит переменные из
-                // widget_bitmask_statement и так далее не нужны в этом случае
-                *block = parse_quote_spanned!(span=> {
-                    let mut _fwc_event = firework_ui::LifeCycle::Navigate;
-                    #init_code
+                }));
 
-                    #(#bitmask_statements)*
-                    #(#bitmask_clone_statements)*
-                    #original_block
+                block.stmts = final_stmts;
 
-                    #(#post_tokens)*
-                    #widgets_gen_snapshot
-                });
+                /*
+                // Если цикл совершил более 64 итераций (хардкод )то происходит выход
+                // из него это делается после добавления единицы к итерациям чтобы не
+                // отнимать единицу
+                // (64 - 1 = 63) от максимального количества итераций, так как:
+                //  - Нулевой шаг, +1, 1 итерация
+                //  - Первый шаг,  +1, 2 итерация
+                //  - 63 шаг, +1,  +1, 64 итерация, условие сработало
+                if !has_return {
+                    *block = parse_quote_spanned!(span=> {
+                        let mut _fwc_event = firework_ui::LifeCycle::Navigate;
+                        #init_code
+
+                        let mut _fwc_guard: u8 = 0;
+                        #(#bitmask_statements)*
+                        #(#widget_bitmask_statement)*
+
+                        loop {
+                            #(#bitmask_clone_statements)*
+
+                            #dyn_lists_begin
+                            #original_block
+                            #dyn_lists_end
+
+                            if #bitmask_check_expr { break; }
+                            _fwc_guard += 1;
+                            _fwc_event = firework_ui::LifeCycle::Reactive;
+                            if _fwc_guard > 64 { break; }
+                        }
+
+                        #(#post_tokens)*
+                        #widgets_gen_snapshot
+                    });
+                } else {
+                    // Если функция имеет возвращаемое значение то это не экран и не
+                    // компонент, а значит виджетов у неё нет, а значит переменные из
+                    // widget_bitmask_statement и так далее не нужны в этом случае
+                    *block = parse_quote_spanned!(span=> {
+                        let mut _fwc_event = firework_ui::LifeCycle::Navigate;
+                        #init_code
+
+                        #(#bitmask_statements)*
+                        #(#bitmask_clone_statements)*
+                        #original_block
+
+                        #(#post_tokens)*
+                        #widgets_gen_snapshot
+                    });
+                }
+                */
             }
         }
 

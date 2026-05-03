@@ -11,7 +11,7 @@ pub struct CodeBuilderCache {
     // Так как индексы битовых масок идут последовательно можно закэшировать их в векторе, номер
     // битвой маски это индекс в векторе где хранится иденты
     widget_bitmask_idents: Vec<Ident>,
-    instance_idents: HashMap<String, Ident>,
+    skins: HashMap<String, TokenStream>,
 }
 
 impl CodeBuilderCache {
@@ -19,7 +19,6 @@ impl CodeBuilderCache {
         Self {
             widget_bitmask_idents: Vec::new(),
             skins: HashMap::new(),
-            instance_idents: HashMap::new(),
         }
     }
 
