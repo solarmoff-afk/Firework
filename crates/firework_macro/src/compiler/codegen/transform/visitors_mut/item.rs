@@ -9,6 +9,7 @@ pub use super::super::*;
 
 use crate::CompileType;
 use crate::compiler::codegen::generator::static_gen;
+use crate::compiler::codegen::transform::visitors_mut::self_visitor::SelfFieldAdder;
 
 impl CodegenVisitor<'_> {
     /// Обрабатывает верхний уровень в вызове компилятора (item), функции, структуры и так
@@ -38,6 +39,13 @@ impl CodegenVisitor<'_> {
                 }
 
                 Item::Impl(mut item_impl) => {
+                    if let Type::Path(type_path) = &*item_impl.self_ty
+                        && let Some(segment) = type_path.path.segments.last()
+                    {
+                        let struct_name = segment.ident.to_string();
+                        self.extend_new(&mut item_impl, &struct_name);
+                    }
+
                     for item in &mut item_impl.items {
                         if let ImplItem::Fn(method) = item
                             && method.sig.ident == "flash"
@@ -360,6 +368,25 @@ impl CodegenVisitor<'_> {
                 // unwrap здесь безопасен
                 let item: Item = syn::parse2(tokens).expect("IE:6");
                 new_items.push(item);
+            }
+        }
+    }
+
+    /// Генерирует инициализацию полей которые генерирует компилятор в конструкторе компонента
+    fn extend_new(&self, item_impl: &mut ItemImpl, struct_name: &str) {
+        if let Some(fields) = self.ir.component_structs.get(struct_name) {
+            let fields_data: Vec<(String, String)> = fields
+                .iter()
+                .map(|(name, _type)| (name.clone(), _type.clone()))
+                .collect();
+
+            for item in &mut item_impl.items {
+                if let ImplItem::Fn(method) = item
+                    && method.sig.ident == "new"
+                {
+                    let mut visitor = SelfFieldAdder::new(fields_data.clone());
+                    visitor.visit_block_mut(&mut method.block);
+                }
             }
         }
     }
