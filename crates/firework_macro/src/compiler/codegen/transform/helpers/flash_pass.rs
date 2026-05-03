@@ -1,6 +1,8 @@
 // Часть проекта Firework с открытым исходным кодом.
 // Лицензия EPL 2.0, подробнее в файле LICENSE. Copyright (c) 2026 Firework
 
+use quote::quote;
+
 use super::super::*;
 
 impl CodegenVisitor<'_> {
@@ -9,19 +11,13 @@ impl CodegenVisitor<'_> {
         let struct_name_raw = format!("ApplicationUiBlockStruct{}", id);
         let instance_name = struct_name_raw.to_uppercase();
 
-        let mut output = String::new();
+        let fields = self.ir.screen_structs.get(&struct_name_raw)
+            .map(|v| v.as_slice())
+            .unwrap_or(&[]);
 
-        // Чтобы вставить несколько стейтементов нужно использовать Block, а для
-        // того чтобы спарсить строку в блок нужно обернуть её в фигурные скобки
-        output.push('{');
-        output.push_str(&is_first_call(id));
-
-        let fields = self.ir.screen_structs.get(&struct_name_raw);
-        output.push_str(&init_instance(
-            &instance_name,
-            &struct_name_raw,
-            fields.unwrap_or(&vec![]),
-        ));
+        let instance_init = init_instance_tokens(&instance_name, &struct_name_raw, fields);
+        let fn_path: Path = syn::parse_str(function_name)
+            .unwrap_or_else(|_| panic!("Invalid function path: {}", function_name));
 
         // [FLASH PASS]
         // Flash pass это форма функции или метода которая позволяет использовать
@@ -38,14 +34,29 @@ impl CodegenVisitor<'_> {
         //  - Reactive: Пустышка чтобы обновление спарков не запустилось снова без
         //    явной причины. (Детальнее в ../code_builder/nodes/update_spark.rs)
         //  Функция сама устанавливает себя как фокус (SET_FOCUS константа)
-        output.push_str(CHECK_EVENT);
-        output.push_str(SET_FOCUS);
-        output.push_str(&format!("\tfirework_ui::set_focus({});\n", function_name));
+        let block_tokens = quote! {
+            {
+                let _fwc_id: u128 = #id;
 
-        // Код пользователя и реактивный цикл
-        output.push('}');
+                #instance_init
 
-        let flash_pass_block: Block = parse_str(&output).unwrap();
-        flash_pass_block
+                if _fwc_id == ::firework_ui::get_focus_id() && !_fwc_build {
+                    _fwc_event = ::firework_ui::LifeCycle::Event;
+                } else {
+                    if _fwc_build {
+                        ::firework_ui::adapter_command(::firework_ui::AdapterCommand::RemoveAll);
+                        _fwc_event = ::firework_ui::LifeCycle::Build;
+                    } else {
+                        ::firework_ui::adapter_command(::firework_ui::AdapterCommand::RemoveAll);
+                        _fwc_event = ::firework_ui::LifeCycle::Navigate;
+                    }
+                }
+
+                ::firework_ui::set_focus_id(_fwc_id);
+                ::firework_ui::set_focus(#fn_path);
+            }
+        };
+
+        syn::parse2(block_tokens).expect("IE: generate_flash_pass assembly failed")
     }
 }
