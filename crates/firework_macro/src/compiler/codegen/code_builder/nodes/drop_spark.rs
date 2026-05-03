@@ -13,6 +13,7 @@ impl CodeBuilder {
     /// (Выйдя из области видимости, RAII) то в IR добавляется DropSpark. Он нужен
     /// чтобы вернуть владение обратно в статику чтобы не было паники при использовании
     /// take в следующем флэше
+    #[tracing::instrument(skip_all, fields(statements = ?statement))]
     pub fn node_drop_spark(
         &self,
         _span: Span,

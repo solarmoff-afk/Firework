@@ -5,6 +5,7 @@ use super::super::traits::ToTokenStreams;
 use super::super::*;
 
 impl CodegenVisitor<'_> {
+    #[tracing::instrument(skip_all, fields(id = ?id))]
     pub fn generate_reactive(&self, id: u128) -> ReactiveGenerateOutput {
         // [REACTIVE_LOOP]
         // Реализация реактивного цикла: Реактивный цикл это loop в который

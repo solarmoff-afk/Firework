@@ -3,6 +3,10 @@
 
 #![allow(dead_code)]
 
+use quote::format_ident;
+use quote::quote;
+use proc_macro2::TokenStream;
+
 /// Генерирует строку которая устанавливает конкретный бит активным. Принимает имя битовой
 /// маски и номер бита, ограничение в 64 так как битовая маска u64 (64 бита). Строка идёт
 /// без точки с запятой
@@ -43,4 +47,13 @@ pub(crate) fn normalize_bit_index(id: usize) -> u8 {
 pub(crate) fn get_spark_mask(id: usize) -> u8 {
     // 1 -> 1, 19 -> 1, 64 -> 1, 67 -> 2, 98 -> 2, 128 -> 2, 136 -> 3
     ((id / 64) + 1) as u8
+}
+
+pub(crate) fn check_flag_tokens(mask_name: &str, flag: u8) -> TokenStream {
+    let mask = format_ident!("{}", mask_name);
+    quote! { (#mask & (1 << #flag)) != 0 }
+}
+
+pub(crate) fn get_mask_name(id: usize) -> String {
+    format!("_fwc_bitmask{}_clone", (id / 64) + 1)
 }

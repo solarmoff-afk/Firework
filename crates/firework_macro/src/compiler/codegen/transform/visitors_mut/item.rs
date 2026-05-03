@@ -76,6 +76,7 @@ impl CodegenVisitor<'_> {
         i.items = new_items;
     }
 
+    #[tracing::instrument(skip_all, fields(sig = ?sig, block = %quote!(#block)))]
     fn transform_ui_function(
         &mut self,
         sig: &mut Signature,
@@ -246,6 +247,7 @@ impl CodegenVisitor<'_> {
 
     /// Генерирует набор полей для вставки по ссылке на fields и возвращает вектор сырых
     /// полей (Имя, тип)
+    #[tracing::instrument(skip_all, fields(id = ?id, fields = ?fields))]
     fn generate_fields(
         &self,
         id: u128,
@@ -305,6 +307,7 @@ impl CodegenVisitor<'_> {
 
     /// Генерирует код для функции Build в Shared режиме и записывает новую функцию в
     /// new_item по мутабельной ссылке
+    #[tracing::instrument(skip_all, fields(instance_item = ?instance_item))]
     fn generate_build(
         &self,
         new_items: &mut Vec<Item>,

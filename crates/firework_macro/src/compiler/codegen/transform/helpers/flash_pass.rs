@@ -4,6 +4,7 @@
 use super::super::*;
 
 impl CodegenVisitor<'_> {
+    #[tracing::instrument(skip_all, fields(function_name = ?function_name))]
     pub fn generate_flash_pass(&self, id: u128, function_name: &str) -> Block {
         let struct_name_raw = format!("ApplicationUiBlockStruct{}", id);
         let instance_name = struct_name_raw.to_uppercase();

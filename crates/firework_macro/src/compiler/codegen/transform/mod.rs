@@ -59,6 +59,7 @@ impl<'a> CodegenVisitor<'a> {
         self.builder.flags = flags;
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn generate_code(
         &mut self,
         stmt: &Stmt,

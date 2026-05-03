@@ -8,6 +8,7 @@ use crate::compiler::codegen::consts::CHECK_EVENT_INCODE;
 use crate::compiler::codegen::generator::static_gen;
 
 impl CodegenVisitor<'_> {
+    #[tracing::instrument(skip_all, fields(id = ?id))]
     pub fn generate_widgets_mask(&self, id: u128, struct_name: &str) -> Vec<TokenStream> {
         let mask_count = self.widget_mask_count.get(&id).unwrap_or(&0);
 
