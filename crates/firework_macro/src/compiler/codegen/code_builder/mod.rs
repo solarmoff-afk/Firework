@@ -3,6 +3,9 @@
 
 mod nodes;
 
+#[cfg(feature = "trace")]
+use tracing::instrument;
+
 use proc_macro2::{Span, TokenStream};
 use quote::{format_ident, quote, quote_spanned};
 use syn::spanned::Spanned;
@@ -13,17 +16,21 @@ use super::generator::static_gen;
 use super::ir::{FireworkAction, FireworkIR, FireworkStatement};
 use super::transform::traits::{ToExpr, ToStmt};
 
+use crate::CompileFlags;
+
 pub struct CodeBuilder {
     /// Токены которые вставляются под конец функции за пределами цикла реактивности
     pub tokens: Vec<TokenStream>,
+    pub flags: CompileFlags,
 
     ir: FireworkIR,
 }
 
 impl CodeBuilder {
-    pub fn new(ir: FireworkIR) -> Self {
+    pub fn new(ir: FireworkIR, flags: CompileFlags) -> Self {
         Self {
             tokens: Vec::new(),
+            flags,
             ir,
         }
     }
@@ -36,6 +43,13 @@ impl CodeBuilder {
     /// Сборка токенов из реального стейтемента и набора семантических меток. Через quote
     /// генерируется набор токенов и возвращается после чего вставляется на место стейтемента.
     /// Ноды сами решают использовать ли оригинальный стейтемент
+    #[tracing::instrument(skip_all, 
+        fields(
+            node = %quote!(#stmt), 
+            span = ?stmt.span(),
+            statements = ?statements,
+        )
+    )]
     pub fn build(
         &mut self,
         stmt: &syn::Stmt,

@@ -5,6 +5,9 @@ use proc_macro2::Span;
 use quote::quote;
 use syn::parse_quote;
 
+#[cfg(feature = "trace")]
+use tracing::instrument;
+
 pub use super::super::*;
 
 use crate::CompileType;
@@ -14,6 +17,7 @@ use crate::compiler::codegen::transform::visitors_mut::self_visitor::SelfFieldAd
 impl CodegenVisitor<'_> {
     /// Обрабатывает верхний уровень в вызове компилятора (item), функции, структуры и так
     /// далее. Генерирует flash pass и реактивный цикл
+    #[instrument(skip_all, fields(node = %quote!(#i)))]
     pub(crate) fn analyze_file_mut(&mut self, i: &mut File) {
         let mut new_items = Vec::new();
 

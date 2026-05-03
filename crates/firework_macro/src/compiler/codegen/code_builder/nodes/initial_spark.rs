@@ -3,6 +3,8 @@
 
 use super::super::*;
 
+use crate::CompileType;
+
 impl CodeBuilder {
     /// Инициализация реактивной переменной. Сюда вписывается первое значение которое
     /// будет у спарка при инициализаци. Оно будет установлено в статику при первом
@@ -41,9 +43,6 @@ impl CodeBuilder {
             let field_name = format!("spark_{}", id);
             let struct_name_upper = struct_name.to_uppercase();
 
-            let set_field_str = static_gen::set_field(&struct_name, &field_name, expr_body);
-            let set_field_expr = Self::convert_string_to_syn(&set_field_str);
-
             // Если спарк инициализирован как мутабельный то нужно создать мутабельную
             // переменную для аренды из статики. Если спарк был инициализирован без mut
             // то переменная создаётся также без mut чтобы не было предупреждения.
@@ -59,16 +58,48 @@ impl CodeBuilder {
             }
 
             let ident = format_ident!("{}", name);
-            let take_field_str = static_gen::take_field(&struct_name_upper, &field_name);
-            let take_field_expr = Self::convert_string_to_syn(&take_field_str);
+            let field_name_ident = format_ident!("{}", field_name);
 
-            final_tokens.extend(quote_spanned!(span=>
-                if firework_ui::tiny_matches!(_fwc_event, firework_ui::LifeCycle::Build) {
-                    #set_field_expr
+            match self.flags.compile_type {
+                CompileType::Component => {
+                    final_tokens.extend(quote_spanned!(span=>
+                        if firework_ui::tiny_matches!(
+                            _fwc_event,
+                            firework_ui::LifeCycle::Build
+                        ) {
+                            self.#field_name_ident = Some(0);
+                        }
+                    ));
                 }
 
-                let #modifier #ident = #take_field_expr;
-            ));
+                _ => {
+                    let set_field_str = static_gen::set_field(
+                        &struct_name,
+                        &field_name,
+                        expr_body
+                    );
+
+                    let set_field_expr = Self::convert_string_to_syn(&set_field_str);
+                    
+                    let take_field_str = static_gen::take_field(
+                        &struct_name_upper,
+                        &field_name
+                    );
+                    
+                    let take_field_expr = Self::convert_string_to_syn(&take_field_str);
+
+                    final_tokens.extend(quote_spanned!(span=>
+                        if firework_ui::tiny_matches!(
+                            _fwc_event,
+                            firework_ui::LifeCycle::Build
+                        ) {
+                            #set_field_expr
+                        }
+
+                        let #modifier #ident = #take_field_expr;
+                    ));
+                }
+            }
 
             return true;
         };

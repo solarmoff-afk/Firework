@@ -1,6 +1,12 @@
 // Часть проекта Firework с открытым исходным кодом.
 // Лицензия EPL 2.0, подробнее в файле LICENSE. Copyright (c) 2026 Firework
 
+#[cfg(feature = "trace")]
+use tracing::instrument;
+
+#[cfg(feature = "trace")]
+use quote::quote;
+
 use proc_macro2::Span;
 use syn::visit_mut::{self, VisitMut};
 
@@ -17,6 +23,7 @@ impl SelfFieldAdder {
 }
 
 impl VisitMut for SelfFieldAdder {
+    #[instrument(skip_all, fields(node = %quote!(#expr_struct)))]
     fn visit_expr_struct_mut(&mut self, expr_struct: &mut ExprStruct) {
         if expr_struct.path.is_ident("Self") {
             for (field_name, _) in &self.fields {

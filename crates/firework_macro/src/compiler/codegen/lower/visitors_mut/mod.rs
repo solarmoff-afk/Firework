@@ -12,6 +12,7 @@ use syn::*;
 
 use crate::compiler::codegen::code_builder::CodeBuilder;
 use crate::compiler::codegen::ir::FireworkIR;
+use crate::CompileFlags;
 
 pub struct LowerVisitor<'a> {
     // IR от анализатора, содержит плоские семантические метки для каждого стейтемента,
@@ -24,9 +25,9 @@ pub struct LowerVisitor<'a> {
 }
 
 impl<'a> LowerVisitor<'a> {
-    pub fn new(ir: &'a mut FireworkIR) -> Self {
+    pub fn new(ir: &'a mut FireworkIR, flags: CompileFlags) -> Self {
         Self {
-            builder: CodeBuilder::new(ir.clone()),
+            builder: CodeBuilder::new(ir.clone(), flags),
             ir,
             ui_id: Some(0),
             pending_drops: Vec::new(),

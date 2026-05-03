@@ -13,5 +13,5 @@ safety-multithread = ["firework_macro/safety-multithread"]
 detail = ["firework_macro/debug_output"]
 
 [dependencies]
-firework_macro = { workspace = true }
+firework_macro = { workspace = true, features = ["trace"] }
 firework_adapter = { workspace = true }

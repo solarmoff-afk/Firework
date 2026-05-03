@@ -44,7 +44,7 @@ pub struct CodegenVisitor<'a> {
 impl<'a> CodegenVisitor<'a> {
     pub fn new(ir: &'a mut FireworkIR) -> Self {
         Self {
-            builder: CodeBuilder::new(ir.clone()),
+            builder: CodeBuilder::new(ir.clone(), CompileFlags::new()),
             ir,
             ui_id: None,
             mask_count: HashMap::new(),
@@ -56,6 +56,7 @@ impl<'a> CodegenVisitor<'a> {
 
     pub fn set_flags(&mut self, flags: CompileFlags) {
         self.flags = flags;
+        self.builder.flags = flags;
     }
 
     pub fn generate_code(
