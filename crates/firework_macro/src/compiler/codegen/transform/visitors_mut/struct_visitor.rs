@@ -1,11 +1,18 @@
 // Часть проекта Firework с открытым исходным кодом.
 // Лицензия EPL 2.0, подробнее в файле LICENSE. Copyright (c) 2026 Firework
 
+#[cfg(feature = "trace")]
+use tracing::instrument;
+
+#[cfg(feature = "trace")]
+use quote::quote;
+
 pub use super::super::*;
 
 use crate::CompileType;
 
 impl CodegenVisitor<'_> {
+    #[cfg_attr(feature = "trace", tracing::instrument(skip_all, fields(node = %quote!(#item_struct))))]
     pub fn codegen_item_struct(&self, item_struct: &mut ItemStruct) {
         if !matches!(self.flags.compile_type, CompileType::Component) {
             return;

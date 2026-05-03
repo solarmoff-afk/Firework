@@ -22,6 +22,15 @@ use syn::parse_str;
 #[cfg(feature = "debug_output")]
 use prettyplease::unparse;
 
+#[cfg(feature = "trace")]
+use tracing::*;
+
+#[cfg(feature = "trace")]
+use tracing_subscriber::prelude::__tracing_subscriber_SubscriberExt;
+
+#[cfg(feature = "trace")]
+use tracing_subscriber::util::SubscriberInitExt;
+
 use crate::FireworkAst;
 
 pub fn run_firework_compiler(
@@ -29,23 +38,54 @@ pub fn run_firework_compiler(
     flags: CompileFlags,
     id: u64,
 ) -> (TokenStream, Option<TokenStream>) {
+    #[cfg(feature = "trace")]
+    let (_chrome_guard, _sub_guard) = {
+        let (chrome_layer, chrome_guard) = tracing_chrome::ChromeLayerBuilder::new()
+            .file(format!("target/trace_{}.json", id))
+            .include_args(true)
+            .build();
+
+        let sub_guard = tracing_subscriber::registry()
+            .with(chrome_layer)
+            .set_default();
+
+        info!(compiler_id = id, "Firework Compiler started");
+
+        (chrome_guard, sub_guard)
+    };
+
     let token_stream: TokenStream = ast.tokens;
     let mut file: File = syn::parse2(token_stream).unwrap();
 
-    let output = prepare_tokens(file.clone(), flags, id);
+    let output = {
+        #[cfg(feature = "trace")]
+        let _span = info_span!("analyze::prepare_tokens").entered();
+
+        #[cfg(feature = "trace")]
+        println!("Hi?");
+
+        prepare_tokens(file.clone(), flags, id)
+    };
 
     if let Some(mut ir) = output.2
         && output.1.is_none()
     {
         {
-            let mut visitor = LowerVisitor::new(&mut ir);
-            // visitor.set_flags(flags);
+            #[cfg(feature = "trace")]
+            let _span = info_span!("codegen::lower").entered();
+
+            let mut visitor = LowerVisitor::new(&mut ir, flags);
             visitor.visit_file_mut(&mut file);
         }
 
-        let mut visitor = CodegenVisitor::new(&mut ir);
-        visitor.set_flags(flags);
-        visitor.visit_file_mut(&mut file);
+        {
+            #[cfg(feature = "trace")]
+            let _span = info_span!("codegen::transform").entered();
+
+            let mut visitor = CodegenVisitor::new(&mut ir);
+            visitor.set_flags(flags);
+            visitor.visit_file_mut(&mut file);
+        }
 
         let mut codegen_output = quote::quote! {
             #file

@@ -27,6 +27,77 @@ fn test_combine_nested_structures_screen() {
                 #[key_type(i32)]
                 key: i,
             }
+
+            rect! {
+                position: (10 * i, 10),
+                color: (255, 255, 255),
+
+                #[key_type(i32)]
+                key: i,
+            }
+
+            rect! {
+                position: (10 * i, 10),
+                color: (255, 255, 255),
+
+                #[key_type(i32)]
+                key: i,
+            }
+
+            rect! {
+                position: (10 * i, 10),
+                color: (255, 255, 255),
+
+                #[key_type(i32)]
+                key: i,
+            }
+
+            rect! {
+                position: (10 * i, 10),
+                color: (255, 255, 255),
+
+                #[key_type(i32)]
+                key: i,
+            }
+
+            rect! {
+                position: (10 * i, 10),
+                color: (255, 255, 255),
+
+                #[key_type(i32)]
+                key: i,
+            }
+
+            rect! {
+                position: (10 * i, 10),
+                color: (255, 255, 255),
+
+                #[key_type(i32)]
+                key: i,
+            }
+
+            rect! {
+                position: (10 * i, 10),
+                color: (255, 255, 255),
+
+                #[key_type(i32)]
+                key: i,
+            }
+            rect! {
+                position: (10 * i, 10),
+                color: (255, 255, 255),
+
+                #[key_type(i32)]
+                key: i,
+            }
+
+            rect! {
+                position: (10 * i, 10),
+                color: (255, 255, 255),
+
+                #[key_type(i32)]
+                key: i,
+            }
         }
     }
 

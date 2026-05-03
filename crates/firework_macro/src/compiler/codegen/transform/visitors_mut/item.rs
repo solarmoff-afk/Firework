@@ -1,18 +1,21 @@
 // Часть проекта Firework с открытым исходным кодом.
 // Лицензия EPL 2.0, подробнее в файле LICENSE. Copyright (c) 2026 Firework
 
-use proc_macro2::Span;
+use proc_macro2::{Group, Span};
 use quote::quote;
+use quote::quote_spanned;
 use syn::parse_quote;
 
 pub use super::super::*;
 
 use crate::CompileType;
 use crate::compiler::codegen::generator::static_gen;
+use crate::compiler::codegen::transform::visitors_mut::self_visitor::SelfFieldAdder;
 
 impl CodegenVisitor<'_> {
     /// Обрабатывает верхний уровень в вызове компилятора (item), функции, структуры и так
     /// далее. Генерирует flash pass и реактивный цикл
+    #[cfg_attr(feature = "trace", tracing::instrument(skip_all))]
     pub(crate) fn analyze_file_mut(&mut self, i: &mut File) {
         let mut new_items = Vec::new();
 
@@ -38,6 +41,13 @@ impl CodegenVisitor<'_> {
                 }
 
                 Item::Impl(mut item_impl) => {
+                    if let Type::Path(type_path) = &*item_impl.self_ty
+                        && let Some(segment) = type_path.path.segments.last()
+                    {
+                        let struct_name = segment.ident.to_string();
+                        self.extend_new(&mut item_impl, &struct_name);
+                    }
+
                     for item in &mut item_impl.items {
                         if let ImplItem::Fn(method) = item
                             && method.sig.ident == "flash"
@@ -64,6 +74,7 @@ impl CodegenVisitor<'_> {
         i.items = new_items;
     }
 
+    #[cfg_attr(feature = "trace", tracing::instrument(skip_all, fields(sig = ?sig, block = %quote!(#block))))]
     fn transform_ui_function(
         &mut self,
         sig: &mut Signature,
@@ -112,7 +123,7 @@ impl CodegenVisitor<'_> {
             // не реализует Default нужно использовать std::mem::replace, идёт
             // парсинг обычного пустого блока чтобы заменить на него оригинал, а
             // оригинальые данные забрать сюда чтобы избежать клонирования
-            let original_block = std::mem::replace(block, parse_quote!({}));
+            let mut original_block = std::mem::replace(block, parse_quote!({}));
 
             let reactive_output = self.generate_reactive(id);
             let generated_block = self.generate_flash_pass(id, &function_name);
@@ -178,53 +189,86 @@ impl CodegenVisitor<'_> {
                 (TokenStream::new(), TokenStream::new())
             };
 
-            // Если цикл совершил более 64 итераций (хардкод )то происходит выход
-            // из него это делается после добавления единицы к итерациям чтобы не
-            // отнимать единицу
-            // (64 - 1 = 63) от максимального количества итераций, так как:
-            //  - Нулевой шаг, +1, 1 итерация
-            //  - Первый шаг,  +1, 2 итерация
-            //  - 63 шаг, +1,  +1, 64 итерация, условие сработало
-            if !has_return {
-                *block = parse_quote_spanned!(span=> {
+            {
+                #[cfg(feature = "trace")]
+                let _span = tracing::warn_span!("final_block_generation", has_return = has_return)
+                    .entered();
+
+                let parse_batch = |token_stream: TokenStream| -> Vec<Stmt> {
+                    if token_stream.is_empty() {
+                        return Vec::new();
+                    }
+
+                    syn::parse2::<Block>(quote!({ #token_stream }))
+                        .expect("IE: Final Batch Parse Error")
+                        .stmts
+                };
+
+                let mut final_stmts = Vec::new();
+
+                // Мёртвый код для shared режима, но так как он весь завёрнут в _{name}
+                // (с _) то предупреждений не будет, а компилятор раста просто вырежет
+                // этот код в релизной сборке как мёртвый
+                final_stmts.extend(parse_batch(quote! {
                     let mut _fwc_event = firework_ui::LifeCycle::Navigate;
                     #init_code
-
                     let mut _fwc_guard: u8 = 0;
                     #(#bitmask_statements)*
                     #(#widget_bitmask_statement)*
+                }));
 
-                    loop {
+                if !has_return {
+                    let mut loop_stmts = Vec::new();
+
+                    loop_stmts.extend(parse_batch(quote! {
                         #(#bitmask_clone_statements)*
-
                         #dyn_lists_begin
-                        #original_block
-                        #dyn_lists_end
+                    }));
 
+                    loop_stmts.append(&mut original_block.stmts);
+
+                    // Если цикл совершил более 64 итераций (хардкод )то происходит выход
+                    // из него это делается после добавления единицы к итерациям чтобы не
+                    // отнимать единицу
+                    // (64 - 1 = 63) от максимального количества итераций, так как:
+                    //  - Нулевой шаг, +1, 1 итерация
+                    //  - Первый шаг,  +1, 2 итерация
+                    //  - 63 шаг, +1,  +1, 64 итерация, условие сработало
+                    loop_stmts.extend(parse_batch(quote! {
+                        #dyn_lists_end
                         if #bitmask_check_expr { break; }
                         _fwc_guard += 1;
                         _fwc_event = firework_ui::LifeCycle::Reactive;
                         if _fwc_guard > 64 { break; }
-                    }
+                    }));
 
+                    final_stmts.push(syn::Stmt::Expr(
+                        syn::Expr::Loop(syn::ExprLoop {
+                            attrs: Vec::new(),
+                            label: None,
+                            loop_token: Default::default(),
+                            body: Block {
+                                brace_token: Default::default(),
+                                stmts: loop_stmts,
+                            },
+                        }),
+                        None,
+                    ));
+                } else {
+                    final_stmts.extend(parse_batch(quote! {
+                        #(#bitmask_statements)*
+                        #(#bitmask_clone_statements)*
+                    }));
+
+                    final_stmts.append(&mut original_block.stmts);
+                }
+
+                final_stmts.extend(parse_batch(quote! {
                     #(#post_tokens)*
                     #widgets_gen_snapshot
-                });
-            } else {
-                // Если функция имеет возвращаемое значение то это не экран и не
-                // компонент, а значит виджетов у неё нет, а значит переменные из
-                // widget_bitmask_statement и так далее не нужны в этом случае
-                *block = parse_quote_spanned!(span=> {
-                    let mut _fwc_event = firework_ui::LifeCycle::Navigate;
-                    #init_code
+                }));
 
-                    #(#bitmask_statements)*
-                    #(#bitmask_clone_statements)*
-                    #original_block
-
-                    #(#post_tokens)*
-                    #widgets_gen_snapshot
-                });
+                block.stmts = final_stmts;
             }
         }
 
@@ -234,6 +278,7 @@ impl CodegenVisitor<'_> {
 
     /// Генерирует набор полей для вставки по ссылке на fields и возвращает вектор сырых
     /// полей (Имя, тип)
+    #[cfg_attr(feature = "trace", tracing::instrument(skip_all, fields(id = ?id, fields = ?fields)))]
     fn generate_fields(
         &self,
         id: u128,
@@ -254,12 +299,24 @@ impl CodegenVisitor<'_> {
         for (field_name_raw, field_type_raw) in fields_data {
             // Имя и тип поля
             let field_name = format_ident!("{}", field_name_raw);
-            let field_type: Type = parse_str(field_type_raw).unwrap();
+            let field_type_tokens: TokenStream = field_type_raw
+                .parse()
+                .expect("Failed to parse field_type to tokens");
+
+            let field_type: Type = syn::parse2(quote_spanned! { span=>
+                core::option::Option<#field_type_tokens>
+            })
+            .expect("IE: Failed to parse field type");
 
             // Кодогенерация поля
-            let field = parse_quote_spanned!(span=>
-                #field_name: core::option::Option<#field_type>
-            );
+            let field = Field {
+                attrs: Vec::new(),
+                vis: Visibility::Inherited,
+                mutability: FieldMutability::None,
+                ident: Some(field_name),
+                colon_token: Some(<Token![:]>::default()),
+                ty: field_type,
+            };
 
             fields.push(field);
         }
@@ -293,6 +350,7 @@ impl CodegenVisitor<'_> {
 
     /// Генерирует код для функции Build в Shared режиме и записывает новую функцию в
     /// new_item по мутабельной ссылке
+    #[cfg_attr(feature = "trace", tracing::instrument(skip_all, fields(id = ?id)))]
     fn generate_build(
         &self,
         new_items: &mut Vec<Item>,
@@ -306,12 +364,31 @@ impl CodegenVisitor<'_> {
 
         let struct_name = format_ident!("ApplicationUiBlockStruct{}", id);
 
-        // Структура экрана где хранится состояние, компоненты и виджеты
-        let struct_def: Item = parse_quote_spanned!(span=>
-            struct #struct_name {
-                #(#fields),*
-            }
-        );
+        let mut fields_punctuated = syn::punctuated::Punctuated::<Field, token::Comma>::new();
+        for field in fields {
+            fields_punctuated.push(field.clone());
+        }
+
+        // HACK: Создание DelimSpan из Span для struct_duf
+        let mut dummy_group = Group::new(proc_macro2::Delimiter::Brace, TokenStream::new());
+        dummy_group.set_span(span);
+
+        // Структура экрана где хранится состояние, компоненты и виджеты. Используется
+        // создание вручную что позволяет достичь более высокой скорости компиляции
+        let struct_def = Item::Struct(syn::ItemStruct {
+            attrs: Vec::new(),
+            vis: Visibility::Inherited,
+            struct_token: token::Struct { span },
+            ident: struct_name,
+            generics: Generics::default(),
+            fields: Fields::Named(syn::FieldsNamed {
+                brace_token: token::Brace {
+                    span: dummy_group.delim_span(),
+                },
+                named: fields_punctuated,
+            }),
+            semi_token: None,
+        });
 
         // Проверка можно ли генерировать структуру сейчас, в Shared режиме
         // компиляции нужна только одна структура так как состояние глобальное
@@ -360,6 +437,25 @@ impl CodegenVisitor<'_> {
                 // unwrap здесь безопасен
                 let item: Item = syn::parse2(tokens).expect("IE:6");
                 new_items.push(item);
+            }
+        }
+    }
+
+    /// Генерирует инициализацию полей которые генерирует компилятор в конструкторе компонента
+    fn extend_new(&self, item_impl: &mut ItemImpl, struct_name: &str) {
+        if let Some(fields) = self.ir.component_structs.get(struct_name) {
+            let fields_data: Vec<(String, String)> = fields
+                .iter()
+                .map(|(name, _type)| (name.clone(), _type.clone()))
+                .collect();
+
+            for item in &mut item_impl.items {
+                if let ImplItem::Fn(method) = item
+                    && method.sig.ident == "new"
+                {
+                    let mut visitor = SelfFieldAdder::new(fields_data.clone());
+                    visitor.visit_block_mut(&mut method.block);
+                }
             }
         }
     }

@@ -1,9 +1,13 @@
 // Часть проекта Firework с открытым исходным кодом.
 // Лицензия EPL 2.0, подробнее в файле LICENSE. Copyright (c) 2026 Firework
 
+#[cfg(feature = "trace")]
+use tracing::instrument;
+
 use proc_macro2::{Span, TokenStream};
 use quote::{format_ident, quote_spanned};
 
+#[cfg_attr(feature = "trace", instrument(skip_all, fields(struct_name_raw = ?struct_name_raw)))]
 pub fn generate_lifecycle(
     struct_name_raw: &str,
     dynamic_widgets: &[usize],

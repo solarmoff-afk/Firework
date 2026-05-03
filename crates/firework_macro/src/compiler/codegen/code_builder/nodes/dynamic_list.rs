@@ -4,6 +4,7 @@
 use super::super::*;
 
 impl CodeBuilder {
+    #[cfg_attr(feature = "trace", tracing::instrument(skip_all, fields(span = ?span)))]
     pub fn node_dynamic_list(
         &self,
         span: Span,

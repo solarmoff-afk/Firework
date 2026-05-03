@@ -3,7 +3,6 @@
 
 use proc_macro2::TokenStream;
 use syn::parse_str;
-use syn::*;
 
 /// Конвертация вектора строк в TokenStream
 pub(crate) trait ToTokenStreams {
@@ -13,23 +12,6 @@ pub(crate) trait ToTokenStreams {
 impl ToTokenStreams for Vec<String> {
     fn to_token_streams(self) -> syn::Result<Vec<TokenStream>> {
         self.into_iter().map(|s| parse_str(&s)).collect()
-    }
-}
-
-/// Конвертация строки (String или str) в стейтемент syn
-pub(crate) trait ToStmt {
-    fn to_stmt(&self) -> syn::Result<Stmt>;
-}
-
-impl ToStmt for str {
-    fn to_stmt(&self) -> syn::Result<Stmt> {
-        parse_str(self)
-    }
-}
-
-impl ToStmt for String {
-    fn to_stmt(&self) -> syn::Result<Stmt> {
-        parse_str(self)
     }
 }
 

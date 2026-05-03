@@ -12,8 +12,10 @@ use syn::spanned::Spanned;
 use syn::visit_mut::VisitMut;
 use syn::*;
 
+#[cfg(feature = "trace")]
+use tracing::instrument;
+
 use super::code_builder::CodeBuilder;
-use super::consts::{CHECK_EVENT, SET_FOCUS};
 use super::generator::bitmask_gen::*;
 use super::generator::static_gen::*;
 use super::ir::{FireworkIR, FireworkStatement};
@@ -44,7 +46,7 @@ pub struct CodegenVisitor<'a> {
 impl<'a> CodegenVisitor<'a> {
     pub fn new(ir: &'a mut FireworkIR) -> Self {
         Self {
-            builder: CodeBuilder::new(ir.clone()),
+            builder: CodeBuilder::new(ir.clone(), CompileFlags::new()),
             ir,
             ui_id: None,
             mask_count: HashMap::new(),
@@ -56,8 +58,10 @@ impl<'a> CodegenVisitor<'a> {
 
     pub fn set_flags(&mut self, flags: CompileFlags) {
         self.flags = flags;
+        self.builder.flags = flags;
     }
 
+    #[cfg_attr(feature = "trace", tracing::instrument(skip_all))]
     pub fn generate_code(
         &mut self,
         stmt: &Stmt,

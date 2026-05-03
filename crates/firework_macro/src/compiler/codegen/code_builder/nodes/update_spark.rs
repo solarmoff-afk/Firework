@@ -8,6 +8,7 @@ impl CodeBuilder {
     /// аналазитор отслеживает name = 10, name += 1, name.field = 1 и name.mut_fn()
     /// Спарк это не обёртка или умный указатель, а просто T который реактивный
     /// благодаря магии компилятора
+    #[cfg_attr(feature = "trace", tracing::instrument(skip_all, fields(span = ?span)))]
     pub fn node_update_spark(
         &self,
         span: Span,
@@ -21,6 +22,9 @@ impl CodeBuilder {
             // (от 0 до 63) своя битовая маска, поэтому эта строка позволяет
             // определить в какой маске изменить спарк
             let mask = get_spark_mask(*id);
+
+            // Имя переменной этой маски для записи в формате ident
+            let mask_ident = quote::format_ident!("_fwc_bitmask{}", mask);
 
             // Генерирует клд (набор стейтементов) для обновления битовых масок условных
             // виджетов декларация которых зависит от этого спарка. Это означает, что
@@ -69,19 +73,12 @@ impl CodeBuilder {
             let need_condition =
                 !statement.is_reactive_block && statement.parent_widget_id.is_none();
 
-            let statement = format!(
-                "{};",
-                set_flag(
-                    format!("_fwc_bitmask{}", mask).as_str(),
-                    // Используется айди спарка как бит для отслеживания, но
-                    // перед этим он проходит через нормализацию (id % 64)
-                    // который позволяет использовать даже айди больше 64
-                    // для множества битовых масок
-                    normalize_bit_index(*id),
-                )
-            )
-            .to_stmt()
-            .expect("Update_spark node parse error: bitmask");
+            // Используется айди спарка как бит для отслеживания, но
+            // перед этим он проходит через нормализацию (id % 64)
+            // который позволяет использовать даже айди больше 64
+            // для множества битовых масок
+            let bit_id = normalize_bit_index(*id);
+            let statement = quote! { #mask_ident |= 1 << #bit_id; };
 
             if need_condition {
                 final_tokens.extend(quote_spanned!(span=>

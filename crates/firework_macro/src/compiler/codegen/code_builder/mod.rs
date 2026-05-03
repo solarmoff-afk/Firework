@@ -1,29 +1,40 @@
 // Часть проекта Firework с открытым исходным кодом.
 // Лицензия EPL 2.0, подробнее в файле LICENSE. Copyright (c) 2026 Firework
 
+mod cache;
 mod nodes;
 
+#[cfg(feature = "trace")]
+use tracing::instrument;
+
+use cache::CodeBuilderCache;
 use proc_macro2::{Span, TokenStream};
 use quote::{format_ident, quote, quote_spanned};
+use std::collections::BTreeMap;
 use syn::spanned::Spanned;
 
-use super::consts::CHECK_NAVIGATE;
 use super::generator::bitmask_gen::*;
 use super::generator::static_gen;
 use super::ir::{FireworkAction, FireworkIR, FireworkStatement};
-use super::transform::traits::{ToExpr, ToStmt};
+use super::transform::traits::ToExpr;
+
+use crate::CompileFlags;
 
 pub struct CodeBuilder {
     /// Токены которые вставляются под конец функции за пределами цикла реактивности
     pub tokens: Vec<TokenStream>,
+    pub flags: CompileFlags,
+    pub cache: CodeBuilderCache,
 
     ir: FireworkIR,
 }
 
 impl CodeBuilder {
-    pub fn new(ir: FireworkIR) -> Self {
+    pub fn new(ir: FireworkIR, flags: CompileFlags) -> Self {
         Self {
             tokens: Vec::new(),
+            flags,
+            cache: CodeBuilderCache::new(),
             ir,
         }
     }
@@ -36,6 +47,7 @@ impl CodeBuilder {
     /// Сборка токенов из реального стейтемента и набора семантических меток. Через quote
     /// генерируется набор токенов и возвращается после чего вставляется на место стейтемента.
     /// Ноды сами решают использовать ли оригинальный стейтемент
+    #[cfg_attr(feature = "trace", tracing::instrument(skip_all, fields(node = %quote!(#stmt), span = ?stmt.span(), statements = ?statements)))]
     pub fn build(
         &mut self,
         stmt: &syn::Stmt,
@@ -136,10 +148,6 @@ impl CodeBuilder {
         self.generate_check(code, id, "_fwc_bitmask", "_clone");
     }
 
-    pub(crate) fn generate_check_widget_bit(&self, code: &mut String, id: usize) {
-        self.generate_check(code, id, "_fwc_widget_bitmask", "");
-    }
-
     fn generate_check(&self, code: &mut String, id: usize, mask_name: &str, mask_suffix: &str) {
         // Получение маски на основе айди спарка
         let mask = get_spark_mask(id);
@@ -168,22 +176,24 @@ impl CodeBuilder {
         if let Some(map) = self.ir.screen_maybe_widgets.get(&statement.screen_index)
             && let Some(widgets) = map.spark_widget_map.get(spark_id)
         {
+            let mut mask_groups: BTreeMap<u8, Vec<u8>> = BTreeMap::new();
+
             for widget in widgets {
                 // Битовая маска этого условного виджета
-                let mask = get_spark_mask(*widget);
+                let mask_idx = get_spark_mask(*widget);
+                let bit_idx = normalize_bit_index(*widget);
 
-                let mask_statement = format!(
-                    "{};",
-                    unset_flag(
-                        format!("_fwc_widget_bitmask{}", mask).as_str(),
-                        normalize_bit_index(*widget),
-                    )
-                )
-                .to_stmt()
-                .expect("Generate widget spark update: parse mask error");
+                // Комбинирование здесь используется для оптимизиации, 940 мкс -> 783 мкс
+                mask_groups.entry(mask_idx).or_default().push(bit_idx);
+            }
+
+            for (mask_id, bits) in mask_groups {
+                let mask_ident = format_ident!("_fwc_widget_bitmask{}", mask_id);
+
+                let bits_combined = bits.iter().map(|b| quote!(1 << #b));
 
                 update_widgets_statements.extend(quote! {
-                    #mask_statement
+                    #mask_ident &= !( #(#bits_combined)|* );
                 });
             }
         }

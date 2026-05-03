@@ -1,5 +1,5 @@
 /*
-use firework_ui::{ComponentContext, Prop, component, ui};
+use firework_ui::{ComponentContext, Prop, component};
 
 component! {
     pub struct Button {

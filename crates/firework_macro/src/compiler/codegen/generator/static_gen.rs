@@ -3,6 +3,10 @@
 
 #![allow(dead_code)]
 
+use proc_macro2::TokenStream;
+use quote::format_ident;
+use quote::quote;
+
 /// Хелпер для декларации статического экземпляра структуры экрана (слайда), заполняет
 /// все поля как None, то есть требует чтобы все поля структуры были строго Option. Это
 /// не проблема так как компилятор раста не скомпилирует код который использует переменные
@@ -105,6 +109,53 @@ pub(crate) fn init_instance(
     output.push_str("\tdrop(instance);\n\n");
 
     output
+}
+
+#[cfg(not(feature = "safety-multithread"))]
+pub(crate) fn init_instance_tokens(
+    instance_name: &str,
+    _struct_name: &str,
+    _fields: &[(String, String)],
+) -> TokenStream {
+    let instance_ident = format_ident!("{}_INSTANCE", instance_name);
+
+    quote! {
+        if unsafe { #instance_ident._fwc_screen_id.is_none() } {
+            _fwc_build = true;
+            unsafe {
+                #instance_ident._fwc_screen_id = Some(1);
+            }
+        }
+    }
+}
+
+#[cfg(feature = "safety-multithread")]
+pub(crate) fn init_instance_tokens(
+    instance_name: &str,
+    struct_name: &str,
+    fields: &[(String, String)],
+) -> TokenStream {
+    let instance_ident = format_ident!("{}_INSTANCE", instance_name);
+    let struct_ident = format_ident!("{}", struct_name);
+
+    let field_initializers = fields.iter().map(|(name, _)| {
+        let name_ident = format_ident!("{}", name);
+        quote! { #name_ident: None }
+    });
+
+    quote! {
+        let mut instance = #instance_ident.get_or_init(|| std::sync::Mutex::new(#struct_ident {
+            _fwc_screen_id: None,
+            #(#field_initializers),*
+        })).lock().unwrap();
+
+        if instance._fwc_screen_id.is_none() {
+            _fwc_build = true;
+            instance._fwc_screen_id = Some(1);
+        }
+
+        drop(instance);
+    }
 }
 
 /// Хелпер который позволяет установить значение поля экземпляра экрана (слайда). Важно, метод

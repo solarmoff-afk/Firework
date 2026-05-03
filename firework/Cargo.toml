@@ -10,7 +10,8 @@ proc-macro = false
 default = []
 no-alloc = []
 safety-multithread = ["firework_macro/safety-multithread"]
-detail = ["firework_macro/debug_output"]
+detail = ["firework_macro/debug_output", "firework_macro/trace"]
+trace = ["firework_macro/trace"]
 
 [dependencies]
 firework_macro = { workspace = true }
