@@ -9,7 +9,7 @@ use tracing::instrument;
 pub use super::super::*;
 
 impl CodegenVisitor<'_> {
-    #[instrument(skip_all, fields(node = %quote!(#i)))]
+    #[instrument(skip_all)]
     pub(crate) fn analyze_block_mut(&mut self, i: &mut Block) {
         let mut new_statements = Vec::new();
 

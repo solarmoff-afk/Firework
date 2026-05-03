@@ -1,12 +1,16 @@
 // Часть проекта Firework с открытым исходным кодом.
 // Лицензия EPL 2.0, подробнее в файле LICENSE. Copyright (c) 2026 Firework
 
+#[cfg(feature = "trace")]
+use tracing::instrument;
+
 use super::super::macro_resolver::MacroResolver;
 use super::*;
 
 use crate::compiler::codegen::ir::FireworkAction;
 
 impl LowerVisitor<'_> {
+    #[instrument(skip_all)]
     pub(crate) fn lower_block_mut(&mut self, i: &mut Block) {
         let mut new_statements = Vec::new();
         let original_statements = i.stmts.clone();

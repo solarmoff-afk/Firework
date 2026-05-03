@@ -11,6 +11,7 @@ use proc_macro2::{Span, TokenStream};
 use quote::{format_ident, quote, quote_spanned};
 use syn::spanned::Spanned;
 use cache::CodeBuilderCache;
+use std::collections::BTreeMap;
 
 use super::consts::CHECK_NAVIGATE;
 use super::generator::bitmask_gen::*;
@@ -186,22 +187,24 @@ impl CodeBuilder {
         if let Some(map) = self.ir.screen_maybe_widgets.get(&statement.screen_index)
             && let Some(widgets) = map.spark_widget_map.get(spark_id)
         {
+            let mut mask_groups: BTreeMap<u8, Vec<u8>> = BTreeMap::new();
+
             for widget in widgets {
                 // Битовая маска этого условного виджета
-                let mask = get_spark_mask(*widget);
+                let mask_idx = get_spark_mask(*widget);
+                let bit_idx = normalize_bit_index(*widget);
+                
+                // Комбинирование здесь используется для оптимизиации, 940 мкс -> 783 мкс
+                mask_groups.entry(mask_idx).or_default().push(bit_idx);
+            }
 
-                let mask_statement = format!(
-                    "{};",
-                    unset_flag(
-                        format!("_fwc_widget_bitmask{}", mask).as_str(),
-                        normalize_bit_index(*widget),
-                    )
-                )
-                .to_stmt()
-                .expect("Generate widget spark update: parse mask error");
+            for (mask_id, bits) in mask_groups {
+                let mask_ident = format_ident!("_fwc_widget_bitmask{}", mask_id);
+
+                let bits_combined = bits.iter().map(|b| quote!(1 << #b));
 
                 update_widgets_statements.extend(quote! {
-                    #mask_statement
+                    #mask_ident &= !( #(#bits_combined)|* );
                 });
             }
         }

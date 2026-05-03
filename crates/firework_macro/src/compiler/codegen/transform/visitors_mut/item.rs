@@ -17,7 +17,7 @@ use crate::compiler::codegen::transform::visitors_mut::self_visitor::SelfFieldAd
 impl CodegenVisitor<'_> {
     /// Обрабатывает верхний уровень в вызове компилятора (item), функции, структуры и так
     /// далее. Генерирует flash pass и реактивный цикл
-    #[instrument(skip_all, fields(node = %quote!(#i)))]
+    #[instrument(skip_all)]
     pub(crate) fn analyze_file_mut(&mut self, i: &mut File) {
         let mut new_items = Vec::new();
 
@@ -192,6 +192,7 @@ impl CodegenVisitor<'_> {
             };
 
             {
+                #[cfg(feature = "trace")]
                 let _span = tracing::warn_span!(
                     "final_block_generation",
                     has_return = has_return
@@ -208,6 +209,9 @@ impl CodegenVisitor<'_> {
 
                 let mut final_stmts = Vec::new();
 
+                // Мёртвый код для shared режима, но так как он весь завёрнут в _{name}
+                // (с _) то предупреждений не будет, а компилятор раста просто вырежет
+                // этот код в релизной сборке как мёртвый
                 final_stmts.extend(parse_batch(quote! {
                     let mut _fwc_event = firework_ui::LifeCycle::Navigate;
                     #init_code
@@ -226,6 +230,13 @@ impl CodegenVisitor<'_> {
 
                     loop_stmts.append(&mut original_block.stmts);
 
+                    // Если цикл совершил более 64 итераций (хардкод )то происходит выход
+                    // из него это делается после добавления единицы к итерациям чтобы не
+                    // отнимать единицу
+                    // (64 - 1 = 63) от максимального количества итераций, так как:
+                    //  - Нулевой шаг, +1, 1 итерация
+                    //  - Первый шаг,  +1, 2 итерация
+                    //  - 63 шаг, +1,  +1, 64 итерация, условие сработало
                     loop_stmts.extend(parse_batch(quote! {
                         #dyn_lists_end
                         if #bitmask_check_expr { break; }
@@ -234,7 +245,6 @@ impl CodegenVisitor<'_> {
                         if _fwc_guard > 64 { break; }
                     }));
 
-                    // Создаем Loop структуру вручную (мгновенно)
                     final_stmts.push(syn::Stmt::Expr(syn::Expr::Loop(syn::ExprLoop {
                         attrs: Vec::new(),
                         label: None,
@@ -259,57 +269,6 @@ impl CodegenVisitor<'_> {
                 }));
 
                 block.stmts = final_stmts;
-
-                /*
-                // Если цикл совершил более 64 итераций (хардкод )то происходит выход
-                // из него это делается после добавления единицы к итерациям чтобы не
-                // отнимать единицу
-                // (64 - 1 = 63) от максимального количества итераций, так как:
-                //  - Нулевой шаг, +1, 1 итерация
-                //  - Первый шаг,  +1, 2 итерация
-                //  - 63 шаг, +1,  +1, 64 итерация, условие сработало
-                if !has_return {
-                    *block = parse_quote_spanned!(span=> {
-                        let mut _fwc_event = firework_ui::LifeCycle::Navigate;
-                        #init_code
-
-                        let mut _fwc_guard: u8 = 0;
-                        #(#bitmask_statements)*
-                        #(#widget_bitmask_statement)*
-
-                        loop {
-                            #(#bitmask_clone_statements)*
-
-                            #dyn_lists_begin
-                            #original_block
-                            #dyn_lists_end
-
-                            if #bitmask_check_expr { break; }
-                            _fwc_guard += 1;
-                            _fwc_event = firework_ui::LifeCycle::Reactive;
-                            if _fwc_guard > 64 { break; }
-                        }
-
-                        #(#post_tokens)*
-                        #widgets_gen_snapshot
-                    });
-                } else {
-                    // Если функция имеет возвращаемое значение то это не экран и не
-                    // компонент, а значит виджетов у неё нет, а значит переменные из
-                    // widget_bitmask_statement и так далее не нужны в этом случае
-                    *block = parse_quote_spanned!(span=> {
-                        let mut _fwc_event = firework_ui::LifeCycle::Navigate;
-                        #init_code
-
-                        #(#bitmask_statements)*
-                        #(#bitmask_clone_statements)*
-                        #original_block
-
-                        #(#post_tokens)*
-                        #widgets_gen_snapshot
-                    });
-                }
-                */
             }
         }
 

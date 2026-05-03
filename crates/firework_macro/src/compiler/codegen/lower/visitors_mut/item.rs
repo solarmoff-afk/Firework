@@ -1,9 +1,13 @@
 // Часть проекта Firework с открытым исходным кодом.
 // Лицензия EPL 2.0, подробнее в файле LICENSE. Copyright (c) 2026 Firework
 
+#[cfg(feature = "trace")]
+use tracing::instrument;
+
 pub use super::*;
 
 impl LowerVisitor<'_> {
+    #[instrument(skip_all)]
     pub(crate) fn lower_file_mut(&mut self, i: &mut File) {
         let mut new_items = Vec::new();
 
