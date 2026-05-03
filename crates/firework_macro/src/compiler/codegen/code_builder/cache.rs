@@ -2,7 +2,8 @@
 // Лицензия EPL 2.0, подробнее в файле LICENSE. Copyright (c) 2026 Firework
 
 use quote::format_ident;
-use proc_macro2::Ident;
+use proc_macro2::{Ident, TokenStream};
+use std::collections::HashMap;
 
 /// Это специальная структура которая позволяет оптимизировать парсинг (например format_ident)
 /// благодаря сохранению прошлых результатов работы
@@ -10,12 +11,15 @@ pub struct CodeBuilderCache {
     // Так как индексы битовых масок идут последовательно можно закэшировать их в векторе, номер
     // битвой маски это индекс в векторе где хранится иденты
     widget_bitmask_idents: Vec<Ident>,
+    instance_idents: HashMap<String, Ident>,
 }
 
 impl CodeBuilderCache {
     pub fn new() -> Self {
         Self {
             widget_bitmask_idents: Vec::new(),
+            skins: HashMap::new(),
+            instance_idents: HashMap::new(),
         }
     }
 
@@ -31,5 +35,16 @@ impl CodeBuilderCache {
         }
 
         &self.widget_bitmask_idents[id_usize]
+    }
+
+    pub fn cache_skin_path(&mut self, skin: &String) -> TokenStream {
+        if let Some(tokens) = self.skins.get(skin) {
+            return tokens.clone();
+        }
+
+        let tokens = skin.parse::<TokenStream>().expect("Invalid skin tokens");
+        self.skins.insert(skin.clone(), tokens.clone());
+
+        tokens
     }
 }

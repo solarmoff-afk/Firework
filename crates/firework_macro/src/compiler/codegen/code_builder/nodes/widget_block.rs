@@ -15,11 +15,12 @@ impl CodeBuilder {
         statement: &FireworkStatement,
     ) -> bool {
         if let FireworkAction::WidgetBlock(description) = &statement.action {
+            // Не кэшируется так как здесь профилирование показывает что расходы HashMap
+            // выше чем экономия, без кэширование 780 микросекунд, с нмм ~970
             let instance_ident_upper = format_ident!("{}_INSTANCE", struct_name.to_uppercase());
             let field_ident = format_ident!("widget_object_{}", description.id);
 
-            let skin_path: TokenStream = description.skin.parse()
-                .unwrap_or_else(|_| panic!("Invalid skin name: {}", description.skin));
+            let skin_path = self.cache.cache_skin_path(&description.skin);
 
             // При навигации нужно сгенерировать конструкцию виджета на основе скина
             let mut widget_init = quote_spanned! { span=>
