@@ -4,7 +4,7 @@
 use super::super::*;
 
 impl CodeBuilder {
-    #[tracing::instrument(skip_all, fields(statements = ?statement))]
+    #[tracing::instrument(skip_all, fields(span = ?span))]
     pub fn node_dynamic_list(
         &self,
         span: Span,

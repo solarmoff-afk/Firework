@@ -4,7 +4,7 @@
 use super::super::*;
 
 impl CodeBuilder {
-    #[tracing::instrument(skip_all, fields(statements = ?statement))]
+    #[tracing::instrument(skip_all, fields(span = ?span))]
     pub fn node_widget_block(
         &mut self,
         span: Span,
@@ -16,7 +16,7 @@ impl CodeBuilder {
             let instance_ident_upper = format_ident!("{}_INSTANCE", struct_name.to_uppercase());
             let field_ident = format_ident!("widget_object_{}", description.id);
 
-            let skin_path: syn::Type = syn::parse_str(&description.skin)
+            let skin_path: TokenStream = description.skin.parse()
                 .unwrap_or_else(|_| panic!("Invalid skin name: {}", description.skin));
 
             // При навигации нужно сгенерировать конструкцию виджета на основе скина
@@ -71,21 +71,21 @@ impl CodeBuilder {
                 });
 
                 if !field.sparks.is_empty() {
-                    let mut condition = String::new();
-
+                    let mut condition = Vec::new();
+                    
                     // Генерация условия на то, что хотя-бы одна зависимость в снапшотах
                     // битовых масках изменилась
                     for (_, id) in field.sparks.iter() {
-                        self.generate_check_spark_bit(&mut condition, *id);
-                        condition.push_str(" ||");
+                        condition.push(
+                            check_flag_tokens(
+                                &get_mask_name(*id),
+                                normalize_bit_index(*id)
+                            )
+                        );
                     }
 
-                    // Для упрощения кодогенерации сюда добавляется false для условия
-                    condition.push_str(" false ");
-                    let condition_statement = condition.to_expr().unwrap();
-
                     widget_reactive.extend(quote! {
-                        if #condition_statement {
+                        if #( #condition )||* {
                             _fwc_wb_1.#method_ident(#field_value);
                         }
                     });
@@ -105,33 +105,26 @@ impl CodeBuilder {
             // останутся нулями в битовой маске и будут скрыты. Тем самым условный
             // рендеринг будет работать для любых условий
             if let Some(local_id) = description.is_maybe {
-                let mask = get_spark_mask(local_id);
-                let statement = format!(
-                    "{};",
-                    set_flag(
-                        format!("_fwc_widget_bitmask{}", mask).as_str(),
-                        normalize_bit_index(local_id),
-                    )
-                )
-                .to_stmt()
-                .expect("Widget_block symtax error in bitmask");
-
+                let mask_idx = get_spark_mask(local_id);
+                let mask_name = format_ident!("_fwc_widget_bitmask{}", mask_idx);
+                let bit = normalize_bit_index(local_id);
+                
                 widget_update_bitmask.extend(quote! {
-                    #statement
+                    #mask_name |= 1 << #bit;
                 });
             }
-
-            // Генерация проверки на то, что бит виджета изменился в битовой маске
-            let mut condition = String::new();
 
             // Если description.is_maybe будет None то этот код просто не будет
             // использован, поэтому unwrap_or(0) является нормой, так как 0 хардкод просто
             // не будет использован
-            self.generate_check_widget_bit(&mut condition, description.is_maybe.unwrap_or(0));
-
-            let condition_statement = condition
-                .to_expr()
-                .expect("Widget_block symtax error: Condition statement parse error");
+            let condition_statement = if let Some(local_id) = description.is_maybe {
+                let mask_idx = get_spark_mask(local_id);
+                let mask_name = format_ident!("_fwc_widget_bitmask{}", mask_idx);
+                let bit = normalize_bit_index(local_id);
+                quote! { (#mask_name & (1 << #bit)) != 0 }
+            } else {
+                quote! { true }
+            };
 
             // Безопасный режим с Mutex
             #[cfg(feature = "safety-multithread")]

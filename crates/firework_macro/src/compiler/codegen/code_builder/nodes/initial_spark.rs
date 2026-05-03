@@ -25,7 +25,7 @@ impl CodeBuilder {
     /// но анализатор иногда может угадать тип если он очевиден. Спарки без mut менять нельзя
     /// что позволяет создать данные которые защищены от изменения, но при этом которые
     /// не пересчитываются каждый раз
-    #[tracing::instrument(skip_all, fields(statements = ?statement))]
+    #[tracing::instrument(skip_all, fields(span = ?span))]
     pub fn node_initial_spark(
         &self,
         span: Span,
