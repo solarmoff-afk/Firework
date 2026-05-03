@@ -1,3 +1,4 @@
+/*
 use firework_ui::{ComponentContext, Prop, component};
 
 component! {
@@ -23,6 +24,7 @@ component! {
         }
     }
 }
+*/
 
 /*
 #[ui]

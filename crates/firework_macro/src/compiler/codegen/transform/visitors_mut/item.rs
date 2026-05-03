@@ -1,8 +1,9 @@
 // Часть проекта Firework с открытым исходным кодом.
 // Лицензия EPL 2.0, подробнее в файле LICENSE. Copyright (c) 2026 Firework
 
-use proc_macro2::Span;
+use proc_macro2::{Span, Group};
 use quote::quote;
+use quote::quote_spanned;
 use syn::parse_quote;
 
 #[cfg(feature = "trace")]
@@ -299,12 +300,22 @@ impl CodegenVisitor<'_> {
         for (field_name_raw, field_type_raw) in fields_data {
             // Имя и тип поля
             let field_name = format_ident!("{}", field_name_raw);
-            let field_type: Type = parse_str(field_type_raw).unwrap();
+            let field_type_tokens: TokenStream = field_type_raw.parse()
+                .expect("Failed to parse field_type to tokens");
+
+            let field_type: Type = syn::parse2(quote_spanned! { span=>
+                core::option::Option<#field_type_tokens>
+            }).expect("IE: Failed to parse field type");
 
             // Кодогенерация поля
-            let field = parse_quote_spanned!(span=>
-                #field_name: core::option::Option<#field_type>
-            );
+            let field = Field {
+                attrs: Vec::new(),
+                vis: Visibility::Inherited,
+                mutability: FieldMutability::None,
+                ident: Some(field_name),
+                colon_token: Some(<Token![:]>::default()),
+                ty: field_type,
+            };
 
             fields.push(field);
         }
@@ -338,7 +349,7 @@ impl CodegenVisitor<'_> {
 
     /// Генерирует код для функции Build в Shared режиме и записывает новую функцию в
     /// new_item по мутабельной ссылке
-    #[tracing::instrument(skip_all, fields(instance_item = ?instance_item))]
+    #[tracing::instrument(skip_all, fields(id = ?id))]
     fn generate_build(
         &self,
         new_items: &mut Vec<Item>,
@@ -352,12 +363,29 @@ impl CodegenVisitor<'_> {
 
         let struct_name = format_ident!("ApplicationUiBlockStruct{}", id);
 
-        // Структура экрана где хранится состояние, компоненты и виджеты
-        let struct_def: Item = parse_quote_spanned!(span=>
-            struct #struct_name {
-                #(#fields),*
-            }
-        );
+        let mut fields_punctuated = syn::punctuated::Punctuated::<Field, token::Comma>::new();
+        for field in fields {
+            fields_punctuated.push(field.clone());
+        }
+
+        // HACK: Создание DelimSpan из Span для struct_duf
+        let mut dummy_group = Group::new(proc_macro2::Delimiter::Brace, TokenStream::new());
+        dummy_group.set_span(span);
+        
+        // Структура экрана где хранится состояние, компоненты и виджеты. Используется
+        // создание вручную что позволяет достичь более высокой скорости компиляции
+        let struct_def = Item::Struct(syn::ItemStruct {
+            attrs: Vec::new(),
+            vis: Visibility::Inherited,
+            struct_token: token::Struct { span },
+            ident: struct_name,
+            generics: Generics::default(),
+            fields: Fields::Named(syn::FieldsNamed {
+                brace_token: token::Brace { span: dummy_group.delim_span(), },
+                named: fields_punctuated,
+            }),
+            semi_token: None,
+        });
 
         // Проверка можно ли генерировать структуру сейчас, в Shared режиме
         // компиляции нужна только одна структура так как состояние глобальное
