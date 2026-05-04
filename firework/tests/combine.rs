@@ -249,3 +249,67 @@ fn test_combine_sibling_loops() {
         ]
     );
 }
+
+#[ui]
+fn test_combine_advanced_reconciliation_screen() {
+    let mut items_count = spark!(0);
+    let mut filter_even = spark!(false);
+    let mut global_offset = spark!(0);
+
+    if items_count > 0 {
+        for i in 0..items_count {
+            if !filter_even || i % 2 == 0 {
+                rect! {
+                    position: (global_offset + i * 10, 0),
+                    color: (255, 255, 255),
+
+                    #[key_type(i32)]
+                    key: i,
+                }
+            }
+        }
+    }
+
+    if items_count == 0 {
+        items_count = 3;
+    } else if global_offset == 0 {
+        global_offset = 100;
+    } else if !filter_even {
+        filter_even = true;
+    } else if filter_even && items_count == 3 {
+        items_count = 5;
+    }
+}
+
+#[test]
+fn test_combine_advanced_reconciliation() {
+    let commands = TestHarness::run(test_combine_advanced_reconciliation_screen);
+
+    assert_eq!(
+        commands,
+        vec![
+            AdapterCommand::RemoveAll,
+            AdapterCommand::NewRect { layout: 1 },
+            AdapterCommand::SetHitGroup(0, 65535),
+            AdapterCommand::SetPosition(0, (0, 0)),
+            AdapterCommand::SetColor(0, (255, 255, 255, 255)),
+            AdapterCommand::NewRect { layout: 1 },
+            AdapterCommand::SetHitGroup(0, 65535),
+            AdapterCommand::SetPosition(0, (10, 0)),
+            AdapterCommand::SetColor(0, (255, 255, 255, 255)),
+            AdapterCommand::NewRect { layout: 1 },
+            AdapterCommand::SetHitGroup(0, 65535),
+            AdapterCommand::SetPosition(0, (20, 0)),
+            AdapterCommand::SetColor(0, (255, 255, 255, 255)),
+            AdapterCommand::SetVisible(0, false),
+            AdapterCommand::Remove(0),
+            AdapterCommand::NewRect { layout: 1 },
+            AdapterCommand::SetHitGroup(0, 65535),
+            AdapterCommand::SetPosition(0, (140, 0)),
+            AdapterCommand::SetColor(0, (255, 255, 255, 255)),
+            AdapterCommand::SetVisible(0, true),
+            AdapterCommand::SetVisible(0, true),
+            AdapterCommand::SetVisible(0, true),
+        ]
+    );
+}
