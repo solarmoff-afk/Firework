@@ -140,6 +140,80 @@ fn test_analyze_update_spark() {
     assert_ir_equal(&ir.statements, &expected);
 }
 
+#[test]
+fn test_analyze_update_spark2() {
+    let tokens = quote::quote! {
+        fn screen() {
+            let mut a = spark!(10);
+
+            if a == 5 {
+                println!("Hello world");
+            }
+
+            a.subfield.field.0 += 1;
+            a.subfield.field[10] += 1;
+            *a.field = 5;
+        }
+    };
+
+    let ir = extract_ir(tokens);
+
+    let expected = [
+        create_initial_spark("a", 1, "i32", "10", true),
+        create_reactive_block(
+            FireworkReactiveBlock::ReactiveIf,
+            vec![("a".to_string(), 1)],
+        ),
+        FireworkAction::DefaultCode,
+        FireworkAction::ReactiveBlockTerminator,
+        FireworkAction::UpdateSpark("a".to_string(), 1, None),
+        FireworkAction::UpdateSpark("a".to_string(), 1, None),
+        FireworkAction::UpdateSpark("a".to_string(), 1, None),
+        create_drop_spark("a", 1),
+        FireworkAction::Terminator,
+    ];
+
+    assert_ir_equal(&ir.statements, &expected);
+}
+
+#[test]
+fn test_analyze_update_spark_method() {
+    let tokens = quote::quote! {
+        fn screen() {
+            let mut a: Vec<String> = spark!(Vec::new());
+
+            if a.len() == 5 {
+                println!("Hello world");
+            }
+
+            a.push(10);
+            a.insert(0, 10);
+            a.clear();
+            a.len();
+        }
+    };
+
+    let ir = extract_ir(tokens);
+
+    let expected = [
+        create_initial_spark("a", 1, "i32", "10", true),
+        create_reactive_block(
+            FireworkReactiveBlock::ReactiveIf,
+            vec![("a".to_string(), 1)],
+        ),
+        FireworkAction::DefaultCode,
+        FireworkAction::ReactiveBlockTerminator,
+        FireworkAction::UpdateSpark("a".to_string(), 1, None),
+        FireworkAction::UpdateSpark("a".to_string(), 1, None),
+        FireworkAction::UpdateSpark("a".to_string(), 1, None),
+        FireworkAction::DefaultCode,
+        create_drop_spark("a", 1),
+        FireworkAction::Terminator,
+    ];
+
+    assert_ir_equal(&ir.statements, &expected);
+}
+
 /// Тестирует что обновление спарка через поле добавляет UpdateSpark в IR
 #[test]
 fn test_analyze_update_spark_field() {
