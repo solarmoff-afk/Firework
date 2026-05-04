@@ -89,16 +89,6 @@ impl CodeBuilder {
 
         for statement in statements {
             let mut temp_tokens = TokenStream::new();
-            if let FireworkAction::ReactiveBlock(..) = statement.action
-                && self.node_reactive_block(span, &mut temp_tokens, statement, &processed_body)
-            {
-                processed_body = temp_tokens;
-                is_body_handled = true;
-            }
-        }
-
-        for statement in statements {
-            let mut temp_tokens = TokenStream::new();
             if let FireworkAction::DynamicLoopBegin(..) = statement.action {
                 let struct_name = format!("ApplicationUiBlockStruct{}", statement.screen_index);
                 if self.node_dynamic_list(
@@ -111,6 +101,16 @@ impl CodeBuilder {
                     processed_body = temp_tokens;
                     is_body_handled = true;
                 }
+            }
+        }
+
+        for statement in statements {
+            let mut temp_tokens = TokenStream::new();
+            if let FireworkAction::ReactiveBlock(..) = statement.action
+                && self.node_reactive_block(span, &mut temp_tokens, statement, &processed_body)
+            {
+                processed_body = temp_tokens;
+                is_body_handled = true;
             }
         }
 

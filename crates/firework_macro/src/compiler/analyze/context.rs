@@ -64,8 +64,13 @@ pub struct AnalyzeContext {
     // этот реактивный блок помечается как часть декларации UI
     pub reactive_block_stack: Vec<IrHook>,
 
-    // Первый реактивный блок у которого есть is_ui
+    // Первый реактивный блок у которого есть is_ui. Также используется в динамических списках
+    // чтобы привязать DynamicListBegin к реактивному блоку если он есть
     pub first_ui_reactive_block: Option<IrHook>,
+
+    // Первый цикл в иерархии чтобы при нахождении виджетов найти DynamicListBegin и добавить
+    // записи о них туда
+    pub first_cycle: Option<IrHook>,
 
     // Какой компонент сейчас реализуется
     pub now_component: Option<String>,
@@ -112,6 +117,7 @@ impl AnalyzeContext {
             cycle_depth: 0,
             reactive_block_stack: Vec::new(),
             first_ui_reactive_block: None,
+            first_cycle: None,
             now_component: None,
         }
     }

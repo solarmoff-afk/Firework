@@ -128,7 +128,16 @@ impl FireworkIR {
     /// Добавляет виртуальный стейтемент в IR, использует текущий спан который устанавливается
     /// через метод set_span как ключ в снапшоте чтобы записать туда виртуальный стейтемент
     pub fn push(&mut self, stmt: FireworkStatement) {
-        let span_key = SpanKey::from_span(stmt.span);
+        self.push_from_key(stmt.clone(), SpanKey::from_span(stmt.span));
+    }
+
+    /// Этот метод вставляет стейтемент в начало ячейки снапшота под текущим спаном. Не
+    /// работает для плоского дебаг списка, только для снапшота
+    pub fn push_front(&mut self, stmt: FireworkStatement) {
+        self.push_front_from_key(stmt.clone(), SpanKey::from_span(stmt.span));
+    }
+
+    pub fn push_from_key(&mut self, stmt: FireworkStatement, span_key: SpanKey) {
         self.last_span = Some(span_key.clone());
 
         // Теперь просто вставляем, без Vec
@@ -139,6 +148,23 @@ impl FireworkIR {
             .push(stmt.clone());
 
         self.statements.push(stmt);
+
+        if !self.snapshot.order.contains(&span_key) {
+            self.snapshot.order.push(span_key);
+        }
+    }
+
+    pub fn push_front_from_key(&mut self, stmt: FireworkStatement, span_key: SpanKey) {
+        self.last_span = Some(span_key.clone());
+        
+        self.snapshot
+            .statements
+            .entry(span_key.clone())
+            .or_default()
+            .insert(0, stmt.clone());
+
+        // В дебаг список вообще не используется вставка
+        self.statements.push(stmt); 
 
         if !self.snapshot.order.contains(&span_key) {
             self.snapshot.order.push(span_key);

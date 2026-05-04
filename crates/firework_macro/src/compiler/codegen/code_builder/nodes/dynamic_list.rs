@@ -3,6 +3,8 @@
 
 use super::super::*;
 
+use crate::compiler::codegen::transform::helpers::dynamic_list::generate_lifecycle;
+
 impl CodeBuilder {
     #[cfg_attr(feature = "trace", tracing::instrument(skip_all, fields(span = ?span)))]
     pub fn node_dynamic_list(
@@ -14,10 +16,14 @@ impl CodeBuilder {
         processed_body: &TokenStream,
     ) -> bool {
         if let FireworkAction::DynamicLoopBegin(_depth, _widgets) = &statement.action {
+            let (list_begin, list_end) = generate_lifecycle(&_struct_name, _widgets, span);
+
             final_tokens.extend(quote_spanned!(span=>
-                // #list_inits
+                #list_begin
+                
                 #processed_body
-                // #list_ends
+                
+                #list_end
             ));
 
             return true;

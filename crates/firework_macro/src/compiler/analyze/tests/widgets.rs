@@ -244,19 +244,21 @@ fn test_analyze_widget_in_loop() {
     let mut has_microruntime = false;
     let mut has_dynamic_loop = false;
 
-    for stmt in &ir.statements {
-        if let WidgetBlock(desc) = &stmt.action {
-            if desc.has_microruntime {
-                has_microruntime = true;
-                assert_eq!(desc.widget_type, "rect");
-                assert!(desc.skin.contains("DynList") || desc.has_microruntime);
+    for (_span, statements) in &ir.snapshot.statements {
+        for stmt in statements {
+            if let WidgetBlock(desc) = &stmt.action {
+                if desc.has_microruntime {
+                    has_microruntime = true;
+                    assert_eq!(desc.widget_type, "rect");
+                    assert!(desc.skin.contains("DynList") || desc.has_microruntime);
+                }
             }
-        }
 
-        if let DynamicLoopBegin(depth, widgets) = &stmt.action {
-            has_dynamic_loop = true;
-            assert!(*depth > 0);
-            assert!(!widgets.is_empty());
+            if let DynamicLoopBegin(depth, widgets) = &stmt.action {
+                has_dynamic_loop = true;
+                assert!(*depth > 0);
+                assert!(!widgets.is_empty());
+            }
         }
     }
 

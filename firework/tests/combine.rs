@@ -128,6 +128,130 @@ fn test_combine_nested_structures() {
             AdapterCommand::SetVisible(0, false),
             AdapterCommand::Remove(0),
             AdapterCommand::SetVisible(0, false),
+
+            AdapterCommand::Remove(0),
+        ]
+    );
+}
+
+#[ui]
+fn test_combine_toggle_visibility_screen() {
+    let mut show_main = spark!(false);
+    let mut show_details = spark!(false);
+
+    if show_main {
+        rect! {
+            position: (0, 0),
+            color: (100, 100, 100),
+            
+            #[key_type(i32)] 
+            key: 1,
+        }
+
+        if show_details {
+            rect! {
+                position: (0, 50),
+                color: (200, 200, 200),
+                
+                #[key_type(i32)] 
+                key: 2,
+            }
+        }
+    }
+
+    // Стейт-машина
+    if !show_main {
+        show_main = true;
+    } else if !show_details {
+        show_details = true;
+    } else if show_main {
+        show_main = false;
+    }
+}
+
+#[test]
+fn test_combine_toggle_visibility() {
+    let commands = TestHarness::run(test_combine_toggle_visibility_screen);
+
+    assert_eq!(
+        commands,
+        vec![
+            AdapterCommand::RemoveAll,
+            
+            AdapterCommand::NewRect { layout: 1 },
+            AdapterCommand::SetHitGroup(0, 65535),
+            AdapterCommand::SetPosition(0, (0, 0)),
+            AdapterCommand::SetColor(0, (100, 100, 100, 255)),
+            
+            AdapterCommand::NewRect { layout: 1 },
+            AdapterCommand::SetHitGroup(0, 65535),
+            AdapterCommand::SetPosition(0, (0, 50)),
+            AdapterCommand::SetColor(0, (200, 200, 200, 255)),
+            
+            AdapterCommand::SetVisible(0, false),
+            AdapterCommand::SetVisible(0, false),
+        ]
+    );
+}
+
+#[ui]
+fn test_combine_sibling_loops_screen() {
+    let mut count_a = spark!(0);
+    let mut count_b = spark!(0);
+
+    for a in 0..count_a {
+        rect! {
+            position: (a * 10, 0),
+            color: (255, 0, 0),
+            
+            #[key_type(i32)] 
+            key: a,
+        }
+    }
+
+    for b in 0..count_b {
+        rect! {
+            position: (b * 10, 50),
+            color: (0, 255, 0),
+            
+            #[key_type(i32)] 
+            key: b,
+        }
+    }
+
+    if count_a == 0 {
+        count_a = 2;
+    } else if count_b == 0 {
+        count_b = 1;
+    } else if count_a == 2 {
+        count_a = 1;
+    }
+}
+
+#[test]
+fn test_combine_sibling_loops() {
+    let commands = TestHarness::run(test_combine_sibling_loops_screen);
+
+    assert_eq!(
+        commands,
+        vec![
+            AdapterCommand::RemoveAll,
+            
+            AdapterCommand::NewRect { layout: 1 },
+            AdapterCommand::SetHitGroup(0, 65535),
+            AdapterCommand::SetPosition(0, (0, 0)),
+            AdapterCommand::SetColor(0, (255, 0, 0, 255)),
+            AdapterCommand::NewRect { layout: 1 },
+            AdapterCommand::SetHitGroup(0, 65535),
+            AdapterCommand::SetPosition(0, (10, 0)),
+            AdapterCommand::SetColor(0, (255, 0, 0, 255)),
+            
+            AdapterCommand::NewRect { layout: 1 },
+            AdapterCommand::SetHitGroup(0, 65535),
+            AdapterCommand::SetPosition(0, (0, 50)),
+            AdapterCommand::SetColor(0, (0, 255, 0, 255)),
+            
+            AdapterCommand::SetVisible(0, false),
             AdapterCommand::Remove(0),
         ]
     );

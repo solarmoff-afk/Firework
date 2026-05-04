@@ -181,14 +181,6 @@ impl CodegenVisitor<'_> {
                 widgets_gen_snapshot.extend(CodeBuilder::convert_string_to_syn(&set_field_str));
             }
 
-            let (dyn_lists_begin, dyn_lists_end) = if let Some(dynamic_widgets) =
-                self.ir.screen_dynamic_widgets.get(&id)
-            {
-                helpers::dynamic_list::generate_lifecycle(&struct_name_raw, dynamic_widgets, span)
-            } else {
-                (TokenStream::new(), TokenStream::new())
-            };
-
             {
                 #[cfg(feature = "trace")]
                 let _span = tracing::warn_span!("final_block_generation", has_return = has_return)
@@ -222,7 +214,6 @@ impl CodegenVisitor<'_> {
 
                     loop_stmts.extend(parse_batch(quote! {
                         #(#bitmask_clone_statements)*
-                        #dyn_lists_begin
                     }));
 
                     loop_stmts.append(&mut original_block.stmts);
@@ -235,7 +226,7 @@ impl CodegenVisitor<'_> {
                     //  - Первый шаг,  +1, 2 итерация
                     //  - 63 шаг, +1,  +1, 64 итерация, условие сработало
                     loop_stmts.extend(parse_batch(quote! {
-                        #dyn_lists_end
+                        // #dyn_lists_end
                         if #bitmask_check_expr { break; }
                         _fwc_guard += 1;
                         _fwc_event = firework_ui::LifeCycle::Reactive;
@@ -264,6 +255,7 @@ impl CodegenVisitor<'_> {
                 }
 
                 final_stmts.extend(parse_batch(quote! {
+                    // #dyn_lists_end
                     #(#post_tokens)*
                     #widgets_gen_snapshot
                 }));

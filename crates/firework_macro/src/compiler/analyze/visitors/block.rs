@@ -15,7 +15,10 @@ macro_rules! create_snapshot {
         // Снапшот состояния. Микрорантайм виджеты можно создать только внутри цикла поэтому
         // шума в снапшоте быть не может, после выхода из первого цикла он всегда будет
         // пустым
-        let mut $snapshot_name = $self.context.microruntime_widgets.clone();
+        let mut $snapshot_name = (
+            $self.context.microruntime_widgets.clone(),
+            $self.context.first_cycle.clone(),
+        );
 
         // Очистка чтобы у каждой области видимости цикла были только его виджеты
         $self.context.microruntime_widgets.widgets.clear();
@@ -25,8 +28,9 @@ macro_rules! create_snapshot {
 /// Возврат снапшота, требует вызов create_snapshot в той же области видимости выше
 macro_rules! restore_snapshot {
     ($self:expr, $snapshot_name:ident) => {
-        $snapshot_name.has_widgets = $self.context.microruntime_widgets.has_widgets;
-        $self.context.microruntime_widgets = $snapshot_name;
+        $snapshot_name.0.has_widgets = $self.context.microruntime_widgets.has_widgets;
+        $self.context.microruntime_widgets = $snapshot_name.0;
+        $self.context.first_cycle = $snapshot_name.1;
 
         // Если после замены уровень нулевой то виджетов тут снова нет
         if $self.context.microruntime_widgets.count == 0 {
@@ -167,6 +171,7 @@ impl<'ast> Analyzer {
     /// Цикл while
     pub(crate) fn analyze_expr_while(&mut self, i: &'ast ExprWhile) {
         create_snapshot!(self, snapshot);
+        self.begin_loop(i.span());
 
         let sparks = self.get_sparks(&i.cond);
         let condition_code = i.cond.to_token_stream().to_string();
@@ -200,6 +205,7 @@ impl<'ast> Analyzer {
     /// Цикл for
     pub(crate) fn analyze_expr_for_loop(&mut self, i: &'ast ExprForLoop) {
         create_snapshot!(self, snapshot);
+        self.begin_loop(i.span());
 
         let sparks = self.get_sparks(&i.expr);
         let pattern_code = i.pat.to_token_stream().to_string();
@@ -293,6 +299,7 @@ impl<'ast> Analyzer {
     /// Loop { ... }
     pub(crate) fn analyze_expr_loop(&mut self, i: &'ast ExprLoop) {
         create_snapshot!(self, snapshot);
+        self.begin_loop(i.span());
 
         // Метка цикла
         let label = i.label.as_ref().map(|l| l.name.ident.to_string());
@@ -364,19 +371,68 @@ impl<'ast> Analyzer {
         self.lifetime_manager = old_manager;
     }
 
-    fn end_loop(&mut self, span: Span) {
+    fn begin_loop(&mut self, span: Span) {
         // Если при выходе из цикла в нём обнаружены виджеты то нужно пометить этот цикл
         // как динамический список в IR
-        if self.context.microruntime_widgets.has_widgets {
-            let mut statement = self.context.statement.clone();
+        let mut statement = self.context.statement.clone();
 
-            statement.action = FireworkAction::DynamicLoopBegin(
-                self.context.cycle_depth,
-                self.context.microruntime_widgets.widgets.clone(),
-            );
-            statement.string = "".to_string();
-            statement.span = span;
-            self.context.ir.push(statement);
+        match &self.context.first_cycle {
+            None => {
+                statement.action = FireworkAction::DynamicLoopBegin(
+                    self.context.cycle_depth,
+                    self.context.microruntime_widgets.widgets.clone(),
+                );
+                statement.string = "".to_string(); 
+                statement.span = span;
+
+                match &self.context.first_ui_reactive_block {
+                    Some(hook) => {
+                        self.context.ir.push_from_key(statement, hook.key.0.clone());
+                        self.context.first_cycle = Some(self.get_hook().expect("IE:12"));
+                    },
+
+                    None => self.context.ir.push(statement),
+                };
+                
+                // Создание хука для первого цикла. Используется is_none так как перезапись
+                // может произойти выше
+                if let Some(hook) = self.get_hook() && self.context.first_cycle.is_none() {
+                    self.context.first_cycle = Some(hook);
+                }
+            },
+
+            _ => {},
         }
+    }
+
+    fn end_loop(&mut self, _span: Span) {
+        let widgets_clone = self.context.microruntime_widgets.widgets.clone();
+
+        match &self.context.first_cycle {
+            Some(hook) => {
+                let statement = self.get_statement_from_hook(hook.clone());
+                if let FireworkAction::DynamicLoopBegin(_depth, widgets)
+                    = &mut statement.action {
+                    
+                    widgets.extend(widgets_clone);
+                }
+            }
+
+            _ => {},
+        }
+    }
+
+    fn get_hook(&self) -> Option<IrHook> {
+        if let Some(span) = self.context.ir.get_current_span()
+            && let Some(count) = self.context.ir.get_current_statements_count() {
+            
+            // SAFETY: Если этот код выполняется то span и count есть, а значит
+            // есть и стейтементы
+            let local_index = count.checked_sub(1).expect("BLOCK::IE:4");
+        
+            return Some(IrHook::new(local_index, span.clone(), local_index));
+        }
+
+        None
     }
 }
