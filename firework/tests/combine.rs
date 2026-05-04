@@ -313,3 +313,174 @@ fn test_combine_advanced_reconciliation() {
         ]
     );
 }
+
+#[ui]
+fn test_combine_mixed_static_dynamic_screen() {
+    let mut count = spark!(2);
+
+    rect! {
+        position: (0, 0),
+        color: (255, 0, 0),
+    }
+
+    for i in 0..count {
+        rect! {
+            position: (10, i * 10),
+            color: (0, 255, 0),
+
+            #[key_type(i32)]
+            key: i,
+        }
+    }
+
+    rect! {
+        position: (20, 0),
+        color: (0, 0, 255),
+    }
+
+    // Машина состояний
+    if count == 2 {
+        count = 1; // Удалится только один зеленый прямоугольник
+    }
+}
+
+#[test]
+fn test_combine_mixed_static_dynamic() {
+    let commands = TestHarness::run(test_combine_mixed_static_dynamic_screen);
+
+    assert_eq!(
+        commands,
+        vec![
+            AdapterCommand::RemoveAll,
+            AdapterCommand::NewRect { layout: 1 },
+            AdapterCommand::SetHitGroup(0, 65535),
+            AdapterCommand::SetPosition(0, (0, 0)),
+            AdapterCommand::SetColor(0, (255, 0, 0, 255)),
+            AdapterCommand::NewRect { layout: 1 },
+            AdapterCommand::SetHitGroup(0, 65535),
+            AdapterCommand::SetPosition(0, (10, 0)),
+            AdapterCommand::SetColor(0, (0, 255, 0, 255)),
+            AdapterCommand::NewRect { layout: 1 },
+            AdapterCommand::SetHitGroup(0, 65535),
+            AdapterCommand::SetPosition(0, (10, 10)),
+            AdapterCommand::SetColor(0, (0, 255, 0, 255)),
+            AdapterCommand::NewRect { layout: 1 },
+            AdapterCommand::SetHitGroup(0, 65535),
+            AdapterCommand::SetPosition(0, (20, 0)),
+            AdapterCommand::SetColor(0, (0, 0, 255, 255)),
+            AdapterCommand::SetVisible(0, false),
+            AdapterCommand::Remove(0),
+        ]
+    );
+}
+
+#[ui]
+fn test_combine_matrix_filter_screen() {
+    let mut size = spark!(2);
+    let mut show_diagonal = spark!(false);
+
+    for r in 0..size {
+        for c in 0..size {
+            // Рисуем всё либо только диагональ
+            if !show_diagonal || r == c {
+                rect! {
+                    position: (r * 10, c * 10),
+                    color: (255, 255, 255),
+
+                    #[key_type((i32, i32))]
+                    key: (r, c),
+                }
+            }
+        }
+    }
+
+    if !show_diagonal {
+        show_diagonal = true;
+    } else if size == 2 {
+        size = 3;
+    }
+}
+
+#[test]
+fn test_combine_matrix_filter() {
+    let commands = TestHarness::run(test_combine_matrix_filter_screen);
+
+    assert_eq!(
+        commands,
+        vec![
+            AdapterCommand::RemoveAll,
+            AdapterCommand::NewRect { layout: 1 },
+            AdapterCommand::SetHitGroup(0, 65535),
+            AdapterCommand::SetPosition(0, (0, 0)),
+            AdapterCommand::SetColor(0, (255, 255, 255, 255)),
+            AdapterCommand::NewRect { layout: 1 },
+            AdapterCommand::SetHitGroup(0, 65535),
+            AdapterCommand::SetPosition(0, (0, 10)),
+            AdapterCommand::SetColor(0, (255, 255, 255, 255)),
+            AdapterCommand::NewRect { layout: 1 },
+            AdapterCommand::SetHitGroup(0, 65535),
+            AdapterCommand::SetPosition(0, (10, 0)),
+            AdapterCommand::SetColor(0, (255, 255, 255, 255)),
+            AdapterCommand::NewRect { layout: 1 },
+            AdapterCommand::SetHitGroup(0, 65535),
+            AdapterCommand::SetPosition(0, (10, 10)),
+            AdapterCommand::SetColor(0, (255, 255, 255, 255)),
+            AdapterCommand::SetVisible(0, false),
+            AdapterCommand::Remove(0),
+            AdapterCommand::SetVisible(0, false),
+            AdapterCommand::Remove(0),
+            AdapterCommand::NewRect { layout: 1 },
+            AdapterCommand::SetHitGroup(0, 65535),
+            AdapterCommand::SetPosition(0, (20, 20)),
+            AdapterCommand::SetColor(0, (255, 255, 255, 255)),
+            AdapterCommand::SetVisible(0, true),
+            AdapterCommand::SetVisible(0, true),
+            AdapterCommand::SetVisible(0, true),
+        ]
+    );
+}
+
+#[ui]
+fn test_combine_zero_to_hero_screen() {
+    let mut count = spark!(0);
+
+    for i in 0..count {
+        rect! {
+            position: (i * 10, 0),
+            color: (255, 255, 0),
+
+            #[key_type(i32)]
+            key: i,
+        }
+    }
+
+    if count == 0 {
+        count = 2;
+    } else if count == 2 {
+        count = -1;
+    }
+}
+
+#[test]
+fn test_combine_zero_to_hero() {
+    let commands = TestHarness::run(test_combine_zero_to_hero_screen);
+
+    assert_eq!(
+        commands,
+        vec![
+            AdapterCommand::RemoveAll,
+            AdapterCommand::NewRect { layout: 1 },
+            AdapterCommand::SetHitGroup(0, 65535),
+            AdapterCommand::SetPosition(0, (0, 0)),
+            AdapterCommand::SetColor(0, (255, 255, 0, 255)),
+            AdapterCommand::NewRect { layout: 1 },
+            AdapterCommand::SetHitGroup(0, 65535),
+            AdapterCommand::SetPosition(0, (10, 0)),
+            AdapterCommand::SetColor(0, (255, 255, 0, 255)),
+            AdapterCommand::SetVisible(0, false),
+            AdapterCommand::Remove(0),
+            AdapterCommand::SetVisible(0, false),
+            AdapterCommand::Remove(0),
+        ]
+    );
+}
