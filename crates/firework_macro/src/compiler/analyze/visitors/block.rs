@@ -376,7 +376,7 @@ impl<'ast> Analyzer {
         // как динамический список в IR
         let mut statement = self.context.statement.clone();
 
-        if let None = &self.context.first_cycle {
+        if self.context.first_cycle.is_none() {
             statement.action = FireworkAction::DynamicLoopBegin(
                 self.context.cycle_depth,
                 self.context.microruntime_widgets.widgets.clone(),
