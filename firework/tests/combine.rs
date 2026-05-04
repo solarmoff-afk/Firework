@@ -484,3 +484,131 @@ fn test_combine_zero_to_hero() {
         ]
     );
 }
+
+#[ui]
+fn test_combine_else_if_routing_screen() {
+    let mut tab = spark!(0);
+
+    if tab == 0 {
+        rect! {
+            position: (0, 0),
+            color: (255, 0, 0), // Красный (Таб 0)
+            #[key_type(i32)] key: 0,
+        }
+    } else if tab == 1 {
+        rect! {
+            position: (10, 0),
+            color: (0, 255, 0), // Зеленый (Таб 1)
+            #[key_type(i32)] key: 1,
+        }
+    } else {
+        rect! {
+            position: (20, 0),
+            color: (0, 0, 255), // Синий (Остальные)
+            #[key_type(i32)] key: 2,
+        }
+    }
+
+    if tab == 0 {
+        tab = 1;
+    } else if tab == 1 {
+        tab = 2;
+    }
+}
+
+#[test]
+fn test_combine_else_if_routing() {
+    let commands = TestHarness::run(test_combine_else_if_routing_screen);
+
+    assert_eq!(
+        commands,
+        vec![
+            AdapterCommand::RemoveAll,
+            AdapterCommand::NewRect { layout: 1 },
+            AdapterCommand::SetHitGroup(0, 65535),
+            AdapterCommand::SetPosition(0, (0, 0)),
+            AdapterCommand::SetColor(0, (255, 0, 0, 255)),
+            AdapterCommand::NewRect { layout: 1 },
+            AdapterCommand::SetHitGroup(0, 65535),
+            AdapterCommand::SetPosition(0, (10, 0)),
+            AdapterCommand::SetColor(0, (0, 255, 0, 255)),
+            AdapterCommand::NewRect { layout: 1 },
+            AdapterCommand::SetHitGroup(0, 65535),
+            AdapterCommand::SetPosition(0, (20, 0)),
+            AdapterCommand::SetColor(0, (0, 0, 255, 255)),
+            AdapterCommand::SetVisible(0, false),
+            AdapterCommand::SetVisible(0, false),
+            AdapterCommand::SetVisible(0, true),
+        ]
+    );
+}
+
+#[ui]
+fn test_combine_match_routing_screen() {
+    let mut status = spark!(0);
+    let mut count = spark!(2);
+
+    for i in 0..count {
+        match status {
+            0 => {
+                rect! {
+                    position: (i * 10, 0),
+                    color: (100, 100, 100),
+
+                    #[key_type(i32)]
+                    key: i,
+                }
+            }
+
+            1 => {
+                if i % 2 == 0 {
+                    rect! {
+                        position: (i * 10, 10),
+                        color: (200, 200, 200),
+
+                        #[key_type(i32)]
+                        key: i,
+                    }
+                }
+            }
+
+            _ => {}
+        }
+    }
+
+    if status == 0 {
+        status = 1;
+    } else if status == 1 {
+        status = 2;
+    }
+}
+
+#[test]
+fn test_combine_match_routing() {
+    let commands = TestHarness::run(test_combine_match_routing_screen);
+
+    assert_eq!(
+        commands,
+        vec![
+            AdapterCommand::RemoveAll,
+            AdapterCommand::NewRect { layout: 1 },
+            AdapterCommand::SetHitGroup(0, 65535),
+            AdapterCommand::SetPosition(0, (0, 0)),
+            AdapterCommand::SetColor(0, (100, 100, 100, 255)),
+            AdapterCommand::NewRect { layout: 1 },
+            AdapterCommand::SetHitGroup(0, 65535),
+            AdapterCommand::SetPosition(0, (10, 0)),
+            AdapterCommand::SetColor(0, (100, 100, 100, 255)),
+            AdapterCommand::NewRect { layout: 1 },
+            AdapterCommand::SetHitGroup(0, 65535),
+            AdapterCommand::SetPosition(0, (0, 10)),
+            AdapterCommand::SetColor(0, (200, 200, 200, 255)),
+            AdapterCommand::SetVisible(0, false),
+            AdapterCommand::Remove(0),
+            AdapterCommand::SetVisible(0, false),
+            AdapterCommand::Remove(0),
+            AdapterCommand::SetVisible(0, false),
+            AdapterCommand::Remove(0),
+        ]
+    );
+}
