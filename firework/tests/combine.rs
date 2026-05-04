@@ -128,7 +128,6 @@ fn test_combine_nested_structures() {
             AdapterCommand::SetVisible(0, false),
             AdapterCommand::Remove(0),
             AdapterCommand::SetVisible(0, false),
-
             AdapterCommand::Remove(0),
         ]
     );
@@ -143,8 +142,8 @@ fn test_combine_toggle_visibility_screen() {
         rect! {
             position: (0, 0),
             color: (100, 100, 100),
-            
-            #[key_type(i32)] 
+
+            #[key_type(i32)]
             key: 1,
         }
 
@@ -152,8 +151,8 @@ fn test_combine_toggle_visibility_screen() {
             rect! {
                 position: (0, 50),
                 color: (200, 200, 200),
-                
-                #[key_type(i32)] 
+
+                #[key_type(i32)]
                 key: 2,
             }
         }
@@ -177,17 +176,14 @@ fn test_combine_toggle_visibility() {
         commands,
         vec![
             AdapterCommand::RemoveAll,
-            
             AdapterCommand::NewRect { layout: 1 },
             AdapterCommand::SetHitGroup(0, 65535),
             AdapterCommand::SetPosition(0, (0, 0)),
             AdapterCommand::SetColor(0, (100, 100, 100, 255)),
-            
             AdapterCommand::NewRect { layout: 1 },
             AdapterCommand::SetHitGroup(0, 65535),
             AdapterCommand::SetPosition(0, (0, 50)),
             AdapterCommand::SetColor(0, (200, 200, 200, 255)),
-            
             AdapterCommand::SetVisible(0, false),
             AdapterCommand::SetVisible(0, false),
         ]
@@ -203,8 +199,8 @@ fn test_combine_sibling_loops_screen() {
         rect! {
             position: (a * 10, 0),
             color: (255, 0, 0),
-            
-            #[key_type(i32)] 
+
+            #[key_type(i32)]
             key: a,
         }
     }
@@ -213,8 +209,8 @@ fn test_combine_sibling_loops_screen() {
         rect! {
             position: (b * 10, 50),
             color: (0, 255, 0),
-            
-            #[key_type(i32)] 
+
+            #[key_type(i32)]
             key: b,
         }
     }
@@ -236,7 +232,6 @@ fn test_combine_sibling_loops() {
         commands,
         vec![
             AdapterCommand::RemoveAll,
-            
             AdapterCommand::NewRect { layout: 1 },
             AdapterCommand::SetHitGroup(0, 65535),
             AdapterCommand::SetPosition(0, (0, 0)),
@@ -245,12 +240,10 @@ fn test_combine_sibling_loops() {
             AdapterCommand::SetHitGroup(0, 65535),
             AdapterCommand::SetPosition(0, (10, 0)),
             AdapterCommand::SetColor(0, (255, 0, 0, 255)),
-            
             AdapterCommand::NewRect { layout: 1 },
             AdapterCommand::SetHitGroup(0, 65535),
             AdapterCommand::SetPosition(0, (0, 50)),
             AdapterCommand::SetColor(0, (0, 255, 0, 255)),
-            
             AdapterCommand::SetVisible(0, false),
             AdapterCommand::Remove(0),
         ]
