@@ -376,60 +376,52 @@ impl<'ast> Analyzer {
         // как динамический список в IR
         let mut statement = self.context.statement.clone();
 
-        match &self.context.first_cycle {
-            None => {
-                statement.action = FireworkAction::DynamicLoopBegin(
-                    self.context.cycle_depth,
-                    self.context.microruntime_widgets.widgets.clone(),
-                );
-                statement.string = "".to_string(); 
-                statement.span = span;
+        if let None = &self.context.first_cycle {
+            statement.action = FireworkAction::DynamicLoopBegin(
+                self.context.cycle_depth,
+                self.context.microruntime_widgets.widgets.clone(),
+            );
+            statement.string = "".to_string();
+            statement.span = span;
 
-                match &self.context.first_ui_reactive_block {
-                    Some(hook) => {
-                        self.context.ir.push_from_key(statement, hook.key.0.clone());
-                        self.context.first_cycle = Some(self.get_hook().expect("IE:12"));
-                    },
-
-                    None => self.context.ir.push(statement),
-                };
-                
-                // Создание хука для первого цикла. Используется is_none так как перезапись
-                // может произойти выше
-                if let Some(hook) = self.get_hook() && self.context.first_cycle.is_none() {
-                    self.context.first_cycle = Some(hook);
+            match &self.context.first_ui_reactive_block {
+                Some(hook) => {
+                    self.context.ir.push_from_key(statement, hook.key.0.clone());
+                    self.context.first_cycle = Some(self.get_hook().expect("IE:12"));
                 }
-            },
 
-            _ => {},
+                None => self.context.ir.push(statement),
+            };
+
+            // Создание хука для первого цикла. Используется is_none так как перезапись
+            // может произойти выше
+            if let Some(hook) = self.get_hook()
+                && self.context.first_cycle.is_none()
+            {
+                self.context.first_cycle = Some(hook);
+            }
         }
     }
 
     fn end_loop(&mut self, _span: Span) {
         let widgets_clone = self.context.microruntime_widgets.widgets.clone();
 
-        match &self.context.first_cycle {
-            Some(hook) => {
-                let statement = self.get_statement_from_hook(hook.clone());
-                if let FireworkAction::DynamicLoopBegin(_depth, widgets)
-                    = &mut statement.action {
-                    
-                    widgets.extend(widgets_clone);
-                }
+        if let Some(hook) = &self.context.first_cycle {
+            let statement = self.get_statement_from_hook(hook.clone());
+            if let FireworkAction::DynamicLoopBegin(_depth, widgets) = &mut statement.action {
+                widgets.extend(widgets_clone);
             }
-
-            _ => {},
         }
     }
 
     fn get_hook(&self) -> Option<IrHook> {
         if let Some(span) = self.context.ir.get_current_span()
-            && let Some(count) = self.context.ir.get_current_statements_count() {
-            
+            && let Some(count) = self.context.ir.get_current_statements_count()
+        {
             // SAFETY: Если этот код выполняется то span и count есть, а значит
             // есть и стейтементы
             let local_index = count.checked_sub(1).expect("BLOCK::IE:4");
-        
+
             return Some(IrHook::new(local_index, span.clone(), local_index));
         }
 

@@ -156,7 +156,7 @@ impl FireworkIR {
 
     pub fn push_front_from_key(&mut self, stmt: FireworkStatement, span_key: SpanKey) {
         self.last_span = Some(span_key.clone());
-        
+
         self.snapshot
             .statements
             .entry(span_key.clone())
@@ -164,7 +164,7 @@ impl FireworkIR {
             .insert(0, stmt.clone());
 
         // В дебаг список вообще не используется вставка
-        self.statements.push(stmt); 
+        self.statements.push(stmt);
 
         if !self.snapshot.order.contains(&span_key) {
             self.snapshot.order.push(span_key);

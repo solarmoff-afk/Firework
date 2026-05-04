@@ -20,9 +20,9 @@ impl CodeBuilder {
 
             final_tokens.extend(quote_spanned!(span=>
                 #list_begin
-                
+
                 #processed_body
-                
+
                 #list_end
             ));
 
