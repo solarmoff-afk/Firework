@@ -35,18 +35,14 @@ impl Analyzer {
             // Временный вектор чтобы сложить туда поля, так как пушить нельзя из-за
             // мутабельной ссылки от drain
             let mut temp_fields_to_struct: Vec<(String, String)> = Vec::new();
-            let mut _spark_content = "".to_string();
+            let mut _spark_content = TokenStream::new();
 
             for (name, mut var_data) in self.pending_vars.drain(..) {
                 var_data.is_spark = true;
 
-                // SAFETY: Unwrap не вызовет паники так как мы находимся в блоке
-                // found_spark, а found_spark это истина только когда количество
-                // спарков в выражении это 1 (не 0 и не 2), валидатор добавляет
-                // единицу к этомк полю только когда находит spark! и в том же
-                // блоке заполняет spark_tokens как Some, а если он Some то паники
-                // быть не может при использовании unwrap
-                _spark_content = validator.spark_tokens.as_ref().unwrap().to_string();
+                if let Some(content) = validator.spark_tokens.as_ref() {
+                    _spark_content = content.clone();
+                }
 
                 self.context.spark_counter += 1;
 
@@ -97,7 +93,7 @@ impl Analyzer {
                     name: name.clone(),
                     id,
                     spark_type: var_data.clone().variable_type,
-                    expr_body: _spark_content,
+                    expr_body: _spark_content.clone(),
                     is_mut: var_data.is_mut,
                 };
 

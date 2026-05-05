@@ -68,13 +68,16 @@ impl CodeBuilder {
                             _fwc_event,
                             firework_ui::LifeCycle::Build
                         ) {
-                            self.#field_name_ident = Some(0);
+                            self.#field_name_ident = Some(#expr_body);
                         }
+
+                        let #modifier #ident = self.#ident.expect("State not init").take();
                     ));
                 }
 
                 _ => {
-                    let set_field_str = static_gen::set_field(&struct_name, &field_name, expr_body);
+                    let set_field_str =
+                        static_gen::set_field(&struct_name, &field_name, &expr_body.to_string());
 
                     let set_field_expr = Self::convert_string_to_syn(&set_field_str);
 

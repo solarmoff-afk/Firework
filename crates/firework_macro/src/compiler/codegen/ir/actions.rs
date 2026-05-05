@@ -1,6 +1,8 @@
 // Часть проекта Firework с открытым исходным кодом.
 // Лицензия EPL 2.0, подробнее в файле LICENSE. Copyright (c) 2026 Firework
 
+use proc_macro2::TokenStream;
+
 use super::reactive_block::FireworkReactiveBlock;
 use super::widget::WidgetDescription;
 
@@ -13,7 +15,7 @@ pub enum FireworkAction {
         name: String,
         id: usize,
         spark_type: String,
-        expr_body: String,
+        expr_body: TokenStream,
         is_mut: bool,
     },
 

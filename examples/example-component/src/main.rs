@@ -14,7 +14,7 @@ component! {
         }
 
         pub fn flash(&mut self, context: ComponentContext) {
-            let mut my_state = spark!(0);
+            let mut my_state = spark!(123);
 
             effect!(my_state, {
                 println!("Component mount");
@@ -27,6 +27,7 @@ component! {
 */
 
 /*
+use firework_ui::ui;
 #[ui]
 fn test_screen() {
     let mut my_spark = spark!(0);

@@ -61,9 +61,6 @@ pub fn run_firework_compiler(
         #[cfg(feature = "trace")]
         let _span = info_span!("analyze::prepare_tokens").entered();
 
-        #[cfg(feature = "trace")]
-        println!("Hi?");
-
         prepare_tokens(file.clone(), flags, id)
     };
 
