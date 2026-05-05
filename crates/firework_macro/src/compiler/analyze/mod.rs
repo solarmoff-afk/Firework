@@ -253,17 +253,15 @@ impl Analyzer {
         // испоьзовать только в условии на is_reactive чтобы не было паники
         let mut hook: Option<IrHook> = None;
 
-        if is_reactive {
-            if let Some(last_hook) = self.get_hook() {
-                hook = Some(last_hook.clone());
-                self.context.reactive_block_stack.push(last_hook.clone());
+        if is_reactive && let Some(last_hook) = self.get_hook() {
+            hook = Some(last_hook.clone());
+            self.context.reactive_block_stack.push(last_hook.clone());
 
-                // Если хук на первый реактивный блок не установлен то он устанавливается, этот
-                // блок находится здесь так как это нужно выполнить до выполнение замыкания и
-                // обхода остального дерева
-                if self.context.first_ui_reactive_block.is_none() {
-                    self.context.first_ui_reactive_block = Some(last_hook);
-                }
+            // Если хук на первый реактивный блок не установлен то он устанавливается, этот
+            // блок находится здесь так как это нужно выполнить до выполнение замыкания и
+            // обхода остального дерева
+            if self.context.first_ui_reactive_block.is_none() {
+                self.context.first_ui_reactive_block = Some(last_hook);
             }
         }
 
