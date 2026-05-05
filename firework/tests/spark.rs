@@ -220,3 +220,116 @@ fn test_spark_dynamic_decrement_rect() {
         ]
     );
 }
+
+#[ui]
+fn test_spark_chained_effects_screen() {
+    let mut a = spark!(1);
+    let mut b = spark!(1);
+    let mut c = spark!(1);
+
+    // Вычислительный спарк щависит от A, меняет B
+    b = a * 2;
+
+    // Вычислительный спарк зависит от B, меняет C
+    c = b + 1;
+
+    rect! {
+        position: (c, 0),
+        color: (255, 255, 255),
+    }
+
+    if a == 1 {
+        a = 10;
+    }
+}
+
+#[test]
+fn test_spark_chained_effects() {
+    let commands = TestHarness::run(test_spark_chained_effects_screen);
+
+    assert_eq!(
+        commands,
+        vec![
+            AdapterCommand::RemoveAll,
+            AdapterCommand::NewRect { layout: 1 },
+            AdapterCommand::SetHitGroup(0, 65535),
+            AdapterCommand::SetPosition(0, (3, 0)),
+            AdapterCommand::SetColor(0, (255, 255, 255, 255)),
+            AdapterCommand::SetPosition(0, (21, 0)),
+            AdapterCommand::SetPosition(0, (21, 0)),
+            AdapterCommand::SetPosition(0, (21, 0)),
+        ]
+    );
+}
+
+// Не имеет clone или copy, работает так как владение перемещается, а не копируется
+struct Vector2D {
+    x: i32,
+    y: i32,
+}
+
+#[ui]
+fn test_spark_struct_field_screen() {
+    let mut pos = spark!(Vector2D { x: 0, y: 0 });
+
+    rect! {
+        position: (pos.x, pos.y),
+        color: (255, 255, 255),
+    }
+
+    if pos.x == 0 {
+        pos.x = 100;
+        pos.y = 50;
+    }
+}
+
+#[test]
+fn test_spark_struct_field() {
+    let commands = TestHarness::run(test_spark_struct_field_screen);
+
+    assert_eq!(
+        commands,
+        vec![
+            AdapterCommand::RemoveAll,
+            AdapterCommand::NewRect { layout: 1 },
+            AdapterCommand::SetHitGroup(0, 65535),
+            AdapterCommand::SetPosition(0, (0, 0)),
+            AdapterCommand::SetColor(0, (255, 255, 255, 255)),
+            AdapterCommand::SetPosition(0, (100, 50)),
+        ]
+    );
+}
+
+#[ui]
+fn test_spark_unused_screen() {
+    let mut active = spark!(true);
+    let mut ghost = spark!(0);
+
+    if active {
+        rect! {
+            position: (0, 0),
+            color: (255, 0, 0),
+        }
+    }
+
+    if ghost == 0 {
+        ghost = 1;
+    }
+}
+
+#[test]
+fn test_spark_unused() {
+    let commands = TestHarness::run(test_spark_unused_screen);
+
+    assert_eq!(
+        commands,
+        vec![
+            AdapterCommand::RemoveAll,
+            AdapterCommand::NewRect { layout: 1 },
+            AdapterCommand::SetHitGroup(0, 65535),
+            AdapterCommand::SetPosition(0, (0, 0)),
+            AdapterCommand::SetColor(0, (255, 0, 0, 255)),
+            AdapterCommand::SetVisible(0, true),
+        ]
+    );
+}

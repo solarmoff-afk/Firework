@@ -65,3 +65,45 @@ fn test_ui_dynamic_rect() {
         ]
     );
 }
+
+#[ui]
+fn test_ui_complex_properties_screen() {
+    let mut mode = spark!(0);
+
+    rect! {
+        position: {
+            let offset = 10;
+            if mode == 0 {
+                (offset, offset)
+            } else {
+                (offset * 5, offset * 5)
+            }
+        },
+        color: match mode {
+            0 => (255, 0, 0),
+            _ => (0, 255, 0),
+        },
+    }
+
+    if mode == 0 {
+        mode = 1;
+    }
+}
+
+#[test]
+fn test_ui_complex_properties() {
+    let commands = TestHarness::run(test_ui_complex_properties_screen);
+
+    assert_eq!(
+        commands,
+        vec![
+            AdapterCommand::RemoveAll,
+            AdapterCommand::NewRect { layout: 1 },
+            AdapterCommand::SetHitGroup(0, 65535),
+            AdapterCommand::SetPosition(0, (10, 10)),
+            AdapterCommand::SetColor(0, (255, 0, 0, 255)),
+            AdapterCommand::SetPosition(0, (50, 50)),
+            AdapterCommand::SetColor(0, (0, 255, 0, 255)),
+        ]
+    );
+}
