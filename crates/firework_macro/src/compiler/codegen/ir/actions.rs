@@ -15,7 +15,8 @@ pub enum FireworkAction {
         name: String,
         id: usize,
         spark_type: String,
-        expr_body: TokenStream,
+        expr_body: String,
+        expr_body_tokens: TokenStream,
         is_mut: bool,
     },
 

@@ -35,13 +35,15 @@ impl Analyzer {
             // Временный вектор чтобы сложить туда поля, так как пушить нельзя из-за
             // мутабельной ссылки от drain
             let mut temp_fields_to_struct: Vec<(String, String)> = Vec::new();
-            let mut _spark_content = TokenStream::new();
+            let mut _spark_content = "".to_string();
+            let mut spark_tokens = TokenStream::new();
 
             for (name, mut var_data) in self.pending_vars.drain(..) {
                 var_data.is_spark = true;
 
                 if let Some(content) = validator.spark_tokens.as_ref() {
-                    _spark_content = content.clone();
+                    _spark_content = content.to_string();
+                    spark_tokens = content.clone();
                 }
 
                 self.context.spark_counter += 1;
@@ -94,6 +96,7 @@ impl Analyzer {
                     id,
                     spark_type: var_data.clone().variable_type,
                     expr_body: _spark_content.clone(),
+                    expr_body_tokens: spark_tokens.clone(),
                     is_mut: var_data.is_mut,
                 };
 

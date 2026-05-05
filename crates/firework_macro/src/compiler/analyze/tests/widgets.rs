@@ -66,6 +66,7 @@ fn test_analyze_widget_with_sparks() {
             id: 1,
             spark_type: "u32".to_string(),
             expr_body: "10u32".to_string(),
+            expr_body_tokens: TokenStream::new(),
             is_mut: true,
         },
         InitialSpark {
@@ -73,6 +74,7 @@ fn test_analyze_widget_with_sparks() {
             id: 2,
             spark_type: "u32".to_string(),
             expr_body: "20u32".to_string(),
+            expr_body_tokens: TokenStream::new(),
             is_mut: true,
         },
         WidgetBlock(WidgetDescription {

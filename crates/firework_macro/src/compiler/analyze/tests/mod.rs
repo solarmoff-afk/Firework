@@ -47,6 +47,7 @@ fn create_initial_spark(
         id,
         spark_type: spark_type.to_string(),
         expr_body: expr_body.to_string(),
+        expr_body_tokens: TokenStream::new(),
         is_mut,
     }
 }
@@ -466,6 +467,7 @@ fn test_with_macro_helper() {
             id: 1,
             spark_type: "i32".to_string(),
             expr_body: "42".to_string(),
+            expr_body_tokens: TokenStream::new(),
             is_mut: true
         },
         Terminator,

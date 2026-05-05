@@ -36,6 +36,7 @@ impl CodeBuilder {
         if let FireworkAction::InitialSpark {
             id,
             expr_body,
+            expr_body_tokens,
             name,
             is_mut,
             ..
@@ -68,7 +69,7 @@ impl CodeBuilder {
                             _fwc_event,
                             firework_ui::LifeCycle::Build
                         ) {
-                            self.#field_name_ident = Some(#expr_body);
+                            self.#field_name_ident = Some(#expr_body_tokens);
                         }
 
                         let #modifier #ident = self.#ident.expect("State not init").take();
