@@ -245,42 +245,25 @@ impl Analyzer {
         // Открывающий стейтемент реактивного блока
         self.context.ir.push(open_statement);
 
-        // Безопасная обработка последнего индекса после пуша
-        let mut index = 0;
-        if let Some(last_index) = self.context.ir.statements.len().checked_sub(1) {
-            index = last_index;
-        }
-
         if !self.is_loop {
             self.is_loop = is_loop;
         }
 
         // Если это реактивный блок то он добавляется в стэк реактивных блоков. Необходимо
         // испоьзовать только в условии на is_reactive чтобы не было паники
-        let mut hook = IrHook::null();
+        let mut hook: Option<IrHook> = None;
 
         if is_reactive {
-            // SAFETY: Unwrap безопасен так как в handle_reactive_block можно попасть
-            // только из if/if else/else/for/match/loop/while/effect, а они все требуют
-            // стейтемента, а спан задаётся в стейтементе всегда поэтому get_current_span
-            // здесь есть всегда
-            let span = self.context.ir.get_current_span().expect("IE:1").clone();
-            let count = self
-                .context
-                .ir
-                .get_current_statements_count()
-                .expect("IE:2");
-            let local_index = count.checked_sub(1).expect("IE:4");
+            if let Some(last_hook) = self.get_hook() {
+                hook = Some(last_hook.clone());
+                self.context.reactive_block_stack.push(last_hook.clone());
 
-            hook = IrHook::new(index, span, local_index);
-
-            self.context.reactive_block_stack.push(hook.clone());
-
-            // Если хук на первый реактивный блок не установлен то он устанавливается, этот
-            // блок находится здесь так как это нужно выполнить до выполнение замыкания и
-            // обхода остального дерева
-            if self.context.first_ui_reactive_block.is_none() {
-                self.context.first_ui_reactive_block = Some(hook.clone());
+                // Если хук на первый реактивный блок не установлен то он устанавливается, этот
+                // блок находится здесь так как это нужно выполнить до выполнение замыкания и
+                // обхода остального дерева
+                if self.context.first_ui_reactive_block.is_none() {
+                    self.context.first_ui_reactive_block = Some(last_hook);
+                }
             }
         }
 
@@ -302,13 +285,13 @@ impl Analyzer {
         let delim_span = visit_fn(self);
 
         // После выполнения обработки блока идёт снятие реактивного блока из стэка
-        if is_reactive {
+        if is_reactive && let Some(raw_hook) = hook {
             self.context.reactive_block_stack.pop();
 
             // Хук задаётся только если условие is_reactive верно, а здесь это условие
             // есть выше. Это нужно так как action из аргументов уже не является актуальным,
             // так как is_ui заполняет visit_fn
-            let mut statement = self.get_statement_from_hook(hook.clone()).clone();
+            let mut statement = self.get_statement_from_hook(raw_hook.clone()).clone();
 
             // После replace значение будет возвращено ниже
             let action = std::mem::replace(&mut statement.action, FireworkAction::DefaultCode);
@@ -335,7 +318,7 @@ impl Analyzer {
 
             // Чтобы обойти бороу чекер работа идёт с клоном, а потом оригинал заменяется на
             // клон по мутабельной ссылке
-            let statement_ref = self.get_statement_from_hook(hook.clone());
+            let statement_ref = self.get_statement_from_hook(raw_hook.clone());
             *statement_ref = statement;
         }
 
@@ -373,6 +356,21 @@ impl Analyzer {
             sparks.extend(child_sparks.iter().cloned());
             sparks.dedup();
         }
+    }
+
+    /// Создаёт хук из последнего элемента IR
+    pub fn get_hook(&self) -> Option<IrHook> {
+        if let Some(span) = self.context.ir.get_current_span()
+            && let Some(count) = self.context.ir.get_current_statements_count()
+        {
+            // SAFETY: Если этот код выполняется то span и count есть, а значит
+            // есть и стейтементы
+            let local_index = count.checked_sub(1).expect("BLOCK::IE:4");
+
+            return Some(IrHook::new(local_index, span.clone(), local_index));
+        }
+
+        None
     }
 
     pub fn update_scope(&mut self, scope: Scope, set_scope: bool) {

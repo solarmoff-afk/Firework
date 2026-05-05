@@ -141,7 +141,8 @@ fn test_spark_derived_rect() {
             AdapterCommand::SetPosition(0, (10, 10)),
             AdapterCommand::SetColor(0, (255, 255, 255, 255)),
             AdapterCommand::SetPosition(0, (20, 10)),
-            // ???
+            // Реактивное эхо, это нормально из-за батчинга, не является багом, скорее
+            // это особенность реализации
             AdapterCommand::SetPosition(0, (20, 10)),
         ]
     );

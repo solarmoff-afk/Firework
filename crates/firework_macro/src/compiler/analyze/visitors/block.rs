@@ -413,18 +413,4 @@ impl<'ast> Analyzer {
             }
         }
     }
-
-    fn get_hook(&self) -> Option<IrHook> {
-        if let Some(span) = self.context.ir.get_current_span()
-            && let Some(count) = self.context.ir.get_current_statements_count()
-        {
-            // SAFETY: Если этот код выполняется то span и count есть, а значит
-            // есть и стейтементы
-            let local_index = count.checked_sub(1).expect("BLOCK::IE:4");
-
-            return Some(IrHook::new(local_index, span.clone(), local_index));
-        }
-
-        None
-    }
 }
