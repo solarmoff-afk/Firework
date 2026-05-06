@@ -1,9 +1,11 @@
 // Часть проекта Firework с открытым исходным кодом.
 // Лицензия EPL 2.0, подробнее в файле LICENSE. Copyright (c) 2026 Firework
 
-use proc_macro2::TokenStream;
+use proc_macro2::{Span, TokenStream};
+use quote::quote_spanned;
 use syn::parse::Parser;
 use syn::punctuated::Punctuated;
+use syn::spanned::Spanned;
 use syn::*;
 
 /// Обрабатывает виртуальные макросы и выполняет их развёртку в набор стейтементов syn
@@ -28,7 +30,9 @@ impl MacroResolver {
         // Какой это именно маркер и какую функцию развёртки нужно применить
         match identifier.to_string().as_str() {
             // Маркер эффект
-            "effect" => Self::expand_effect_macro(&statement_macro.mac.tokens),
+            "effect" => {
+                Self::expand_effect_macro(&statement_macro.mac.tokens, statement_macro.span())
+            }
 
             // Это не маркер или его не нужно развёртывать на этом этапе
             _ => None,
@@ -38,7 +42,7 @@ impl MacroResolver {
     /// Развёртка маркера effect!(spark, {}), маркер анализируется и в код попадает только
     /// блок внутри (последний аргумент). Анализатор не пропустит маркер effect где блок
     /// это не последний аргумент, поэтому всё нормально
-    fn expand_effect_macro(tokens: &TokenStream) -> Option<Vec<Stmt>> {
+    fn expand_effect_macro(tokens: &TokenStream, macro_span: Span) -> Option<Vec<Stmt>> {
         // Парсинг по запятой среди токенов вызова маркера
         let parser = Punctuated::<Expr, Token![,]>::parse_terminated;
         let punctuated = parser.parse2(tokens.clone()).ok()?;
@@ -53,7 +57,17 @@ impl MacroResolver {
             _ => return None,
         };
 
+        // HACK: Эффект заменяется на всегда верное условие со спаном оригинального стейтемента
+        // чтобы трансформ нашёл метки в IR для него и отправил в code_builder
+        let stmts = &block_expression.block.stmts;
+        let expanded = quote_spanned!(macro_span=>
+            if true {
+                #(#stmts)*
+            }
+        );
+        let stmt: Stmt = syn::parse2(expanded).ok()?;
+
         // Последний блок
-        Some(block_expression.block.stmts.clone())
+        Some(vec![stmt])
     }
 }
