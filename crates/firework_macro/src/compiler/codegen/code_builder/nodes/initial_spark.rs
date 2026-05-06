@@ -60,10 +60,11 @@ impl CodeBuilder {
             }
 
             let ident = format_ident!("{}", name);
-            let field_name_ident = format_ident!("{}", field_name);
 
             match self.flags.compile_type {
                 CompileType::Component => {
+                    let field_name_ident = format_ident!("spark_{}", id);
+
                     final_tokens.extend(quote_spanned!(span=>
                         if firework_ui::tiny_matches!(
                             _fwc_event,
@@ -72,7 +73,8 @@ impl CodeBuilder {
                             self.#field_name_ident = Some(#expr_body_tokens);
                         }
 
-                        let #modifier #ident = self.#ident.expect("State not init").take();
+                        let #modifier #ident = self.#field_name_ident
+                            .expect("State not init").take();
                     ));
                 }
 

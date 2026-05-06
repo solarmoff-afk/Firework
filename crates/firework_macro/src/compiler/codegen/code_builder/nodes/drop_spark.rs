@@ -3,6 +3,8 @@
 
 use super::super::*;
 
+use crate::CompileType;
+
 impl CodeBuilder {
     /// Эта нода нужна чтобы вернуть владение над данными в спарк переменной обратно в
     /// статическую память. Когда используется маркер spark!(0) компилятор генерирует
@@ -28,12 +30,26 @@ impl CodeBuilder {
         // добавить магию компилятора в будущем
         if let FireworkAction::DropSpark { name, id } = &statement.action {
             let field_name = format!("spark_{}", id);
-            let set_field_str = static_gen::set_field(&struct_name, &field_name, name);
-            let set_field_expr = Self::convert_string_to_syn(&set_field_str);
 
-            final_tokens.extend(quote!(
-                #set_field_expr
-            ));
+            let field_ident = format_ident!("{}", field_name);
+            let spark_ident = format_ident!("{}", name);
+
+            match self.flags.compile_type {
+                CompileType::Component => {
+                    final_tokens.extend(quote!(
+                        self.#field_ident = Some(#spark_ident);
+                    ));
+                }
+
+                _ => {
+                    let set_field_str = static_gen::set_field(&struct_name, &field_name, name);
+                    let set_field_expr = Self::convert_string_to_syn(&set_field_str);
+
+                    final_tokens.extend(quote!(
+                        #set_field_expr
+                    ));
+                }
+            };
 
             return true;
         }
