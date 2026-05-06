@@ -28,7 +28,7 @@ impl CodeBuilder {
             ..
         } = &statement.action
         {
-            let field_name = format!("spark_{}", id);
+            let field_name = format!("_fwc_spark_{}", id);
 
             // Если переменная для записи мутабельная то и ссылка нужна мутабельная,
             // если нет то немутабельная

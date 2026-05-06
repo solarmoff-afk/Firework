@@ -161,7 +161,7 @@ impl Analyzer {
                 self.lifetime_manager.scope.screen_index
             ))
             .or_default()
-            .push((field_name, field_type));
+            .push((format!("_fwc_{}", field_name), field_type));
     }
 
     fn add_field_to_component(&mut self, field_name: String, field_type: String) {
@@ -172,7 +172,7 @@ impl Analyzer {
             .component_structs
             .entry(self.context.now_component.clone().expect("IE:7"))
             .or_default()
-            .push((field_name.clone(), field_type.clone()));
+            .push((format!("_fwc_{}", field_name), field_type.clone()));
 
         self.add_field_to_screen(field_name, field_type);
     }

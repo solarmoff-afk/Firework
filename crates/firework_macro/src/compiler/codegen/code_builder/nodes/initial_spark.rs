@@ -42,7 +42,7 @@ impl CodeBuilder {
             ..
         } = &statement.action
         {
-            let field_name = format!("spark_{}", id);
+            let field_name = format!("_fwc_spark_{}", id);
             let struct_name_upper = struct_name.to_uppercase();
 
             // Если спарк инициализирован как мутабельный то нужно создать мутабельную
@@ -63,7 +63,7 @@ impl CodeBuilder {
 
             match self.flags.compile_type {
                 CompileType::Component => {
-                    let field_name_ident = format_ident!("spark_{}", id);
+                    let field_name_ident = format_ident!("_fwc_spark_{}", id);
 
                     final_tokens.extend(quote_spanned!(span=>
                         if firework_ui::tiny_matches!(

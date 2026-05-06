@@ -16,7 +16,7 @@ impl CodeBuilder {
             // Не кэшируется так как здесь профилирование показывает что расходы HashMap
             // выше чем экономия, без кэширование 780 микросекунд, с нмм ~970
             let instance_ident_upper = format_ident!("{}_INSTANCE", struct_name.to_uppercase());
-            let field_ident = format_ident!("widget_object_{}", description.id);
+            let field_ident = format_ident!("_fwc_widget_object_{}", description.id);
 
             let skin_path = self.cache.cache_skin_path(&description.skin);
 

@@ -174,9 +174,10 @@ impl CodegenVisitor<'_> {
 
             for mask_index in 0..*widget_mask_count {
                 // Имя локальной маски и имя поле идентично
-                let field_name = format!("_fwc_widget_bitmask{}", mask_index + 1);
+                let field_name = format!("_fwc__fwc_widget_bitmask{}", mask_index + 1);
+                let copy_name = format!("_fwc_widget_bitmask{}", mask_index + 1);
                 let set_field_str =
-                    static_gen::set_field(&struct_name_raw, &field_name, &field_name);
+                    static_gen::set_field(&struct_name_raw, &field_name, &copy_name);
 
                 widgets_gen_snapshot.extend(CodeBuilder::convert_string_to_syn(&set_field_str));
             }

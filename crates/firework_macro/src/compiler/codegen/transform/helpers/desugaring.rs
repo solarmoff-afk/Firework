@@ -19,7 +19,7 @@ impl CodegenVisitor<'_> {
     ) -> Item {
         let function_name = format_ident!("get_{}", field_name);
         let struct_name = format_ident!("APPLICATIONUIBLOCKSTRUCT{}_INSTANCE", struct_id);
-        let field_access = format_ident!("spark_{}", field_id);
+        let field_access = format_ident!("_fwc_spark_{}", field_id);
         let field_ident = format_ident!("{}", field_name);
         let build_name = format_ident!("_fwc_fn_build{}", struct_id);
 
@@ -73,7 +73,7 @@ impl CodegenVisitor<'_> {
         let function_name = format_ident!("set_{}", field_name);
         let struct_name = format_ident!("APPLICATIONUIBLOCKSTRUCT{}_INSTANCE", struct_id);
         let build_name = format_ident!("_fwc_fn_build{}", struct_id);
-        let field_access = format_ident!("spark_{}", field_id);
+        let field_access = format_ident!("_fwc_spark_{}", field_id);
         let new_value = format_ident!("new_{}", field_name);
         let field_ident = format_ident!("{}", field_name);
 

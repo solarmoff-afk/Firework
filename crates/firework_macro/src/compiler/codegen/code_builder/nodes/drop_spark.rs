@@ -29,7 +29,7 @@ impl CodeBuilder {
         // будет нельзя (Ибо rustc проверит владение на этой строке). Нужно
         // добавить магию компилятора в будущем
         if let FireworkAction::DropSpark { name, id } = &statement.action {
-            let field_name = format!("spark_{}", id);
+            let field_name = format!("_fwc_spark_{}", id);
 
             let field_ident = format_ident!("{}", field_name);
             let spark_ident = format_ident!("{}", name);

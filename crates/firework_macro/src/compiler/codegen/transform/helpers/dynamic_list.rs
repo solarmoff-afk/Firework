@@ -19,7 +19,7 @@ pub fn generate_lifecycle(
     let instance_ident_upper = format_ident!("{}_INSTANCE", struct_name_raw.to_uppercase());
 
     for widget_id in dynamic_widgets {
-        let field_ident = format_ident!("widget_object_{}", widget_id);
+        let field_ident = format_ident!("_fwc_widget_object_{}", widget_id);
 
         #[cfg(feature = "safety-multithread")]
         {

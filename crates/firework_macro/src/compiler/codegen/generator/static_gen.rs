@@ -75,7 +75,7 @@ pub(crate) fn init_instance(
     _fields: &[(String, String)],
 ) -> String {
     format!(
-        "\tif unsafe {{ {}_INSTANCE._fwc_screen_id.is_none() }} {{\n\t\t_fwc_build = true;\n\t\tunsafe {{\n\t\t\t{}_INSTANCE._fwc_screen_id = Some(1);\n\t\t}}\n\t}}\n\n",
+        "\tif unsafe {{ {}_INSTANCE._fwc__fwc_screen_id.is_none() }} {{\n\t\t_fwc_build = true;\n\t\tunsafe {{\n\t\t\t{}_INSTANCE._fwc__fwc_screen_id = Some(1);\n\t\t}}\n\t}}\n\n",
         instance_name, instance_name,
     )
 }
@@ -102,9 +102,9 @@ pub(crate) fn init_instance(
 
     output.push_str("\t})).lock().unwrap();\n");
 
-    output.push_str("\tif instance._fwc_screen_id.is_none() {\n");
+    output.push_str("\tif instance._fwc__fwc_screen_id.is_none() {\n");
     output.push_str("\t\t_fwc_build = true;\n");
-    output.push_str("\t\tinstance._fwc_screen_id = Some(1);\n");
+    output.push_str("\t\tinstance._fwc__fwc_screen_id = Some(1);\n");
     output.push_str("\t}\n");
     output.push_str("\tdrop(instance);\n\n");
 
@@ -120,10 +120,10 @@ pub(crate) fn init_instance_tokens(
     let instance_ident = format_ident!("{}_INSTANCE", instance_name);
 
     quote! {
-        if unsafe { #instance_ident._fwc_screen_id.is_none() } {
+        if unsafe { #instance_ident._fwc__fwc_screen_id.is_none() } {
             _fwc_build = true;
             unsafe {
-                #instance_ident._fwc_screen_id = Some(1);
+                #instance_ident._fwc__fwc_screen_id = Some(1);
             }
         }
     }
@@ -149,9 +149,9 @@ pub(crate) fn init_instance_tokens(
             #(#field_initializers),*
         })).lock().unwrap();
 
-        if instance._fwc_screen_id.is_none() {
+        if instance._fwc__fwc_screen_id.is_none() {
             _fwc_build = true;
-            instance._fwc_screen_id = Some(1);
+            instance._fwc__fwc_screen_id = Some(1);
         }
 
         drop(instance);
