@@ -322,6 +322,10 @@ impl CodegenVisitor<'_> {
             // В Shared режиме структура нужна только первой функции
             CompileType::Shared => self.functions_count == 1,
 
+            // В компонентах это вообще не нужно так как сам компонент это и есть структура
+            // и поля будут там
+            CompileType::Component => false,
+
             // В обычном режиме структура нужная каждой функции так как каждая функция
             // это отдельный экран
             _ => true,
@@ -423,12 +427,9 @@ impl CodegenVisitor<'_> {
                     }
                 };
 
-                // SAFETY: Код явлется абсолютно валидным, build_statements в
-                // случае синтаксической ошибки были бы отбракованы на этапе
-                // generate_shared_build через функцию из CodeBuilder из-за чего
-                // unwrap здесь безопасен
-                let item: Item = syn::parse2(tokens).expect("IE:6");
-                new_items.push(item);
+                if let Ok(item) = syn::parse2::<Item>(tokens) {
+                    new_items.push(item);
+                }
             }
         }
     }
