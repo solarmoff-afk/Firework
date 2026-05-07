@@ -73,8 +73,8 @@ impl CodeBuilder {
                             self.#field_name_ident = Some(#expr_body_tokens);
                         }
 
-                        let #modifier #ident = self.#field_name_ident
-                            .expect("State not init").take();
+                        let #modifier #ident = self.#field_name_ident.take()
+                            .expect("State not init");
                     ));
                 }
 

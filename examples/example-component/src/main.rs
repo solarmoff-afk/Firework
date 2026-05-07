@@ -1,15 +1,16 @@
-/*
 use firework_ui::{ComponentContext, Prop, component};
 
 component! {
     pub struct Button {
         pub example_prop: Prop<bool>,
+        pub hello: i32,
     }
 
     impl Button {
         pub fn new() -> Self {
             Self {
                 example_prop: None,
+                hello: 0,
             }
         }
 
@@ -24,7 +25,7 @@ component! {
         }
     }
 }
-*/
+
 
 /*
 use firework_ui::ui;
