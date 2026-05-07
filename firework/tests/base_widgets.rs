@@ -107,3 +107,28 @@ fn test_ui_complex_properties() {
         ]
     );
 }
+
+#[ui]
+fn test_ui_rect_sugan_screen() {
+    let position = (10, 10);
+    rect! {
+        position,
+        color: (255, 255, 255),
+    }
+}
+
+#[test]
+fn test_ui_rect_sugar() {
+    let commands = TestHarness::run(test_ui_rect_sugan_screen);
+
+    assert_eq!(
+        commands,
+        vec![
+            AdapterCommand::RemoveAll,
+            AdapterCommand::NewRect { layout: 1 },
+            AdapterCommand::SetHitGroup(0, 65535),
+            AdapterCommand::SetPosition(0, (10, 10)),
+            AdapterCommand::SetColor(0, (255, 255, 255, 255)),
+        ]
+    );
+}

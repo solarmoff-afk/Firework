@@ -11,6 +11,7 @@ use syn::{Expr, Ident, Lit, Result, Token, punctuated::Punctuated};
 /// widget!(
 ///  // WidgetProperty
 ///  field1: 10, // Имя/name (field1) и выражение/expr (10)
+///  field2, // Синтаксический сахар
 /// );
 pub struct WidgetProperty {
     // Левая часть, имя поля
@@ -33,20 +34,31 @@ impl Parse for WidgetProperty {
         // Левая часть, имя поля куда задаётся значение
         let name: Ident = input.parse()?;
 
-        // Центральная часть, пропускается так как не нужна. Двоеточие которое
-        // разделяет левую и правую часть (a: b)
-        let _: Token![:] = input.parse()?;
+        // Синтаксический сахар, двоеточие необязательно если поле это простой идент
+        if input.peek(Token![:]) {
+            // Центральная часть, пропускается так как не нужна. Двоеточие которое
+            // разделяет левую и правую часть (a: b)
+            let _: Token![:] = input.parse()?;
 
-        // Правая часть, выражение которое может быть замыканием с телом в фигурных скобках
-        let value: Expr = if input.peek(syn::token::Brace) {
-            // Возможно замыкание
-            let block: syn::ExprBlock = input.parse()?;
-            syn::Expr::Block(block)
+            // Правая часть, выражение которое может быть замыканием с телом в фигурных скобках
+            let value: Expr = if input.peek(syn::token::Brace) {
+                // Возможно замыкание
+                let block: syn::ExprBlock = input.parse()?;
+                syn::Expr::Block(block)
+            } else {
+                input.parse()?
+            };
+
+            Ok(WidgetProperty { attrs, name, value })
         } else {
-            input.parse()?
-        };
-
-        Ok(WidgetProperty { attrs, name, value })
+            let value = Expr::Path(syn::ExprPath {
+                attrs: Vec::new(),
+                qself: None,
+                path: name.clone().into(),
+            });
+            
+            Ok(WidgetProperty { attrs, name, value })
+        }
     }
 }
 
