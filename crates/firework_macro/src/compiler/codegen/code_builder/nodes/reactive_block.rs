@@ -48,7 +48,7 @@ impl CodeBuilder {
 
             // Генерация условия на то, что хотя-бы одна зависимость в снапшотах битовых
             // масках изменилась
-            for (_, id) in sparks.iter() {
+            for (_, id) in sparks.sparks.iter() {
                 let mask_name = get_mask_name(*id);
                 let bit_id = normalize_bit_index(*id);
 

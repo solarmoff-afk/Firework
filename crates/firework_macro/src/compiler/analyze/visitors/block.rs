@@ -5,6 +5,8 @@ use syn::spanned::Spanned;
 
 pub use super::super::*;
 
+use crate::compiler::analyze::utils::check_expr::ExprAnalyzeResult;
+
 /// Генерация снапшота текущих динамических виджетов в цикле
 macro_rules! create_snapshot {
     ($self:expr, $snapshot_name:ident) => {
@@ -147,7 +149,7 @@ impl<'ast> Analyzer {
 
                         syn::Expr::Block(else_block) => {
                             this.handle_reactive_block(
-                                Vec::new(),
+                                ExprAnalyzeResult::new(),
                                 false,
                                 "} else {".to_string(),
                                 else_action,
@@ -308,7 +310,7 @@ impl<'ast> Analyzer {
         self.lifetime_manager.scope.label = label;
 
         self.handle_reactive_block(
-            Vec::new(),
+            ExprAnalyzeResult::new(),
             true,
             "loop {".to_string(),
             FireworkAction::DefaultCode,

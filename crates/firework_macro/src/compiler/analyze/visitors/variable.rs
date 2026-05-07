@@ -125,9 +125,9 @@ impl<'ast> Analyzer {
 
         // Если в спарках есть корневая переменная то удаление из вектора, эффект не
         // будет создан если спарков не будет в выражении
-        effect_sparks.retain(|(s, _)| s != root.0);
+        effect_sparks.delete_spark(root);
 
-        for (_, id) in effect_sparks.iter() {
+        for (_, id) in effect_sparks.sparks.iter() {
             self.linter
                 .depend_spark(root.1, *id, right.to_token_stream().span());
         }

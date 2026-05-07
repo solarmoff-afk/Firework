@@ -6,6 +6,8 @@ use proc_macro2::TokenStream;
 use super::reactive_block::FireworkReactiveBlock;
 use super::widget::WidgetDescription;
 
+use crate::compiler::analyze::utils::check_expr::ExprAnalyzeResult;
+
 #[derive(Debug, Clone)]
 pub enum FireworkAction {
     // Инициализация реактивной переменной (спарка) в области видимости. Первое значение
@@ -48,13 +50,13 @@ pub enum FireworkAction {
     // автоматически не только при Build и Navigate, но и при Event
     ReactiveBlock(
         /* тип блока */ FireworkReactiveBlock,
-        /* Спарки (Имя, айди) */ Vec<(String, usize)>,
+        /* Спарки (Имя, айди) */ ExprAnalyzeResult,
         /* Является ли блок декларацией UI */ bool,
     ),
 
     // Специальная версия метки реактивного блока которая остаётся для дебага, но CodeBuilder
     // её пропустит
-    ReactiveBlockIgnore(FireworkReactiveBlock, Vec<(String, usize)>, bool),
+    ReactiveBlockIgnore(FireworkReactiveBlock, ExprAnalyzeResult, bool),
 
     // Блок else который является частью реактивного условия
     ReactiveElse,

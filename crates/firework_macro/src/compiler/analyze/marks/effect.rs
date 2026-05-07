@@ -5,6 +5,8 @@ use syn::parse::Parser;
 
 pub use super::super::*;
 
+use crate::compiler::analyze::utils::check_expr::ExprAnalyzeResult;
+
 impl Analyzer {
     /// Блок effect!(..., {})
     /// Эффект это блок кода который выполняется в двух случаях
@@ -30,7 +32,7 @@ impl Analyzer {
 
             // Последний аргумент должен быть блоком
             if let Some(Expr::Block(last_expr_block)) = args.pop() {
-                let mut effect_sparks = Vec::new();
+                let mut effect_sparks = ExprAnalyzeResult::new();
 
                 // Спарки из всех выражений всех аргументов попадают в effect_sparks
                 for arg in &args {
