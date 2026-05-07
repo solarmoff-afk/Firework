@@ -56,7 +56,7 @@ impl Parse for WidgetProperty {
                 qself: None,
                 path: name.clone().into(),
             });
-            
+
             Ok(WidgetProperty { attrs, name, value })
         }
     }
