@@ -5,6 +5,8 @@ mod widgets;
 
 use super::*;
 
+use crate::compiler::analyze::utils::check_expr::ExprAnalyzeResult;
+
 fn assert_ir_equal(actual: &[FireworkStatement], expected: &[FireworkAction]) {
     assert_eq!(
         actual.len(),
@@ -63,7 +65,10 @@ fn create_reactive_block(
     block_type: FireworkReactiveBlock,
     deps: Vec<(String, usize)>,
 ) -> FireworkAction {
-    FireworkAction::ReactiveBlock(block_type, deps, false)
+    let mut expr = ExprAnalyzeResult::new();
+    expr.sparks = deps;
+
+    FireworkAction::ReactiveBlock(block_type, expr, false)
 }
 
 /// Тест инициализации спарка, будет ли его инициализация в IR с нужными значениями под
