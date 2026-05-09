@@ -3,3 +3,4 @@
 
 pub mod spark;
 pub mod widget;
+pub mod props;
