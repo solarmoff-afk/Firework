@@ -5,8 +5,8 @@ pub mod flags;
 
 mod analyze;
 mod codegen;
-mod error;
 mod common;
+mod error;
 
 use analyze::prepare_tokens;
 use codegen::lower::visitors_mut::LowerVisitor;

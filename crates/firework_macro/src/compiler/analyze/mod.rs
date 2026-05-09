@@ -16,7 +16,7 @@ mod tests;
 
 use proc_macro2::extra::DelimSpan;
 use proc_macro2::{Span, TokenStream};
-use quote::{quote, ToTokens};
+use quote::{ToTokens, quote};
 use std::collections::HashMap;
 use syn::visit::Visit;
 use syn::*;
@@ -41,8 +41,8 @@ use crate::compiler::codegen::ir::SpanKey;
 use crate::compiler::codegen::ir::{
     FireworkAction, FireworkIR, FireworkReactiveBlock, FireworkStatement, FireworkWidgetField,
 };
-use crate::compiler::error::*;
 use crate::compiler::common::is_prop;
+use crate::compiler::error::*;
 
 /// Нельзя хранить String поэтому используется &str, при использовании нужно использовать
 /// String::from, но это позволяет не тянуть lazy_static или другой крейт
@@ -251,7 +251,7 @@ impl<'ast> Visit<'ast> for Analyzer {
         }
 
         let struct_name = _i.ident.to_string();
-        
+
         match &_i.fields {
             Fields::Named(fields_named) => {
                 for field in fields_named.named.iter() {
@@ -261,9 +261,13 @@ impl<'ast> Visit<'ast> for Analyzer {
                         let field_type = quote!(#field_type_raw).to_string();
 
                         // Проверка на то, что поле структуры обёрнуто в Prop<T>
-                        if !is_prop(&field_type) { continue; }
-                       
-                        self.context.component_props.entry(struct_name.clone())
+                        if !is_prop(&field_type) {
+                            continue;
+                        }
+
+                        self.context
+                            .component_props
+                            .entry(struct_name.clone())
                             .or_default()
                             .push((field_name, field_type));
                     }
@@ -274,9 +278,7 @@ impl<'ast> Visit<'ast> for Analyzer {
                 // TODO: Сделать ошибку
             }
 
-            Fields::Unit => {
-                
-            }
+            Fields::Unit => {}
         }
     }
 
