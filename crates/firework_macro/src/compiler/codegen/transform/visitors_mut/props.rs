@@ -5,6 +5,8 @@ use quote::quote;
 
 use super::super::*;
 
+use crate::compiler::common::is_prop;
+
 impl CodegenVisitor<'_> {
     /// Метод для генерации сеттеров пропсов компонентов. Он находит среди полей структуры
     /// поля с типом firework_ui::Prop<T> или Prop<T> после чего создаёт публичный метод
@@ -23,9 +25,8 @@ impl CodegenVisitor<'_> {
 
                 // Генерация сеттера только для пропсов, сеттер нужен для внешних изменений
                 // структурных пропсов и отпечатка в битовой маске
-                let type_str = quote!(#field_type).to_string().replace(" ", "");
-                if !type_str.starts_with("firework_ui::Prop<") && !type_str.starts_with("Prop<") {
-                    println!("{type_str}");
+                let type_str = quote!(#field_type);
+                if is_prop(&type_str.to_string()) {
                     continue;
                 }
 

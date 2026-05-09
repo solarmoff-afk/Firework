@@ -16,7 +16,7 @@ mod tests;
 
 use proc_macro2::extra::DelimSpan;
 use proc_macro2::{Span, TokenStream};
-use quote::ToTokens;
+use quote::{quote, ToTokens};
 use std::collections::HashMap;
 use syn::visit::Visit;
 use syn::*;
@@ -243,8 +243,36 @@ impl<'ast> Visit<'ast> for Analyzer {
         self.analyze_expr_closure(i)
     }
 
+    #[cfg_attr(feature = "trace", tracing::instrument(skip_all, fields(node = %quote!(#_i))))]
     fn visit_item_struct(&mut self, _i: &'ast ItemStruct) {
-        // self.context.output.extend(node.to_token_stream());
+        if !matches!(self.context.flags.compile_type, CompileType::Component) {
+            return;
+        }
+
+        let struct_name = _i.ident.to_string();
+        
+        match &_i.fields {
+            Fields::Named(fields_named) => {
+                for field in fields_named.named.iter() {
+                    if let Some(ident) = &field.ident {
+                        let field_name = ident.to_string();
+                        let field_type = quote!(&field.ty).to_string();
+                       
+                        self.context.component_props.entry(struct_name.clone())
+                            .or_default()
+                            .push((field_name, field_type));
+                    }
+                }
+            }
+
+            Fields::Unnamed(_) => {
+                // TODO: Сделать ошибку
+            }
+
+            Fields::Unit => {
+                
+            }
+        }
     }
 
     #[cfg_attr(feature = "trace", tracing::instrument(skip_all, fields(node = %quote!(#_i))))]
