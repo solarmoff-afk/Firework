@@ -42,6 +42,7 @@ impl<'ast> Analyzer {
                     // widget_name! {
                     //   field1: 10,
                     //   field2: 20,
+                    //   field3, // Сахар если есть переменная field3
                     // }
                     self.context
                         .errors
@@ -77,12 +78,8 @@ impl<'ast> Analyzer {
                     is_fn: false,
                 };
 
-                let mut finder = SparkFinderWithId {
-                    scope: &self.lifetime_manager.scope,
-                    found: &mut this_field.sparks,
-                };
-
-                finder.visit_expr(&prop.value);
+                let analyze_result = self.get_sparks(&prop.value);
+                this_field.sparks.extend(analyze_result.sparks);
 
                 if let Expr::Closure(closure) = &prop.value {
                     let saved_parent = self.context.statement.parent_widget_id;
