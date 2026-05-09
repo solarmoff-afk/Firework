@@ -80,10 +80,17 @@ pub struct FireworkIR {
 
     // Хэшмап для хранения id экрана -> условные виджеты
     pub screen_maybe_widgets: HashMap<u128, MaybeWidgets>,
-
     pub screen_dynamic_widgets: HashMap<u128, Vec<usize>>,
-
     pub shared: SharedData,
+
+    pub component_props: HashMap<
+        String,
+        Vec<(
+            /* Имя */ String,
+            /* Тип */ String,
+            /* Айди */ usize,
+        )>,
+    >,
 
     span: Span,
 }
@@ -121,6 +128,7 @@ impl FireworkIR {
             screen_maybe_widgets: HashMap::new(),
             screen_dynamic_widgets: HashMap::new(),
             shared: SharedData::new(),
+            component_props: HashMap::new(),
             span: Span::call_site(),
         }
     }

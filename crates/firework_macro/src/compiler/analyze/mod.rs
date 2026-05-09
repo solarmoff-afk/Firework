@@ -33,7 +33,7 @@ use utils::hook::IrHook;
 use tracing::instrument;
 
 #[cfg(feature = "trace")]
-use quote::{quote, ToTokens};
+use quote::{ToTokens, quote};
 
 use crate::CompileType;
 use crate::compiler::CompileFlags;
@@ -265,7 +265,9 @@ impl<'ast> Visit<'ast> for Analyzer {
                             continue;
                         }
 
-                        let props_vec = self.context
+                        let props_vec = self
+                            .context
+                            .ir
                             .component_props
                             .entry(struct_name.clone())
                             .or_default();

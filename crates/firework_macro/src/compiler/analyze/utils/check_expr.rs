@@ -23,17 +23,17 @@ impl Analyzer {
         result.sparks = found;
 
         if let Some(component_name) = &self.context.now_component
-            && let Some(props) = self.context.component_props.get(component_name)
+            && let Some(props) = self.context.ir.component_props.get(component_name)
         {
             let mut found = Vec::new();
 
             let mut finder = PropsFinder {
-                props: &props,
+                props,
                 found: &mut found,
             };
             finder.visit_expr(expr);
 
-            println!("{:?}", found);
+            result.props.extend(found);
         }
 
         result
@@ -44,11 +44,15 @@ impl Analyzer {
 #[derive(Debug, Clone)]
 pub(crate) struct ExprAnalyzeResult {
     pub sparks: Vec<(String, usize)>,
+    pub props: Vec<(String, usize)>,
 }
 
 impl ExprAnalyzeResult {
     pub fn new() -> Self {
-        Self { sparks: Vec::new() }
+        Self {
+            sparks: Vec::new(),
+            props: Vec::new(),
+        }
     }
 
     pub fn len(&self) -> usize {

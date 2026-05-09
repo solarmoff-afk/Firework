@@ -74,13 +74,6 @@ pub struct AnalyzeContext {
 
     // Какой компонент сейчас реализуется
     pub now_component: Option<String>,
-
-    // Пропсы каждого компонента (поля в Prop<T>)
-    pub component_props: HashMap<String, Vec<(
-        /* Имя */ String,
-        /* Тип */ String,
-        /* Айди */ usize
-    )>>,
 }
 
 impl AnalyzeContext {
@@ -126,7 +119,6 @@ impl AnalyzeContext {
             first_ui_reactive_block: None,
             first_cycle: None,
             now_component: None,
-            component_props: HashMap::new(),
         }
     }
 }
