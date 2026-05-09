@@ -20,6 +20,12 @@ impl Analyzer {
         let mut result = ExprAnalyzeResult::new();
         result.sparks = found;
 
+        if let Some(component_name) = &self.context.now_component
+            && let Some(props) = self.context.component_props.get(component_name)
+        {
+            println!("{:?}", props);
+        }
+
         result
     }
 }

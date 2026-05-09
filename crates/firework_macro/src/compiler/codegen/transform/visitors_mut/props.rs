@@ -26,7 +26,7 @@ impl CodegenVisitor<'_> {
                 // Генерация сеттера только для пропсов, сеттер нужен для внешних изменений
                 // структурных пропсов и отпечатка в битовой маске
                 let type_str = quote!(#field_type);
-                if is_prop(&type_str.to_string()) {
+                if !is_prop(&type_str.to_string()) {
                     continue;
                 }
 

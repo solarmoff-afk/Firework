@@ -3,5 +3,5 @@
 
 pub(crate) fn is_prop(type_str: &String) -> bool {
     let clean = type_str.replace(" ", "");
-    !clean.starts_with("firework_ui::Prop<") && !clean.starts_with("Prop<")
+    clean.starts_with("firework_ui::Prop<") || clean.starts_with("Prop<")
 }

@@ -42,6 +42,7 @@ use crate::compiler::codegen::ir::{
     FireworkAction, FireworkIR, FireworkReactiveBlock, FireworkStatement, FireworkWidgetField,
 };
 use crate::compiler::error::*;
+use crate::compiler::common::is_prop;
 
 /// Нельзя хранить String поэтому используется &str, при использовании нужно использовать
 /// String::from, но это позволяет не тянуть lazy_static или другой крейт
@@ -256,7 +257,11 @@ impl<'ast> Visit<'ast> for Analyzer {
                 for field in fields_named.named.iter() {
                     if let Some(ident) = &field.ident {
                         let field_name = ident.to_string();
-                        let field_type = quote!(&field.ty).to_string();
+                        let field_type_raw = &field.ty;
+                        let field_type = quote!(#field_type_raw).to_string();
+
+                        // Проверка на то, что поле структуры обёрнуто в Prop<T>
+                        if !is_prop(&field_type) { continue; }
                        
                         self.context.component_props.entry(struct_name.clone())
                             .or_default()
@@ -305,8 +310,6 @@ impl<'ast> Visit<'ast> for Analyzer {
 
         // Теперь никакой компонент не реализуется
         self.context.now_component = None;
-
-        // visit::visit_item_impl(self, _i);
     }
 
     #[cfg_attr(feature = "trace", tracing::instrument(skip_all, fields(node = %quote!(#i))))]
