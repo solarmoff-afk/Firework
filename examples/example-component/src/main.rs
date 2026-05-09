@@ -21,7 +21,7 @@ component! {
                 println!("Component mount");
             });
 
-            my_state += 1;
+            my_state += self.example_prop;
         }
     }
 }

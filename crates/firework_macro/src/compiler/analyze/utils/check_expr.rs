@@ -3,6 +3,8 @@
 
 pub use super::super::*;
 
+use crate::compiler::analyze::expr::props::PropsFinder;
+
 impl Analyzer {
     /// Метод обёртка над SparkFinder чтобы быстро найти наличие спарка в выражении
     /// используется в коде чтобы проверить явлется ли блок реактивным и получить вектор
@@ -23,7 +25,15 @@ impl Analyzer {
         if let Some(component_name) = &self.context.now_component
             && let Some(props) = self.context.component_props.get(component_name)
         {
-            println!("{:?}", props);
+            let mut found = Vec::new();
+
+            let mut finder = PropsFinder {
+                props: &props,
+                found: &mut found,
+            };
+            finder.visit_expr(expr);
+
+            println!("{:?}", found);
         }
 
         result

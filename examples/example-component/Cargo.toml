@@ -7,6 +7,7 @@ edition = "2024"
 default = []
 safety-multithread = ["firework_ui/safety-multithread"]
 detail = ["firework_ui/detail"]
+trace = ["firework_ui/trace"]
 
 [dependencies]
 firework_ui = { workspace = true }

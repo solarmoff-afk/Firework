@@ -33,7 +33,7 @@ use utils::hook::IrHook;
 use tracing::instrument;
 
 #[cfg(feature = "trace")]
-use quote::quote;
+use quote::{quote, ToTokens};
 
 use crate::CompileType;
 use crate::compiler::CompileFlags;
