@@ -64,6 +64,18 @@ impl<'ast> Visit<'ast> for PropsFinder<'_> {
     }
 }
 
+/// Упрощенная функция для быстрого поиска пропсов в выражении
+pub fn find_props_in_expr(
+    expr: &Expr,
+    props: &Vec<(String, String, usize)>,
+) -> Vec<(String, usize)> {
+    let mut found = Vec::new();
+    let mut finder = PropsFinder::new(props, &mut found);
+
+    finder.analyze(expr);
+    found
+}
+
 impl<'a> PropsFinder<'a> {
     /// Создает новый экземпляр PropsFinder
     pub fn new(
