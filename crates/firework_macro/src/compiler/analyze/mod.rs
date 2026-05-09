@@ -265,11 +265,17 @@ impl<'ast> Visit<'ast> for Analyzer {
                             continue;
                         }
 
-                        self.context
+                        let props_vec = self.context
                             .component_props
                             .entry(struct_name.clone())
-                            .or_default()
-                            .push((field_name, field_type));
+                            .or_default();
+                        let len = props_vec.len();
+
+                        // В качестве айди каждого пропса используется размер вектора пропсов
+                        // компонента до добавления нового пропса. Это позволяет без нового
+                        // счётчика генерировать айди для пропсов которое можно использовать
+                        // для битов в битовой маске
+                        props_vec.push((field_name, field_type, len));
                     }
                 }
             }

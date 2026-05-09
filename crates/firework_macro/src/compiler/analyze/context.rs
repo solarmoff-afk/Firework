@@ -76,7 +76,11 @@ pub struct AnalyzeContext {
     pub now_component: Option<String>,
 
     // Пропсы каждого компонента (поля в Prop<T>)
-    pub component_props: HashMap<String, Vec<(String, String)>>,
+    pub component_props: HashMap<String, Vec<(
+        /* Имя */ String,
+        /* Тип */ String,
+        /* Айди */ usize
+    )>>,
 }
 
 impl AnalyzeContext {
