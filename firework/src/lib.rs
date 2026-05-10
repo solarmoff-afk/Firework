@@ -5,6 +5,9 @@ pub mod dyn_list;
 pub mod null_adapter;
 pub mod skins;
 
+#[cfg(feature = "async")]
+pub mod async_spark;
+
 mod runtime_errors;
 
 pub use firework_adapter::{AdapterClickPhase, AdapterCommand, AdapterEvent, AdapterResult};
