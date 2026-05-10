@@ -8,8 +8,17 @@ use quote::ToTokens;
 use syn::parse::{Parse, ParseStream};
 use syn::visit::Visit;
 use syn::*;
+use syn::parse::Parser;
+use syn::spanned::Spanned;
 
 use super::super::Scope;
+
+use crate::compiler::error::{
+    SPARK_ASYNC_SYNTAX_ERROR,
+    SPARK_ASYNC_CLOSURE_ERROR,
+    SPARK_ASYNC_KEYWORD_ERROR,
+    SPARK_ASYNC_MOVE_ERROR,
+};
 
 /// Валидатор реактивных инициализаций (спарков). Собирает все инициализации спарков в
 /// выражении и заполняет spark_count (их количество) и spark_tokens, это токены внутри
@@ -25,6 +34,56 @@ pub struct SparkValidator {
 
     // Выражение внутри spark!()
     pub spark_expr: Option<Expr>,
+
+    // Спарк поддерживает синтаксис spark!(v, async), здесь хранятся аргументы замыкания
+    // кроме первого аргумента (там всегда контроллер)
+    pub spark_async_closure: Option<(Vec<(String, String)>, TokenStream)>,
+
+    // Ошибки парсинга
+    pub spark_parse_error: Option<(String, Span)>,
+}
+
+impl SparkValidator {
+    fn parse_async_closure(
+        &mut self,
+        tokens: TokenStream
+    ) -> std::result::Result<(Vec<(String, String)>, TokenStream), String> {
+        use syn::parse::Parser;
+        
+        let args = syn::punctuated::Punctuated::<Expr, Token![,]>::parse_terminated
+            .parse2(tokens)
+            .map_err(|_| SPARK_ASYNC_SYNTAX_ERROR.to_string())?;
+        
+        if args.len() != 2 {
+            return Err(SPARK_ASYNC_SYNTAX_ERROR.to_string());
+        }
+        
+        let closure = match &args[1] {
+            Expr::Closure(c) => c,
+            _ => return Err(SPARK_ASYNC_CLOSURE_ERROR.to_string()),
+        };
+        
+        if closure.asyncness.is_none() {
+            return Err(SPARK_ASYNC_KEYWORD_ERROR.to_string());
+        }
+        
+        match closure.capture {
+            Some(_) => {},
+            None => return Err(SPARK_ASYNC_MOVE_ERROR.to_string()),
+        }
+        
+        // Пропускаем первый аргумент
+        let mut additional_args = Vec::new();
+        for arg in closure.inputs.iter().skip(1) {
+            if let Pat::Type(pat_type) = arg {
+                let name = pat_type.pat.to_token_stream().to_string();
+                let ty = pat_type.ty.to_token_stream().to_string();
+                additional_args.push((name, ty));
+            }
+        }
+        
+        Ok((additional_args, closure.body.to_token_stream()))
+    }
 }
 
 impl<'ast> Visit<'ast> for SparkValidator {
@@ -33,10 +92,34 @@ impl<'ast> Visit<'ast> for SparkValidator {
         if i.mac.path.is_ident("spark") {
             // Добавление единицы к значению всех вызовов spark в выражении
             self.spark_tokens = Some(i.mac.tokens.clone());
+ 
+            let args = syn::punctuated::Punctuated::<Expr, Token![,]>::parse_terminated
+                .parse2(i.mac.tokens.clone());
+            
+            match args {
+                // Если есть второй аргумент то это spark!(v, async), необходимо распарсить
+                // это как асинхронный спарк
+                Ok(args) if args.len() == 2 => {
+                    match self.parse_async_closure(i.mac.tokens.clone()) {
+                        Ok((args, body)) => {
+                            self.spark_async_closure = Some((args, body));
+                        }
 
-            // Попытка парсинга как выражение
-            if let Ok(expr) = syn::parse2::<Expr>(i.mac.tokens.clone()) {
-                self.spark_expr = Some(expr);
+                        Err(_) => {
+                            self.spark_parse_error = Some((
+                                SPARK_ASYNC_SYNTAX_ERROR.to_string(),
+                                i.span()
+                            ));
+                        }
+                    }
+                }
+
+                _ => {
+                    // Попытка парсинга как выражение
+                    if let Ok(expr) = syn::parse2::<Expr>(i.mac.tokens.clone()) {
+                        self.spark_expr = Some(expr);
+                    }
+                }
             }
 
             self.spark_count += 1;
@@ -189,6 +272,8 @@ mod tests {
             spark_count: 0,
             spark_tokens: None,
             spark_expr: None,
+            spark_async_closure: None,
+            spark_parse_error: None,
         };
 
         let expr: Expr = parse_quote! {
@@ -208,6 +293,8 @@ mod tests {
             spark_count: 0,
             spark_tokens: None,
             spark_expr: None,
+            spark_async_closure: None,
+            spark_parse_error: None,
         };
 
         let expr: Expr = parse_quote! {
@@ -225,6 +312,8 @@ mod tests {
             spark_count: 0,
             spark_tokens: None,
             spark_expr: None,
+            spark_async_closure: None,
+            spark_parse_error: None,
         };
 
         let expr: Expr = parse_quote! {
@@ -290,5 +379,126 @@ mod tests {
         finder.visit_expr(&expr);
 
         assert_eq!(found, vec![("reactive_var".to_string(), 99)]);
+    }
+
+    #[test]
+    fn test_spark_validator_async_closure() {
+        let mut validator = SparkValidator {
+            spark_count: 0,
+            spark_tokens: None,
+            spark_expr: None,
+            spark_async_closure: None,
+            spark_parse_error: None,
+        };
+
+        let expr: Expr = parse_quote! {
+            spark!(1, async move |bridge, ctx: Context| { 
+                ctx.process().await 
+            })
+        };
+
+        validator.visit_expr(&expr);
+
+        assert_eq!(validator.spark_count, 1);
+        assert!(validator.spark_async_closure.is_some());
+        assert!(validator.spark_expr.is_none());
+        assert!(validator.spark_parse_error.is_none());
+
+        let (args, body) = validator.spark_async_closure.unwrap();
+        assert_eq!(args.len(), 1);
+        assert_eq!(args[0].0, "ctx");
+        assert_eq!(args[0].1, "Context");
+        assert!(body.to_string().contains("process"));
+    }
+
+    #[test]
+    fn test_spark_validator_async_closure_multiple_args() {
+        let mut validator = SparkValidator {
+            spark_count: 0,
+            spark_tokens: None,
+            spark_expr: None,
+            spark_async_closure: None,
+            spark_parse_error: None,
+        };
+
+        let expr: Expr = parse_quote! {
+            spark!(1, async move |bridge, ctx: Context, data: String, counter: i32| { 
+                ctx.process(data, counter).await 
+            })
+        };
+
+        validator.visit_expr(&expr);
+
+        assert_eq!(validator.spark_count, 1);
+        assert!(validator.spark_async_closure.is_some());
+
+        let (args, _) = validator.spark_async_closure.unwrap();
+        assert_eq!(args.len(), 3);
+        assert_eq!(args[0], ("ctx".to_string(), "Context".to_string()));
+        assert_eq!(args[1], ("data".to_string(), "String".to_string()));
+        assert_eq!(args[2], ("counter".to_string(), "i32".to_string()));
+    }
+
+    #[test]
+    fn test_spark_validator_async_without_move_error() {
+        let mut validator = SparkValidator {
+            spark_count: 0,
+            spark_tokens: None,
+            spark_expr: None,
+            spark_async_closure: None,
+            spark_parse_error: None,
+        };
+
+        let expr: Expr = parse_quote! {
+            spark!(1, async |bridge| {})
+        };
+
+        validator.visit_expr(&expr);
+
+        assert_eq!(validator.spark_count, 1);
+        assert!(validator.spark_parse_error.is_some());
+        assert!(validator.spark_async_closure.is_none());
+    }
+
+    #[test]
+    fn test_spark_validator_async_without_async_error() {
+        let mut validator = SparkValidator {
+            spark_count: 0,
+            spark_tokens: None,
+            spark_expr: None,
+            spark_async_closure: None,
+            spark_parse_error: None,
+        };
+
+        let expr: Expr = parse_quote! {
+            spark!(1, move |bridge| {})
+        };
+
+        validator.visit_expr(&expr);
+
+        assert_eq!(validator.spark_count, 1);
+        assert!(validator.spark_parse_error.is_some());
+        assert!(validator.spark_async_closure.is_none());
+    }
+
+    #[test]
+    fn test_spark_validator_async_invalid_syntax() {
+        let mut validator = SparkValidator {
+            spark_count: 0,
+            spark_tokens: None,
+            spark_expr: None,
+            spark_async_closure: None,
+            spark_parse_error: None,
+        };
+
+        let expr: Expr = parse_quote! {
+            spark!(1, something_else)
+        };
+
+        validator.visit_expr(&expr);
+
+        assert_eq!(validator.spark_count, 1);
+        assert!(validator.spark_parse_error.is_some());
+        assert!(validator.spark_async_closure.is_none());
     }
 }

@@ -68,6 +68,7 @@ fn test_analyze_widget_with_sparks() {
             expr_body: "10u32".to_string(),
             expr_body_tokens: TokenStream::new(),
             is_mut: true,
+            async_fn: None,
         },
         InitialSpark {
             name: "y".to_string(),
@@ -76,6 +77,7 @@ fn test_analyze_widget_with_sparks() {
             expr_body: "20u32".to_string(),
             expr_body_tokens: TokenStream::new(),
             is_mut: true,
+            async_fn: None,
         },
         WidgetBlock(WidgetDescription {
             widget_type: "rect".to_string(),

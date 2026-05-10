@@ -275,6 +275,8 @@ impl<'ast> Analyzer {
                                 spark_count: 0,
                                 spark_tokens: None,
                                 spark_expr: None,
+                                spark_async_closure: None,
+                                spark_parse_error: None,
                             };
                             validator.visit_expr(&arm.body);
 

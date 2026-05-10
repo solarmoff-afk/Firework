@@ -11,6 +11,7 @@ default = []
 safety-multithread = []
 debug_output = []
 trace = ["tracing", "tracing-subscriber", "tracing-chrome"]
+async = []
 
 [dependencies]
 syn = { version = "2.0", features = ["full", "extra-traits", "visit", "visit-mut"] }

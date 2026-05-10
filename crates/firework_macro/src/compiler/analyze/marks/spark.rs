@@ -5,6 +5,8 @@ pub use super::super::*;
 
 use super::super::type_inference::auto_type::guess_type_from_expr;
 
+use crate::compiler::codegen::ir::actions::SparkAsyncFn;
+
 impl Analyzer {
     /// Маркер spark!()
     pub(crate) fn spark_marker(&mut self, i: &Local) {
@@ -14,6 +16,8 @@ impl Analyzer {
                 spark_count: 0,
                 spark_tokens: None,
                 spark_expr: None,
+                spark_async_closure: None,
+                spark_parse_error: None,
             };
 
             // Вызов из валидатора
@@ -91,6 +95,25 @@ impl Analyzer {
                 self.linter
                     .add_spark(id, name.clone(), i.to_token_stream().to_string());
 
+                let async_fn = if let Some((async_args, async_body))
+                    = &validator.spark_async_closure
+                {
+                    // Для асинхронных спарков нужен рантайм, а он включается фичей async
+                    if !cfg!(feature = "async") {
+                        self.context.errors.push(
+                            compile_error_spanned(&local_init.expr, SPARK_ASYNC_FEATURE_ERROR)
+                        );
+                        return;
+                    }
+                    
+                    Some(SparkAsyncFn {
+                        args: async_args.clone(),
+                        body: async_body.clone(),
+                    })
+                } else {
+                    None
+                };
+
                 self.context.statement.action = FireworkAction::InitialSpark {
                     name: name.clone(),
                     id,
@@ -98,6 +121,7 @@ impl Analyzer {
                     expr_body: _spark_content.clone(),
                     expr_body_tokens: spark_tokens.clone(),
                     is_mut: var_data.is_mut,
+                    async_fn,
                 };
 
                 // FE004, нельзя затенить спарк

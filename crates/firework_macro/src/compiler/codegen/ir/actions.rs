@@ -20,6 +20,7 @@ pub enum FireworkAction {
         expr_body: String,
         expr_body_tokens: TokenStream,
         is_mut: bool,
+        async_fn: Option<SparkAsyncFn>,
     },
 
     // Когда спарк выходит из области видимости необходимо вернуть владение обратно в
@@ -95,4 +96,10 @@ pub enum FireworkAction {
 
     // Завершение функции экрана
     Terminator,
+}
+
+#[derive(Debug, Clone)]
+pub struct SparkAsyncFn {
+    pub args: Vec<(String, String)>,
+    pub body: TokenStream,
 }

@@ -246,6 +246,47 @@ error[FE025]: multiple `ComponentContext` arguments found
    = note: for more information, see: [WORK IN PROGRESS]
 ";
 
+/// Асинхронный спарк требует наличия фичи async
+pub const SPARK_ASYNC_FEATURE_ERROR: &str = "\
+error[FE026]: async spark requires the `async` feature to be enabled
+   = note: async sparks create asynchronous tasks that run on an async runtime
+   = help: add `features = [\"async\"]` to your firework dependency in Cargo.toml
+   = note: for more information, see: [WORK IN PROGRESS]
+";
+
+/// Неверный синтаксис асинхронного спарка
+pub const SPARK_ASYNC_SYNTAX_ERROR: &str = "\
+error[FE027]: invalid syntax for async spark initialization
+   = note: expected `spark!(value, |bridge, ...| async move { ... })`
+   = note: the closure must be `async move` and take `bridge` as its first argument
+   = help: example: `spark!(42, |bridge, ctx: Context| async move { ctx.process().await });`
+   = note: for more information, see: [WORK IN PROGRESS]
+";
+
+/// Второй аргумент должен быть замыканием
+pub const SPARK_ASYNC_CLOSURE_ERROR: &str = "\
+error[FE028]: second argument must be a closure
+   = note: async spark expects a closure that will be executed when the spark is triggered
+   = help: change the second argument to `|bridge, ...| async move { ... }`
+   = note: for more information, see: [WORK IN PROGRESS]
+";
+
+/// Замыкание должно быть async
+pub const SPARK_ASYNC_KEYWORD_ERROR: &str = "\
+error[FE029]: closure must be marked as `async`
+   = note: async sparks require asynchronous execution
+   = help: add `async` before the closure body: `|bridge| async move { ... }`
+   = note: for more information, see: [WORK IN PROGRESS]
+";
+
+/// Замыкание должно быть move
+pub const SPARK_ASYNC_MOVE_ERROR: &str = "\
+error[FE030]: closure must be marked as `move`
+   = note: async sparks need to take ownership of captured variables for safe async execution
+   = help: add `move` after the closure parameters: `|bridge| async move { ... }`
+   = note: for more information, see: [WORK IN PROGRESS]
+";
+
 pub fn compile_error_spanned<T: quote::ToTokens>(tokens: T, msg: &str) -> Error {
     Error::new_spanned(tokens, msg)
 }
