@@ -235,7 +235,7 @@ pub fn adapter_command(command: AdapterCommand) -> AdapterResult {
     get_adapter()(command)
 }
 
-fn default_adapter(command: AdapterCommand) -> AdapterResult {
+fn default_adapter(_command: AdapterCommand) -> AdapterResult {
     {}
 
     AdapterResult::Void
