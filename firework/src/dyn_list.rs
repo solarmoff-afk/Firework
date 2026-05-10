@@ -39,6 +39,12 @@ pub struct DynList<K, T> {
 }
 
 #[cfg(not(feature = "no-alloc"))]
+impl<K: Eq + PartialEq, T: SkinVisibility> Default for DynList<K, T> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl<K: Eq + PartialEq, T: SkinVisibility> DynList<K, T> {
     pub fn new() -> Self {
         Self {

@@ -17,7 +17,7 @@ impl DefaultRectSkin {
                 adapter_command(AdapterCommand::SetHitGroup(handle, crate::TOUCH_HIT_GROUP));
 
                 Some(Self {
-                    handle: handle,
+                    handle,
                     _layout: layout,
                 })
             }

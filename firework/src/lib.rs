@@ -28,6 +28,12 @@ pub struct ComponentContext {
     pub depth: u16,
 }
 
+impl Default for ComponentContext {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl ComponentContext {
     pub fn new() -> Self {
         Self { depth: 0 }
@@ -230,9 +236,7 @@ pub fn adapter_command(command: AdapterCommand) -> AdapterResult {
 }
 
 fn default_adapter(command: AdapterCommand) -> AdapterResult {
-    match command {
-        _ => {}
-    }
+    {}
 
     AdapterResult::Void
 }
