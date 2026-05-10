@@ -95,24 +95,24 @@ impl Analyzer {
                 self.linter
                     .add_spark(id, name.clone(), i.to_token_stream().to_string());
 
-                let async_fn = if let Some((async_args, async_body))
-                    = &validator.spark_async_closure
-                {
-                    // Для асинхронных спарков нужен рантайм, а он включается фичей async
-                    if !cfg!(feature = "async") {
-                        self.context.errors.push(
-                            compile_error_spanned(&local_init.expr, SPARK_ASYNC_FEATURE_ERROR)
-                        );
-                        return;
-                    }
-                    
-                    Some(SparkAsyncFn {
-                        args: async_args.clone(),
-                        body: async_body.clone(),
-                    })
-                } else {
-                    None
-                };
+                let async_fn =
+                    if let Some((async_args, async_body)) = &validator.spark_async_closure {
+                        // Для асинхронных спарков нужен рантайм, а он включается фичей async
+                        if !cfg!(feature = "async") {
+                            self.context.errors.push(compile_error_spanned(
+                                &local_init.expr,
+                                SPARK_ASYNC_FEATURE_ERROR,
+                            ));
+                            return;
+                        }
+
+                        Some(SparkAsyncFn {
+                            args: async_args.clone(),
+                            body: async_body.clone(),
+                        })
+                    } else {
+                        None
+                    };
 
                 self.context.statement.action = FireworkAction::InitialSpark {
                     name: name.clone(),

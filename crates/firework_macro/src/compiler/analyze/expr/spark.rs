@@ -5,19 +5,17 @@
 
 use proc_macro2::{Span, TokenStream};
 use quote::ToTokens;
+use syn::parse::Parser;
 use syn::parse::{Parse, ParseStream};
+use syn::spanned::Spanned;
 use syn::visit::Visit;
 use syn::*;
-use syn::parse::Parser;
-use syn::spanned::Spanned;
 
 use super::super::Scope;
 
 use crate::compiler::error::{
+    SPARK_ASYNC_CLOSURE_ERROR, SPARK_ASYNC_KEYWORD_ERROR, SPARK_ASYNC_MOVE_ERROR,
     SPARK_ASYNC_SYNTAX_ERROR,
-    SPARK_ASYNC_CLOSURE_ERROR,
-    SPARK_ASYNC_KEYWORD_ERROR,
-    SPARK_ASYNC_MOVE_ERROR,
 };
 
 /// Валидатор реактивных инициализаций (спарков). Собирает все инициализации спарков в
@@ -46,32 +44,32 @@ pub struct SparkValidator {
 impl SparkValidator {
     fn parse_async_closure(
         &mut self,
-        tokens: TokenStream
+        tokens: TokenStream,
     ) -> std::result::Result<(Vec<(String, String)>, TokenStream), String> {
         use syn::parse::Parser;
-        
+
         let args = syn::punctuated::Punctuated::<Expr, Token![,]>::parse_terminated
             .parse2(tokens)
             .map_err(|_| SPARK_ASYNC_SYNTAX_ERROR.to_string())?;
-        
+
         if args.len() != 2 {
             return Err(SPARK_ASYNC_SYNTAX_ERROR.to_string());
         }
-        
+
         let closure = match &args[1] {
             Expr::Closure(c) => c,
             _ => return Err(SPARK_ASYNC_CLOSURE_ERROR.to_string()),
         };
-        
+
         if closure.asyncness.is_none() {
             return Err(SPARK_ASYNC_KEYWORD_ERROR.to_string());
         }
-        
+
         match closure.capture {
-            Some(_) => {},
+            Some(_) => {}
             None => return Err(SPARK_ASYNC_MOVE_ERROR.to_string()),
         }
-        
+
         // Пропускаем первый аргумент
         let mut additional_args = Vec::new();
         for arg in closure.inputs.iter().skip(1) {
@@ -81,7 +79,7 @@ impl SparkValidator {
                 additional_args.push((name, ty));
             }
         }
-        
+
         Ok((additional_args, closure.body.to_token_stream()))
     }
 }
@@ -92,10 +90,10 @@ impl<'ast> Visit<'ast> for SparkValidator {
         if i.mac.path.is_ident("spark") {
             // Добавление единицы к значению всех вызовов spark в выражении
             self.spark_tokens = Some(i.mac.tokens.clone());
- 
+
             let args = syn::punctuated::Punctuated::<Expr, Token![,]>::parse_terminated
                 .parse2(i.mac.tokens.clone());
-            
+
             match args {
                 // Если есть второй аргумент то это spark!(v, async), необходимо распарсить
                 // это как асинхронный спарк
@@ -106,10 +104,8 @@ impl<'ast> Visit<'ast> for SparkValidator {
                         }
 
                         Err(_) => {
-                            self.spark_parse_error = Some((
-                                SPARK_ASYNC_SYNTAX_ERROR.to_string(),
-                                i.span()
-                            ));
+                            self.spark_parse_error =
+                                Some((SPARK_ASYNC_SYNTAX_ERROR.to_string(), i.span()));
                         }
                     }
                 }
@@ -392,8 +388,8 @@ mod tests {
         };
 
         let expr: Expr = parse_quote! {
-            spark!(1, async move |bridge, ctx: Context| { 
-                ctx.process().await 
+            spark!(1, async move |bridge, ctx: Context| {
+                ctx.process().await
             })
         };
 
@@ -422,8 +418,8 @@ mod tests {
         };
 
         let expr: Expr = parse_quote! {
-            spark!(1, async move |bridge, ctx: Context, data: String, counter: i32| { 
-                ctx.process(data, counter).await 
+            spark!(1, async move |bridge, ctx: Context, data: String, counter: i32| {
+                ctx.process(data, counter).await
             })
         };
 
