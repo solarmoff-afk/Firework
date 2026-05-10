@@ -5,9 +5,21 @@ use syn::spanned::Spanned;
 
 pub use super::super::*;
 
+use crate::compiler::common::find_expr_attrs::get_expr_attrs;
+use crate::compiler::common::has_attribute;
+
 impl<'ast> Analyzer {
     /// Анализация стейтемента
     pub(crate) fn analyze_stmt(&mut self, i: &'ast Stmt) {
+        let attrs = match i {
+            Stmt::Local(local) => &local.attrs,
+            Stmt::Expr(expr, _) => get_expr_attrs(expr),
+            Stmt::Macro(macro_stmt) => &macro_stmt.attrs,
+
+            // Не относится к item
+            Stmt::Item(_) => &[],
+        };
+
         self.context.statement.screen_index = self.lifetime_manager.scope.screen_index;
 
         let mut layout_name = "".to_string();
@@ -33,7 +45,11 @@ impl<'ast> Analyzer {
             self.context.statement.is_reactive_block = true;
         }
 
-        visit::visit_stmt(self, i);
+        // Атрибут #[raw] позволяет отключить анализ стейтемента для компилятора Firework,
+        // тем самым удалив магию компилятора из него
+        if !has_attribute(attrs, "raw") {
+            visit::visit_stmt(self, i);
+        }
 
         self.statement_index += 1;
 

@@ -13,6 +13,7 @@ use syn::*;
 use crate::CompileFlags;
 use crate::compiler::codegen::code_builder::CodeBuilder;
 use crate::compiler::codegen::ir::FireworkIR;
+use crate::compiler::common::{remove_attribute, remove_expr_attribute};
 
 pub struct LowerVisitor<'a> {
     // IR от анализатора, содержит плоские семантические метки для каждого стейтемента,
@@ -46,6 +47,24 @@ impl<'a> VisitMut for LowerVisitor<'a> {
 
     fn visit_stmt_mut(&mut self, stmt: &mut Stmt) {
         let old_drops = std::mem::take(&mut self.pending_drops);
+
+        // Атрибут raw нужно удалить потому-что это маркер, а не реальный процедурный
+        // макрос
+        match stmt {
+            Stmt::Local(local) => {
+                remove_attribute(&mut local.attrs, "raw");
+            }
+
+            Stmt::Expr(expr, _) => {
+                remove_expr_attribute(expr, "raw");
+            }
+
+            Stmt::Macro(macro_stmt) => {
+                remove_attribute(&mut macro_stmt.attrs, "raw");
+            }
+
+            Stmt::Item(_) => {}
+        };
 
         syn::visit_mut::visit_stmt_mut(self, stmt);
 

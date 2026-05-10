@@ -30,6 +30,7 @@ fn test_combine_nested_structures_screen() {
         }
     }
 
+    // #[raw]
     if items_count == 0 {
         items_count = 3;
     } else if !filter_active {
