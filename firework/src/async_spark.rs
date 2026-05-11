@@ -3,6 +3,7 @@
 
 use futures::Stream;
 use std::fmt;
+use std::ops::{Deref, DerefMut};
 use std::pin::Pin;
 use std::task::{Context, Poll};
 use tokio::sync::mpsc;
@@ -13,10 +14,7 @@ pub struct AsyncSpark<T> {
     status: Option<AsyncStatus<T>>,
 }
 
-impl<T> AsyncSpark<T>
-where
-    T: Send + 'static,
-{
+impl<T: Default + Send + 'static> AsyncSpark<T> {
     pub fn new() -> Self {
         AsyncSpark {
             stream: None,
@@ -72,13 +70,26 @@ where
 
 /// A middleware for managing asynchronous state from an asynchronous closure. It is needed to
 /// avoid tying the user to a single specific runtime
-pub struct AsyncController<T> {
+pub struct AsyncController<T: Default> {
     tx: mpsc::UnboundedSender<AsyncStatus<T>>,
+
+    // Изначально это значение дефолтное, но потом оно используется как прокси для того чтобы
+    // при следующем DerefMut или Drop забрать это значение, сделать отправку и уже вернуть
+    // мутабельную ссылку снова на дефолтное значение
+    value: T,
+
+    // Флаг для определения были ли другие DerefMut для этого (является ли текущее значение
+    // первым)
+    is_first: bool,
 }
 
-impl<T> AsyncController<T> {
+impl<T: Default> AsyncController<T> {
     pub fn new(tx: mpsc::UnboundedSender<AsyncStatus<T>>) -> Self {
-        AsyncController { tx }
+        Self {
+            tx,
+            value: T::default(),
+            is_first: true,
+        }
     }
 
     pub fn send(&self, value: T) {
@@ -101,6 +112,45 @@ impl<T> AsyncController<T> {
 
     pub async fn sleep_ms(&self, ms: u64) {
         time::sleep(Duration::from_millis(ms)).await;
+    }
+}
+
+impl<T: Default> Deref for AsyncController<T> {
+    type Target = T;
+
+    fn deref(&self) -> &Self::Target {
+        &self.value
+    }
+}
+
+impl<T: Default> DerefMut for AsyncController<T> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        // Если это значение не первое (не дефольное) то оно забирается через тейк чтобы
+        // на его месте было уже дефолтное значение, а это используется для отправки через
+        // канал
+        if !self.is_first {
+            let old = std::mem::take(&mut self.value);
+            let _ = self.tx.send(AsyncStatus::Ready(old));
+        }
+
+        self.is_first = false;
+        &mut self.value
+    }
+}
+
+impl<T: Default> Drop for AsyncController<T> {
+    fn drop(&mut self) {
+        // При Drop если пользователь использовал DerefMut происходит отправка текущего
+        // значения потому-что
+        //  - DerefMut, пропуск из-за is_first, теперь тут 10
+        //  - DerefMut, 10 отправляется через канал, теперь тут 20
+        //  - Drop, всё ещё 20 которая не была отправлена, но благодаря этой логике тут
+        //    отправка произойдёт если был deref_mut
+        if self.is_first {
+            let _ = self
+                .tx
+                .send(AsyncStatus::Ready(std::mem::take(&mut self.value)));
+        }
     }
 }
 
