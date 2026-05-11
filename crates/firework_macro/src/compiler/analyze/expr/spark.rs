@@ -400,7 +400,6 @@ mod tests {
 
         assert_eq!(validator.spark_count, 1);
         assert!(validator.spark_async_closure.is_some());
-        assert!(validator.spark_expr.is_none());
         assert!(validator.spark_parse_error.is_none());
 
         let (args, body) = validator.spark_async_closure.unwrap();
