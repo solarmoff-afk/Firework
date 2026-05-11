@@ -3,12 +3,7 @@
 
 use core::mem;
 
-/// Трейт который должны реализовать все скины для поддержки видимости в списках. Он
-/// гарантирует наличие метода visible
-pub trait SkinVisibility {
-    fn visible(&self, state: bool);
-    fn unmount(self);
-}
+use crate::std_widgets::widget::Widget;
 
 /// Результат поиска элемента в списке
 pub enum ListEntry<'a, K, T> {
@@ -25,7 +20,7 @@ pub struct VacantEntry<'a, K, T> {
     key: K,
 }
 
-impl<'a, K: Eq + PartialEq, T: SkinVisibility> VacantEntry<'a, K, T> {
+impl<'a, K: Eq + PartialEq, T: Widget> VacantEntry<'a, K, T> {
     /// Вставляет созданный виджет в список и возвращает мутабельную ссылку на него
     pub fn insert(self, value: T) -> &'a mut T {
         self.list.insert_at_current(self.key, value)
@@ -39,13 +34,13 @@ pub struct DynList<K, T> {
 }
 
 #[cfg(not(feature = "no-alloc"))]
-impl<K: Eq + PartialEq, T: SkinVisibility> Default for DynList<K, T> {
+impl<K: Eq + PartialEq, T: Widget> Default for DynList<K, T> {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl<K: Eq + PartialEq, T: SkinVisibility> DynList<K, T> {
+impl<K: Eq + PartialEq, T: Widget> DynList<K, T> {
     pub fn new() -> Self {
         Self {
             current_items: Vec::new(),
@@ -101,7 +96,7 @@ pub struct DynList<K, T> {
 }
 
 #[cfg(feature = "no-alloc")]
-impl<K: Eq + PartialEq, T: SkinVisibility> DynList<K, T> {
+impl<K: Eq + PartialEq, T: Widget> DynList<K, T> {
     pub fn new() -> Self {
         Self {
             current_items: [const { None }; 64],

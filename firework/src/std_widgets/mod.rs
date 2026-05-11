@@ -1,8 +1,12 @@
 // Часть проекта Firework с открытым исходным кодом.
 // Лицензия EPL 2.0, подробнее в файле LICENSE. Copyright (c) 2026 Firework
 
-use crate::adapter_command;
+pub mod widget;
+
 use firework_adapter::{AdapterCommand, AdapterResult};
+use widget::Widget;
+
+use crate::adapter_command;
 
 #[derive(Debug, Clone, Copy)]
 pub struct DefaultRectSkin {
@@ -76,7 +80,7 @@ impl DefaultRectSkin {
     }
 }
 
-impl crate::runtime::dyn_list::SkinVisibility for DefaultRectSkin {
+impl Widget for DefaultRectSkin {
     fn visible(&self, state: bool) {
         DefaultRectSkin::visible(*self, state);
     }
