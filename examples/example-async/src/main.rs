@@ -14,8 +14,5 @@ fn compose() {
 }
 
 fn main() {
-    firework_ui::run_with_adapter(
-        firework_ui::null_adapter,
-        compose,
-    );
+    firework_ui::run_with_adapter(firework_ui::null_adapter, compose);
 }
