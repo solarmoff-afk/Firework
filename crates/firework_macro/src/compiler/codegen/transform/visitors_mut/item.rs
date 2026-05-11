@@ -98,6 +98,17 @@ impl CodegenVisitor<'_> {
             .find(|(name, _, _)| name == &function_name)
             .map(|(_, _, id)| *id);
 
+        // Генерация tick функции для экранов. Она нужна для асинхронности и в будущем
+        // анимаций. Вызывается каждый кадр
+        if matches!(self.flags.compile_type, CompileType::Screen) {
+            let tick_name = format_ident!("_fwc_tick_{}", self.ui_id.unwrap_or(0));
+            new_items.push(parse_quote! {
+                fn #tick_name() {
+                    // println!("Hello world");
+                }
+            });
+        }
+
         self.visit_block_mut(block);
 
         if let Some(id) = self.ui_id {

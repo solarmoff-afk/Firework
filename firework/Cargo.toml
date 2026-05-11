@@ -12,7 +12,7 @@ no-alloc = []
 safety-multithread = []
 detail = ["firework_macro/debug_output"]
 trace = ["firework_macro/trace"]
-async = ["dep:tokio", "dep:futures", "dep:tokio-stream"]
+async = ["dep:tokio", "dep:futures", "dep:tokio-stream", "firework_macro/async"]
 
 [dependencies]
 firework_macro = { workspace = true }

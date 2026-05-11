@@ -20,6 +20,7 @@ fn test_screen() {
 }
 */
 
+/*
 #[ui]
 fn test_screen() {
     let mut x = spark!(3);
@@ -44,6 +45,20 @@ fn test_screen() {
     }
 
     x += 1;
+}
+*/
+
+#[ui]
+fn test_screen() {
+    /*
+    let mut state: i32 = spark!(0, async move |mut bridge| {
+        bridge.sleep_s(2);
+        *bridge = 1;
+        bridge.sleep_s(2);
+    });
+    */
+
+    println!("Hello world");
 }
 
 fn main() {

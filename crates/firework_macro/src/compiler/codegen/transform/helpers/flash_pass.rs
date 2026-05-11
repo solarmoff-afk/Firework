@@ -25,6 +25,9 @@ impl CodegenVisitor<'_> {
         let fn_path: Path = syn::parse_str(function_name)
             .unwrap_or_else(|_| panic!("Invalid function path: {}", function_name));
 
+        // Имя функции которая будет вызываться каждый кадр
+        let tick_ident = format_ident!("_fwc_tick_{}", self.ui_id.unwrap_or(0));
+
         // [FLASH PASS]
         // Flash pass это форма функции или метода которая позволяет использовать
         // одну функцию для нескольких вариантов цикла жизни. Если id экрана не
@@ -56,6 +59,8 @@ impl CodegenVisitor<'_> {
                         ::firework_ui::adapter_command(::firework_ui::AdapterCommand::RemoveAll);
                         _fwc_event = ::firework_ui::LifeCycle::Navigate;
                     }
+
+                    ::firework_ui::set_tick_fn(#tick_ident);
                 }
 
                 ::firework_ui::set_focus_id(_fwc_id);

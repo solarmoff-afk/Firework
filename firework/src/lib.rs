@@ -10,6 +10,9 @@ pub mod async_spark;
 
 mod runtime_errors;
 
+#[cfg(feature = "safety-multithread")]
+use std::sync::{Mutex, OnceLock};
+
 pub use firework_adapter::{AdapterClickPhase, AdapterCommand, AdapterEvent, AdapterResult};
 pub use firework_macro::{component, effect, shared, ui};
 
@@ -116,6 +119,42 @@ pub enum LifeCycle {
     Reactive,
 }
 
+// Текущий тик (вызывается каждый кадр)
+#[cfg(not(feature = "safety-multithread"))]
+static mut CURRENT_TICK: Option<fn()> = None;
+
+#[cfg(feature = "safety-multithread")]
+static CURRENT_TICK: OnceLock<Mutex<Option<fn()>>> = OnceLock::new();
+
+#[cfg(not(feature = "safety-multithread"))]
+pub fn get_tick_fn() -> fn() {
+    unsafe { CURRENT_TICK.unwrap_or(|| {}) }
+}
+
+#[cfg(feature = "safety-multithread")]
+pub fn get_tick_fn() -> fn() {
+    CURRENT_TICK
+        .get_or_init(|| Mutex::new(None))
+        .lock()
+        .unwrap()
+        .unwrap_or(|| {})
+}
+
+#[cfg(not(feature = "safety-multithread"))]
+pub fn set_tick_fn(f: fn()) {
+    unsafe {
+        CURRENT_TICK = Some(f);
+    }
+}
+
+#[cfg(feature = "safety-multithread")]
+pub fn set_tick_fn(f: fn()) {
+    *CURRENT_TICK
+        .get_or_init(|| Mutex::new(None))
+        .lock()
+        .unwrap() = Some(f);
+}
+
 #[cfg(not(feature = "safety-multithread"))]
 // Хранилище текущего фокуса (активного слайда) для ивентов
 static mut CURRENT_FOCUS: Option<fn()> = None;
@@ -126,9 +165,6 @@ static mut CURRENT_ADAPTER: Option<fn(AdapterCommand) -> AdapterResult> = None;
 #[cfg(not(feature = "safety-multithread"))]
 // Айди текущего фокуса для сравнения
 static mut CURRENT_FOCUS_ID: Option<u128> = None;
-
-#[cfg(feature = "safety-multithread")]
-use std::sync::{Mutex, OnceLock};
 
 #[cfg(feature = "safety-multithread")]
 static CURRENT_FOCUS: OnceLock<Mutex<Option<fn()>>> = OnceLock::new();
@@ -267,6 +303,7 @@ pub fn after_first_flash() {
 
             AdapterEvent::Tick => {
                 adapter_command(AdapterCommand::Render);
+                get_tick_fn()();
             }
 
             _ => {}
