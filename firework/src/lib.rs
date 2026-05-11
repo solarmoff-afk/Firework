@@ -1,8 +1,8 @@
 // Часть проекта Firework с открытым исходным кодом.
 // Лицензия EPL 2.0, подробнее в файле LICENSE. Copyright (c) 2026 Firework
 
-pub mod runtime;
 pub mod null_adapter;
+pub mod runtime;
 pub mod std_widgets;
 
 mod runtime_errors;
@@ -13,8 +13,8 @@ use std::sync::{Mutex, OnceLock};
 pub use firework_adapter::{AdapterClickPhase, AdapterCommand, AdapterEvent, AdapterResult};
 pub use firework_macro::{component, effect, shared, ui};
 
-pub use runtime::dyn_list::{DynList, ListEntry};
 pub use null_adapter::null_adapter;
+pub use runtime::dyn_list::{DynList, ListEntry};
 pub use runtime_errors::RENDER_ADAPTER_MISSING_ERROR;
 pub use std_widgets::DefaultRectSkin;
 
