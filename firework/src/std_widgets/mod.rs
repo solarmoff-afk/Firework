@@ -76,7 +76,7 @@ impl DefaultRectSkin {
     }
 }
 
-impl crate::dyn_list::SkinVisibility for DefaultRectSkin {
+impl crate::runtime::dyn_list::SkinVisibility for DefaultRectSkin {
     fn visible(&self, state: bool) {
         DefaultRectSkin::visible(*self, state);
     }

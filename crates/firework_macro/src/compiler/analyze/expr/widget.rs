@@ -127,7 +127,7 @@ pub fn is_functional_widget(name: &str) -> bool {
 /// примитивов
 pub fn map_skin(widget_name: &str) -> Option<String> {
     match widget_name {
-        "rect" => Some("firework_ui::skins::DefaultRectSkin".to_string()),
+        "rect" => Some("firework_ui::DefaultRectSkin".to_string()),
 
         // Не имеет скина так как явлется функциональным виджетом
         _ => None,

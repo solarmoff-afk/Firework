@@ -1,12 +1,9 @@
 // Часть проекта Firework с открытым исходным кодом.
 // Лицензия EPL 2.0, подробнее в файле LICENSE. Copyright (c) 2026 Firework
 
-pub mod dyn_list;
+pub mod runtime;
 pub mod null_adapter;
-pub mod skins;
-
-#[cfg(feature = "async")]
-pub mod async_spark;
+pub mod std_widgets;
 
 mod runtime_errors;
 
@@ -16,10 +13,10 @@ use std::sync::{Mutex, OnceLock};
 pub use firework_adapter::{AdapterClickPhase, AdapterCommand, AdapterEvent, AdapterResult};
 pub use firework_macro::{component, effect, shared, ui};
 
-pub use dyn_list::{DynList, ListEntry};
+pub use runtime::dyn_list::{DynList, ListEntry};
 pub use null_adapter::null_adapter;
 pub use runtime_errors::RENDER_ADAPTER_MISSING_ERROR;
-pub use skins::DefaultRectSkin;
+pub use std_widgets::DefaultRectSkin;
 
 pub const TOUCH_HIT_GROUP: u16 = u16::MAX;
 
