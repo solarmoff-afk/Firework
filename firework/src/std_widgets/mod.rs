@@ -7,10 +7,12 @@ use firework_adapter::{AdapterCommand, AdapterResult};
 use widget::Widget;
 
 use crate::adapter_command;
+use crate::layout::{Constraints, Size};
 
 #[derive(Debug, Clone, Copy)]
 pub struct DefaultRectSkin {
     handle: usize,
+    size: (i32, i32),
     _layout: u16,
 }
 
@@ -22,6 +24,7 @@ impl DefaultRectSkin {
 
                 Some(Self {
                     handle,
+                    size: (0, 0),
                     _layout: layout,
                 })
             }
@@ -37,7 +40,9 @@ impl DefaultRectSkin {
     }
 
     /// Устанавливает размер прямоугольника
-    pub fn size(self, size: (i32, i32)) -> Self {
+    pub fn size(mut self, size: (i32, i32)) -> Self {
+        self.size = size;
+
         let _ = adapter_command(AdapterCommand::SetSize(self.handle, size));
         self
     }
@@ -81,13 +86,38 @@ impl DefaultRectSkin {
 }
 
 impl Widget for DefaultRectSkin {
+    fn position(&self, position: (i32, i32)) {
+        DefaultRectSkin::position(*self, position);
+    }
+
     fn visible(&self, state: bool) {
         DefaultRectSkin::visible(*self, state);
     }
 
     fn unmount(self) {
         self.visible(false);
-
         crate::adapter_command(crate::AdapterCommand::Remove(self.__id()));
+    }
+
+    fn layout(&mut self, constraints: Constraints) -> Size {
+        let width = self
+            .size
+            .0
+            .clamp(constraints.min_width, constraints.max_width);
+
+        let height = self
+            .size
+            .1
+            .clamp(constraints.min_height, constraints.max_height);
+
+        if width != self.size.0 || height != self.size.1 {
+            let _ = adapter_command(AdapterCommand::SetSize(self.handle, (width, height)));
+            self.size = (width, height);
+        }
+
+        Size {
+            width: self.size.0,
+            height: self.size.1,
+        }
     }
 }
