@@ -98,6 +98,9 @@ impl<'ast> Visit<'ast> for SparkValidator {
                 // Если есть второй аргумент то это spark!(v, async), необходимо распарсить
                 // это как асинхронный спарк
                 Ok(args) if args.len() == 2 => {
+                    self.spark_expr = Some(args[0].clone());
+                    self.spark_tokens = Some(args[0].to_token_stream());
+
                     match self.parse_async_closure(i.mac.tokens.clone()) {
                         Ok((args, body)) => {
                             self.spark_async_closure = Some((args, body));
