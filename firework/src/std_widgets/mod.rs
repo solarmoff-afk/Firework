@@ -40,11 +40,25 @@ impl DefaultRectSkin {
     }
 
     /// Устанавливает размер прямоугольника
+    /*
     pub fn size(mut self, size: (i32, i32)) -> Self {
         self.size = size;
 
         let _ = adapter_command(AdapterCommand::SetSize(self.handle, size));
         self
+    }
+    */
+
+    pub fn width(&mut self, width: i32) -> Self {
+        self.size.0 = width;
+        let _ = adapter_command(AdapterCommand::SetSize(self.handle, self.size));
+        *self
+    }
+
+    pub fn height(&mut self, height: i32) -> Self {
+        self.size.1 = height;
+        let _ = adapter_command(AdapterCommand::SetSize(self.handle, self.size));
+        *self
     }
 
     /// Устанавливает цвет прямоугольника
