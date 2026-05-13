@@ -32,9 +32,6 @@ use utils::hook::IrHook;
 #[cfg(feature = "trace")]
 use tracing::instrument;
 
-#[cfg(feature = "trace")]
-use quote::{ToTokens, quote};
-
 use crate::CompileType;
 use crate::compiler::CompileFlags;
 use crate::compiler::codegen::ir::SpanKey;

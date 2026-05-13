@@ -12,7 +12,9 @@ impl<'ast> Analyzer {
     /// Макрос который используются не в выражении, а как отдельный statement (команда)
     pub(crate) fn analyze_macro(&mut self, i: &'ast Macro) {
         let name = i.path.to_token_stream().to_string();
-        self.context.statement.span = i.path.span();
+
+        let widget_span = i.path.span();
+        self.context.statement.span = widget_span;
 
         if self.validate_element(i, &name) {
             return;
@@ -190,6 +192,11 @@ impl<'ast> Analyzer {
 
             let widget_block = FireworkAction::WidgetBlock(descriptor);
             self.context.statement.action = widget_block;
+
+            // FIX: Замыкания в полях виджета создавали ситуацию когда виджет записывался
+            // под спаном замыкания и для него не генерировался код, здесь же спан заранее
+            // сохраняется и пуш происходит под него
+            self.context.statement.span = widget_span;
 
             self.context.ir.push(self.context.statement.clone());
             self.statement_index += 1;

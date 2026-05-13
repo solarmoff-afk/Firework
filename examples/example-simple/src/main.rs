@@ -27,6 +27,14 @@ fn test_combine_nested_structures_screen() {
         }
     }
     */
+
+    rect! {
+        position: (10, 10),
+        on_click: || {
+            println!("Hi");
+        },
+    }
+
     println!("Hello world");
 }
 
