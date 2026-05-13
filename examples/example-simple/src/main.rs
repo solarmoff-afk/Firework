@@ -14,7 +14,7 @@ fn test_screen() {
 */
 
 #[ui]
-fn test_combine_nested_structures_screen() { 
+fn test_combine_nested_structures_screen() {
     /*
     vertical! {
         layout! {
