@@ -175,7 +175,9 @@ impl<'ast> Analyzer {
                 },
             };
 
-            if name == "layout" && let Some(hook) = &self.context.layout_hook {
+            if name == "layout"
+                && let Some(hook) = &self.context.layout_hook
+            {
                 let statement = self.get_statement_from_hook(hook.clone());
 
                 if let FireworkAction::LayoutBlock(_, _, desc) = &mut statement.action {
