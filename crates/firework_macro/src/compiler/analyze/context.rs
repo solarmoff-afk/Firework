@@ -74,6 +74,9 @@ pub struct AnalyzeContext {
 
     // Какой компонент сейчас реализуется
     pub now_component: Option<String>,
+
+    // Хук на последний лайаут
+    pub layout_hook: Option<IrHook>,
 }
 
 impl AnalyzeContext {
@@ -119,6 +122,7 @@ impl AnalyzeContext {
             first_ui_reactive_block: None,
             first_cycle: None,
             now_component: None,
+            layout_hook: None,
         }
     }
 }

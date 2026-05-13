@@ -81,6 +81,7 @@ pub enum FireworkAction {
     LayoutBlock(
         /* Название лайаута */ String,
         /* Нужен ли цикл */ bool,
+        /* Дескриптор */ Option<WidgetDescription>,
     ),
 
     // Виджет, декларативное описание для скина. Виджет это compile-time концепция,

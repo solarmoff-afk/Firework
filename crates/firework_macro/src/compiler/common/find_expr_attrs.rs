@@ -50,6 +50,7 @@ pub fn get_expr_attrs(expr: &Expr) -> &[Attribute] {
     }
 }
 
+/// Принимает мутабельную ссылку на выражение и возвращает мутабельную ссылку на атрибут
 pub fn get_expr_attrs_mut(expr: &mut Expr) -> Option<&mut Vec<Attribute>> {
     match expr {
         Expr::Array(expr_array) => Some(&mut expr_array.attrs),

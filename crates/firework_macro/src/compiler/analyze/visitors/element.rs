@@ -152,7 +152,7 @@ impl<'ast> Analyzer {
             );
 
             self.context.statement.string = i.to_token_stream().to_string();
-            self.context.statement.action = FireworkAction::WidgetBlock(WidgetDescription {
+            let descriptor = WidgetDescription {
                 widget_type: name.clone(),
                 fields: fields_map,
                 is_functional: is_functional_widget(&name),
@@ -173,7 +173,22 @@ impl<'ast> Analyzer {
                 } else {
                     None
                 },
-            });
+            };
+
+            if name == "layout" && let Some(hook) = &self.context.layout_hook {
+                let statement = self.get_statement_from_hook(hook.clone());
+
+                if let FireworkAction::LayoutBlock(_, _, desc) = &mut statement.action {
+                    *desc = Some(descriptor);
+                }
+
+                visit::visit_macro(self, i);
+                return;
+            }
+
+            let widget_block = FireworkAction::WidgetBlock(descriptor);
+            self.context.statement.action = widget_block;
+
             self.context.ir.push(self.context.statement.clone());
             self.statement_index += 1;
 
@@ -238,13 +253,16 @@ impl<'ast> Analyzer {
             // внутри лайаут блока
             self.descript_layout = false;
 
+            // Изначально дескриптор None, но ниже сохраняется хук на эту запись в IR чтобы
+            // потом при нахождении дескриптора layour! {} записать внутренности в этот
+            // лайаут блок
             self.context.statement.action =
-                FireworkAction::LayoutBlock(name.clone(), has_microruntime);
+                FireworkAction::LayoutBlock(name.clone(), has_microruntime, None);
 
             self.context.statement.screen_index = self.lifetime_manager.scope.screen_index;
             self.context.statement.depth = self.lifetime_manager.scope.depth;
             self.context.ir.push(self.context.statement.clone());
-
+            self.context.layout_hook = self.get_hook();
             self.lifetime_manager.scope.depth += 1;
             self.context.statement.depth += 1;
 
@@ -263,7 +281,6 @@ impl<'ast> Analyzer {
             self.context.statement.action = FireworkAction::DefaultCode;
             self.context.statement.string = "}".to_string();
             self.statement_index += 1;
-
             self.context.ir.push(self.context.statement.clone());
         } else {
             // FE008, невалидный синтаксис в лайауте. Как уже было сказанно ранее,

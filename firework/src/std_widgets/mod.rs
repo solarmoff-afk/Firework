@@ -39,16 +39,6 @@ impl DefaultRectSkin {
         self
     }
 
-    /// Устанавливает размер прямоугольника
-    /*
-    pub fn size(mut self, size: (i32, i32)) -> Self {
-        self.size = size;
-
-        let _ = adapter_command(AdapterCommand::SetSize(self.handle, size));
-        self
-    }
-    */
-
     pub fn width(&mut self, width: i32) -> Self {
         self.size.0 = width;
         let _ = adapter_command(AdapterCommand::SetSize(self.handle, self.size));
