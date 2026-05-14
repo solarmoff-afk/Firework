@@ -112,5 +112,7 @@ pub fn null_adapter(_cmd: AdapterCommand) -> AdapterResult {
 
             AdapterResult::Void
         }
+
+        _ => AdapterResult::Void,
     }
 }
