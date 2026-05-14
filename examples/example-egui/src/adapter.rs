@@ -198,6 +198,8 @@ pub fn egui_adapter(cmd: AdapterCommand) -> AdapterResult {
         }
 
         AdapterCommand::Render => AdapterResult::Void,
+
+        _ => todo!(),
     }
 }
 

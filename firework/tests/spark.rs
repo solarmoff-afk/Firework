@@ -4,7 +4,10 @@
 mod common;
 
 use crate::common::TestHarness;
-use firework_ui::{AdapterCommand, ui};
+use firework_adapter::TestCommand;
+use firework_ui::ui;
+
+type AdapterCommand = TestCommand;
 
 #[ui]
 fn test_spark_rect_screen() {

@@ -4,3 +4,4 @@ version = "0.3.0"
 edition = "2024"
 
 [dependencies]
+firework_macro = { workspace = true }
