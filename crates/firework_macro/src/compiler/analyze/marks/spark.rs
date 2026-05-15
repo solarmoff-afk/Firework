@@ -123,6 +123,7 @@ impl Analyzer {
                     is_mut: var_data.is_mut,
                     async_fn,
                 };
+                self.context.ir.push(self.context.statement.clone());
 
                 // FE004, нельзя затенить спарк
                 if let Some(value) = self.lifetime_manager.scope.variables.get(&name)

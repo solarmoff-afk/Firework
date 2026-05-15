@@ -160,6 +160,7 @@ impl Analyzer {
         self.context.statement.span = delim_span.close();
         self.context.ir.set_span(delim_span.close());
         self.statement_index += 1;
+        self.context.ir.push(self.context.statement.clone());
 
         // Закрывающая фигурная скобка также является частью реактивного блока
         self.context.statement.is_reactive_block = true;

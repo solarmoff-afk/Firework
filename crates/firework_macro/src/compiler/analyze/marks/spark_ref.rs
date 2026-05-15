@@ -93,6 +93,10 @@ impl Analyzer {
                     self.context
                         .errors
                         .push(compile_error_spanned(&i.pat, SPARK_REF_NOT_FOUND_ERROR));
+                } else {
+                    // В коде где found_name становится true (эта ветка) идёт заполнение
+                    // стейтемента
+                    self.context.ir.push(self.context.statement.clone());
                 }
 
                 self.lifetime_manager.scope.variables.insert(name, var_data);

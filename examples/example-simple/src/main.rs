@@ -28,12 +28,17 @@ fn test_combine_nested_structures_screen() {
     }
     */
 
+    let mut state = spark!(0);
+
     rect! {
         position: (10, 10),
         on_click: || {
-            println!("Hi");
+            // println!("Hi");
+            // state += 1;
         },
     }
+
+    state += 1;
 
     println!("Hello world");
 }

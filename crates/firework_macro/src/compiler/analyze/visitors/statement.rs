@@ -53,9 +53,8 @@ impl<'ast> Analyzer {
 
         self.statement_index += 1;
 
-        if should_push {
-            // Если это лайаут блок то клонирование области видимости и пуш уже
-            // были и клонировать второй раз нет смысла
+        // Пуш только DefaultCode для отладки
+        if should_push && matches!(self.context.statement.action, FireworkAction::DefaultCode) {
             self.context.statement.depth = self.lifetime_manager.scope.depth;
             self.context.ir.push(self.context.statement.clone());
         }

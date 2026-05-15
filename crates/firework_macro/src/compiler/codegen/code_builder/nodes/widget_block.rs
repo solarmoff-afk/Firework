@@ -33,6 +33,9 @@ impl CodeBuilder {
 
             // Обход всех полей
             for (name, field) in &description.fields {
+                // Поле в формате TokenStream для сохранения спанов при ошибках
+                let field_value = &field.token_stream;
+
                 if name == "key" {
                     key_expr = Some(field.token_stream.clone());
                     continue;
@@ -44,14 +47,18 @@ impl CodeBuilder {
                 }
 
                 if field.is_fn && is_event(name) {
+                    widget_reactive.extend(quote_spanned! (span => {
+                        {
+                            let _fwc_cl = #field_value;
+                            // _fwc_cl();
+                        }
+                    }));
+
                     continue;
                 }
 
                 // Название метода берётся из названия поля
                 let method_ident = format_ident!("{}", name);
-
-                // Поле в формате TokenStream для сохранения спанов при ошибках
-                let field_value = &field.token_stream;
 
                 // Генерируется установка значения по билдер паттерну. Через точку
                 // вызывается метод, имя метода должено соотвестовать названию

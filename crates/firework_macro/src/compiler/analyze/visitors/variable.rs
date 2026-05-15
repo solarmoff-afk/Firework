@@ -106,6 +106,7 @@ impl<'ast> Analyzer {
                     variable.spark_id,
                     variable.is_spark_ref.clone(),
                 );
+                self.context.ir.push(self.context.statement.clone());
             }
         }
     }
@@ -159,7 +160,12 @@ impl<'ast> Analyzer {
                     delim_span
                 },
             );
+
+            return;
         }
+
+        // При отсуствии спарков в выражении происходит немедленный пуш в IR
+        self.context.ir.push(statement);
     }
 
     /// Добавляет UpdateSpark метку в текущий буферный виртуальныый стейтемент
