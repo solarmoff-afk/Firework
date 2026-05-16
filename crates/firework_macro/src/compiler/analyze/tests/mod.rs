@@ -8,6 +8,9 @@ use super::*;
 use crate::compiler::analyze::utils::check_expr::ExprAnalyzeResult;
 
 fn assert_ir_equal(actual: &[FireworkStatement], expected: &[FireworkAction]) {
+    #[cfg(feature = "debug_output")]
+    println!("{:#?}, {:#?}", actual, expected);
+
     assert_eq!(
         actual.len(),
         expected.len(),
@@ -398,6 +401,7 @@ fn test_closure_return_does_not_drop_outer_sparks() {
     let expected = [
         create_initial_spark("a", 1, "i32", "10", true),
         FireworkAction::DefaultCode, // let closure = || { ... };
+        FireworkAction::DefaultCode, // return;
         FireworkAction::DefaultCode, // closure();
         FireworkAction::UpdateSpark("a".to_string(), 1, None),
         create_drop_spark("a", 1),

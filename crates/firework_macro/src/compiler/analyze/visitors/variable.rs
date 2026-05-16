@@ -23,6 +23,13 @@ impl<'ast> Analyzer {
         //  Что делает: Создаёт ссылку на данные shared! {} блока по имени которое было
         //   указанно в сегменте state! {}
         self.spark_ref_marker(i);
+
+        // Обработка правой части выражения
+        // {let mut name} {=} {19}
+        //     Левая       = Правая
+        if let Some(local_init) = &i.init {
+            visit::visit_expr(self, &local_init.expr);
+        }
     }
 
     // Обновление переменной, например:

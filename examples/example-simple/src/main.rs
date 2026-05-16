@@ -30,6 +30,7 @@ fn test_combine_nested_structures_screen() {
 
     let mut state = spark!(0);
 
+    /*
     rect! {
         position: (10, 10),
         on_click: || {
@@ -39,8 +40,13 @@ fn test_combine_nested_structures_screen() {
     }
 
     state += 1;
+    */
 
-    println!("Hello world");
+    let _handle = || {
+        state += 1;
+    };
+
+    // println!("Hello world");
 }
 
 fn main() {

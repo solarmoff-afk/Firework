@@ -363,16 +363,14 @@ impl<'ast> Analyzer {
 
     /// Замыкание
     pub(crate) fn analyze_expr_closure(&mut self, i: &'ast ExprClosure) {
-        // Сохранение текущего состояния менеджера времён жизни переменных
-        let old_manager = std::mem::replace(&mut self.lifetime_manager, LifetimeManager::new());
+        let old_in_closure = self.lifetime_manager.in_closure;
 
-        self.lifetime_manager = LifetimeManager::new();
+        if !self.lifetime_manager.in_closure {
+            self.lifetime_manager.in_closure = true;
+        }
+
         visit::visit_expr(self, &i.body);
-
-        // После анализа делается замена пустого менеджера на старый, это нужно
-        // чтобы return в замыканиях не вернул всё реактивные переменные в статику
-        // (не сгенерировал DropSpark в замыкании)
-        self.lifetime_manager = old_manager;
+        self.lifetime_manager.in_closure = old_in_closure;
     }
 
     fn begin_loop(&mut self, span: Span) {

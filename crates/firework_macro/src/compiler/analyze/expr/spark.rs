@@ -333,6 +333,7 @@ mod tests {
             is_mut: false,
             spark_id: 1,
             is_spark_ref: None,
+            in_closure: false,
         };
         scope.variables.insert("my_spark".to_string(), spark_var);
 
@@ -360,6 +361,7 @@ mod tests {
             is_mut: true,
             spark_id: 99,
             is_spark_ref: None,
+            in_closure: false,
         };
         scope
             .variables

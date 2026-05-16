@@ -153,6 +153,7 @@ impl<'ast> Visit<'ast> for Analyzer {
                 is_spark: false,
                 spark_id: 0,
                 is_spark_ref: None,
+                in_closure: self.lifetime_manager.in_closure,
             },
         ));
 
@@ -238,7 +239,7 @@ impl<'ast> Visit<'ast> for Analyzer {
 
     #[cfg_attr(feature = "trace", tracing::instrument(skip_all, fields(node = %quote!(#i))))]
     fn visit_expr_closure(&mut self, i: &'ast ExprClosure) {
-        self.analyze_expr_closure(i)
+        self.analyze_expr_closure(i);
     }
 
     #[cfg_attr(feature = "trace", tracing::instrument(skip_all, fields(node = %quote!(#_i))))]

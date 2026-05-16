@@ -37,6 +37,9 @@ pub struct Variable {
     // Явлется ли это ссылкой на состояние (только для shared) и если явлется то на какое
     // в сегменте state
     pub is_spark_ref: Option<String>,
+
+    // Была ли переменная создана в замыкании
+    pub in_closure: bool,
 }
 
 /// Текущая область видимости, хранить всю таблицу символов для этой области. Начинается
@@ -103,6 +106,8 @@ pub struct LifetimeManager {
     // Дамп область видимости до входа в функцию, нужна для обработки дропа спарков
     // при return
     pub item_scope: Scope,
+
+    pub in_closure: bool,
 }
 
 impl LifetimeManager {
@@ -112,6 +117,7 @@ impl LifetimeManager {
             scope: Scope::new(),
             old_scope: Vec::new(),
             item_scope: Scope::new(),
+            in_closure: false,
         }
     }
 
@@ -138,10 +144,19 @@ impl LifetimeManager {
         let mut statements = Vec::new();
 
         for (name, value) in &self.scope.variables {
+            // Спарк не нужно дропать если он был создан вне замыкания (in_closure = true)
+            // и сейчас код анализируется именно в замыкании
+            let should_skip_drop = !value.in_closure && self.in_closure;
+
+            // println!("НУЖНО СКИПНУТЬ ДРОП? {should_skip_drop}? Мы в замыкании {}? В значение в замыкании {}? А это спарк то? {}, имя: {}", self.in_closure, value.in_closure, value.is_spark,name.to_string());
+
             // DropSpark не должен быть сгенерирован если is_spark_ref это true, то есть
             // переменная является ссылкой на состояние в shared, а не владением. Генерация
             // возврата не нужна
-            if !scope.variables.contains_key(name) && value.is_spark && value.is_spark_ref.is_none()
+            if !scope.variables.contains_key(name)
+                && value.is_spark
+                && value.is_spark_ref.is_none()
+                && !should_skip_drop
             {
                 let mut stmt = base_statement.clone();
                 stmt.string = "".to_string();
@@ -214,6 +229,7 @@ mod tests {
             is_mut: false,
             spark_id: 1,
             is_spark_ref: None,
+            in_closure: false,
         };
         lifetime_manager
             .scope
@@ -260,6 +276,7 @@ mod tests {
             is_mut: false,
             spark_id: 1,
             is_spark_ref: None,
+            in_closure: false,
         };
 
         let spark_var2 = Variable {
@@ -268,6 +285,7 @@ mod tests {
             is_mut: true,
             spark_id: 2,
             is_spark_ref: None,
+            in_closure: false,
         };
 
         let spark_var3 = Variable {
@@ -276,6 +294,7 @@ mod tests {
             is_mut: false,
             spark_id: 3,
             is_spark_ref: None,
+            in_closure: false,
         };
 
         lifetime_manager
@@ -332,6 +351,7 @@ mod tests {
             is_mut: true,
             spark_id: 0,
             is_spark_ref: None,
+            in_closure: false,
         };
 
         lifetime_manager
@@ -369,6 +389,7 @@ mod tests {
             is_mut: false,
             spark_id: 100,
             is_spark_ref: None,
+            in_closure: false,
         };
 
         let normal_var = Variable {
@@ -377,6 +398,7 @@ mod tests {
             is_mut: false,
             spark_id: 0,
             is_spark_ref: None,
+            in_closure: false,
         };
 
         lifetime_manager
@@ -425,6 +447,7 @@ mod tests {
             is_mut: false,
             spark_id: 999,
             is_spark_ref: None,
+            in_closure: false,
         };
         old_scope
             .variables
@@ -436,6 +459,7 @@ mod tests {
             is_mut: false,
             spark_id: 1,
             is_spark_ref: None,
+            in_closure: false,
         };
         lifetime_manager
             .scope
@@ -479,6 +503,7 @@ mod tests {
             is_mut: false,
             spark_id: 0,
             is_spark_ref: None,
+            in_closure: false,
         };
         new_scope
             .variables
@@ -528,6 +553,7 @@ mod tests {
             is_mut: false,
             spark_id: 1,
             is_spark_ref: None,
+            in_closure: false,
         };
         old_scope
             .variables
@@ -541,6 +567,7 @@ mod tests {
                 is_mut: false,
                 spark_id: 1,
                 is_spark_ref: None,
+                in_closure: false,
             },
         );
 
