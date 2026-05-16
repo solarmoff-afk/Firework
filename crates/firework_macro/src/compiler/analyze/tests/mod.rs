@@ -8,7 +8,6 @@ use super::*;
 use crate::compiler::analyze::utils::check_expr::ExprAnalyzeResult;
 
 fn assert_ir_equal(actual: &[FireworkStatement], expected: &[FireworkAction]) {
-    #[cfg(feature = "debug_output")]
     println!("{:#?}, {:#?}", actual, expected);
 
     assert_eq!(
