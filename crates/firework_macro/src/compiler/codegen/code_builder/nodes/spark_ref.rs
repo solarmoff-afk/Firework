@@ -18,6 +18,7 @@ impl CodeBuilder {
         struct_name: String,
         final_tokens: &mut TokenStream,
         statement: &FireworkStatement,
+        visitor: &mut CodegenVisitor,
     ) -> bool {
         if let FireworkAction::SparkRef {
             name,
@@ -56,7 +57,7 @@ impl CodeBuilder {
             // в shared блоке. Обычные эффекты работают только на уровне функции, из
             // другой функции Б изменение состояния не запустит локальный эффект в функции А
             let temp = Vec::new();
-            let func_effects = self.ir.shared.effects.get(root).unwrap_or(&temp);
+            let func_effects = visitor.ir.shared.effects.get(root).unwrap_or(&temp);
             let mut func_effects_statements = Vec::new();
 
             // Проход по всем функциональным эффектам которые привязаны к этому

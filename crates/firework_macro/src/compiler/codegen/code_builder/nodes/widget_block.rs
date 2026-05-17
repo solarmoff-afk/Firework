@@ -1,7 +1,12 @@
 // Часть проекта Firework с открытым исходным кодом.
 // Лицензия EPL 2.0, подробнее в файле LICENSE. Copyright (c) 2026 Firework
 
+use syn::Expr;
+use syn::visit_mut::VisitMut;
+
 use super::super::*;
+
+use crate::compiler::CodegenVisitor;
 
 impl CodeBuilder {
     #[cfg_attr(feature = "trace", tracing::instrument(skip_all, fields(span = ?span)))]
@@ -11,6 +16,7 @@ impl CodeBuilder {
         struct_name: String,
         final_tokens: &mut TokenStream,
         statement: &FireworkStatement,
+        visitor: &mut CodegenVisitor,
     ) -> bool {
         if let FireworkAction::WidgetBlock(description) = &statement.action {
             // Не кэшируется так как здесь профилирование показывает что расходы HashMap
@@ -47,14 +53,27 @@ impl CodeBuilder {
                 }
 
                 if field.is_fn && is_event(name) {
-                    widget_reactive.extend(quote_spanned! (span => {
-                        {
-                            let _fwc_cl = #field_value;
-                            // _fwc_cl();
-                        }
-                    }));
+                    // issue #4
+                    {
+                        let mut closure_expr: Expr = match syn::parse2(field_value.clone()) {
+                            Ok(expr) => expr,
+                            Err(_) => {
+                                // Парсинг не может быть провален так как в случае синтаксической
+                                // ошибки выполнение не дошло бы сюда
+                                continue;
+                            }
+                        };
 
-                    continue;
+                        // Трнасформация замыкания
+                        visitor.visit_expr_mut(&mut closure_expr);
+
+                        widget_reactive.extend(quote_spanned! (span => {
+                            let _fwc_cl = #closure_expr;
+                            // _fwc_cl();
+                        }));
+
+                        continue;
+                    }
                 }
 
                 // Название метода берётся из названия поля

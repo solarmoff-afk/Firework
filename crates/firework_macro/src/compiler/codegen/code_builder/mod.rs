@@ -19,23 +19,21 @@ use super::ir::{FireworkAction, FireworkIR, FireworkStatement};
 use super::transform::traits::ToExpr;
 
 use crate::CompileFlags;
+use crate::compiler::CodegenVisitor;
 
 pub struct CodeBuilder {
     /// Токены которые вставляются под конец функции за пределами цикла реактивности
     pub tokens: Vec<TokenStream>,
     pub flags: CompileFlags,
     pub cache: CodeBuilderCache,
-
-    ir: FireworkIR,
 }
 
 impl CodeBuilder {
-    pub fn new(ir: FireworkIR, flags: CompileFlags) -> Self {
+    pub fn new(flags: CompileFlags) -> Self {
         Self {
             tokens: Vec::new(),
             flags,
             cache: CodeBuilderCache::new(),
-            ir,
         }
     }
 
@@ -53,6 +51,7 @@ impl CodeBuilder {
         stmt: &syn::Stmt,
         statements: &[FireworkStatement],
         mut processed_body: TokenStream,
+        visitor: &mut CodegenVisitor,
     ) -> TokenStream {
         // Спан нужен для того чтобы вставить код в нужное место для правильных ошибок
         // rustc
@@ -68,8 +67,8 @@ impl CodeBuilder {
 
             let tokens = &mut temp_tokens;
             if self.node_initial_spark(span, struct_name.clone(), tokens, statement)
-                || self.node_spark_ref(span, struct_name.clone(), tokens, statement)
-                || self.node_widget_block(span, struct_name.clone(), tokens, statement)
+                || self.node_spark_ref(span, struct_name.clone(), tokens, statement, visitor)
+                || self.node_widget_block(span, struct_name.clone(), tokens, statement, visitor)
             {
                 processed_body = temp_tokens;
                 is_body_handled = true;
@@ -80,7 +79,13 @@ impl CodeBuilder {
         for statement in statements {
             let mut temp_tokens = TokenStream::new();
             if let FireworkAction::UpdateSpark(..) = statement.action
-                && self.node_update_spark(span, &mut temp_tokens, statement, &processed_body)
+                && self.node_update_spark(
+                    span,
+                    &mut temp_tokens,
+                    statement,
+                    &processed_body,
+                    visitor,
+                )
             {
                 processed_body = temp_tokens;
                 is_body_handled = true;
@@ -170,10 +175,11 @@ impl CodeBuilder {
         &self,
         statement: &FireworkStatement,
         spark_id: &usize,
+        ir: &mut FireworkIR,
     ) -> TokenStream {
         let mut update_widgets_statements = TokenStream::new();
 
-        if let Some(map) = self.ir.screen_maybe_widgets.get(&statement.screen_index)
+        if let Some(map) = ir.screen_maybe_widgets.get(&statement.screen_index)
             && let Some(widgets) = map.spark_widget_map.get(spark_id)
         {
             let mut mask_groups: BTreeMap<u8, Vec<u8>> = BTreeMap::new();
@@ -199,5 +205,16 @@ impl CodeBuilder {
         }
 
         update_widgets_statements
+    }
+}
+
+// Для std::mem::take
+impl Default for CodeBuilder {
+    fn default() -> Self {
+        Self {
+            tokens: Vec::new(),
+            flags: CompileFlags::new(),
+            cache: CodeBuilderCache::new(),
+        }
     }
 }

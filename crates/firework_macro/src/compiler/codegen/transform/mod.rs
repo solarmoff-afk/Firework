@@ -46,7 +46,7 @@ pub struct CodegenVisitor<'a> {
 impl<'a> CodegenVisitor<'a> {
     pub fn new(ir: &'a mut FireworkIR) -> Self {
         Self {
-            builder: CodeBuilder::new(ir.clone(), CompileFlags::new()),
+            builder: CodeBuilder::new(CompileFlags::new()),
             ir,
             ui_id: None,
             mask_count: HashMap::new(),
@@ -70,7 +70,25 @@ impl<'a> CodegenVisitor<'a> {
     ) -> TokenStream {
         self.find_mask_counts();
         self.find_widget_mask_counts();
-        self.builder.build(stmt, statements, body)
+
+        // Чтобы обойти borrow checker (так как билдеру нужен self чтобы дёрнуть методы
+        // визитора) используется снятие владения из структуры что освобождает self и
+        // позволяет использовать его для передачи. Может показаться что этот код
+        // приведёт к неправильному поведению в рекурсивеом анализе
+        //
+        // | Корень (захватывает и отпускает)
+        // |- Виджет (захватывает и...
+        // |--- Замыкание (Вызывает visit_expr_mut из визитора)
+        // |--- (Отпускает только здесь)
+        //
+        // Но на деле это не создаёт проблем так как CodeBuilder не хранит данные которые
+        // нужны для кодогенерации (например ir), а только получает их из-за чего это
+        // работает
+        let mut builder = std::mem::take(&mut self.builder);
+        let output = builder.build(stmt, statements, body, self);
+        self.builder = builder;
+
+        output
     }
 
     /// Проходится по всем экранам и вычисляет сколько нужно битовых масок для отслеживания

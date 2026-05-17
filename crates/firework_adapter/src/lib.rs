@@ -43,8 +43,6 @@ pub enum AdapterCommand<'a> {
     /// Устаревшая команда для рендера, сейчас она не нужна
     Render,
 
-    /// Создание прямоугольника, должна обязательно вернуть Handle в AdapterResult иначе
-    /// манипулировать прямоугольником будет нельзя
     NewRect {
         layout: u16,
     },
@@ -165,5 +163,5 @@ pub enum AdapterResult {
     Void,
     Fail,
     Handle(usize),
-    Size(/* Ширина */ u32, /* Высота */ u32),
+    Size(/* Ширина */ u32, u32),
 }

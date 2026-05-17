@@ -15,6 +15,7 @@ impl CodeBuilder {
         final_tokens: &mut TokenStream,
         statement: &FireworkStatement,
         processed_body: &TokenStream,
+        visitor: &mut CodegenVisitor,
     ) -> bool {
         if let FireworkAction::UpdateSpark(_, id, _) = &statement.action {
             // Реактивная переменная (спарк) обновилась то нужно изменить бит
@@ -49,7 +50,8 @@ impl CodeBuilder {
             // Это можно представить как: "Спарк изменился и я больше не уверен что
             // этот виджет всё ещё должен существовать, я выключаю его и в следующей
             // итерации он должен сказать жив ли он"
-            let update_widgets_statement = self.generate_widget_spark_update(statement, id);
+            let update_widgets_statement =
+                self.generate_widget_spark_update(statement, id, visitor.ir);
 
             // Если это обновление спарка которое не находится в реактивном
             // блоке либо в ивенте то оно должно сработать только при Navigate

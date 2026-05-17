@@ -28,7 +28,7 @@ pub struct LowerVisitor<'a> {
 impl<'a> LowerVisitor<'a> {
     pub fn new(ir: &'a mut FireworkIR, flags: CompileFlags) -> Self {
         Self {
-            builder: CodeBuilder::new(ir.clone(), flags),
+            builder: CodeBuilder::new(flags),
             ir,
             ui_id: Some(0),
             pending_drops: Vec::new(),
