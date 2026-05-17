@@ -148,8 +148,6 @@ impl LifetimeManager {
             // и сейчас код анализируется именно в замыкании
             let should_skip_drop = !value.in_closure && self.in_closure;
 
-            // println!("НУЖНО СКИПНУТЬ ДРОП? {should_skip_drop}? Мы в замыкании {}? В значение в замыкании {}? А это спарк то? {}, имя: {}", self.in_closure, value.in_closure, value.is_spark,name.to_string());
-
             // DropSpark не должен быть сгенерирован если is_spark_ref это true, то есть
             // переменная является ссылкой на состояние в shared, а не владением. Генерация
             // возврата не нужна
