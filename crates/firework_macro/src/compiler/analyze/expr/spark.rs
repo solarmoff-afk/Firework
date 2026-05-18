@@ -148,6 +148,28 @@ impl<'ast> Visit<'ast> for SparkFinder<'_> {
             self.found.push(var_name);
         }
     }
+
+    fn visit_expr_macro(&mut self, i: &'ast ExprMacro) {
+        if i.mac.path.is_ident("format") {
+            let tokens = i.mac.tokens.clone();
+            let tokens_str = tokens.to_string();
+
+            if let Some(first_quote) = tokens_str.find('"')
+                && let Some(last_quote) = tokens_str[first_quote + 1..].find('"')
+            {
+                let format_str = &tokens_str[first_quote + 1..first_quote + 1 + last_quote];
+                for var in extract_format_variables(format_str) {
+                    if let Some(var_info) = self.scope.variables.get(&var)
+                        && var_info.is_spark
+                        && !self.found.contains(&var)
+                    {
+                        self.found.push(var);
+                    }
+                }
+            }
+        }
+        visit::visit_expr_macro(self, i);
+    }
 }
 
 pub struct SparkFinderWithId<'a> {
@@ -168,6 +190,30 @@ impl<'ast> Visit<'ast> for SparkFinderWithId<'_> {
                 self.found.push((var_name, id));
             }
         }
+    }
+
+    fn visit_expr_macro(&mut self, i: &'ast ExprMacro) {
+        if i.mac.path.is_ident("format") {
+            let tokens = i.mac.tokens.clone();
+            let tokens_str = tokens.to_string();
+
+            if let Some(first_quote) = tokens_str.find('"')
+                && let Some(last_quote) = tokens_str[first_quote + 1..].find('"')
+            {
+                let format_str = &tokens_str[first_quote + 1..first_quote + 1 + last_quote];
+                for var in extract_format_variables(format_str) {
+                    if let Some(var_info) = self.scope.variables.get(&var)
+                        && var_info.is_spark
+                    {
+                        let id = var_info.spark_id;
+                        if !self.found.iter().any(|(n, _)| n == &var) {
+                            self.found.push((var, id));
+                        }
+                    }
+                }
+            }
+        }
+        visit::visit_expr_macro(self, i);
     }
 }
 
@@ -257,6 +303,58 @@ impl Parse for GlobalState {
             attributes,
         })
     }
+}
+
+/// Парсер значений из макроса format, парсит:
+///  - format!("{}", value)
+///  - format!("{value}")
+///  - format!("{{value}}") // Ничего не возвращает
+fn extract_format_variables(format_str: &str) -> Vec<String> {
+    let mut variables = Vec::new();
+    let mut chars = format_str.chars().peekable();
+    let mut in_brace = false;
+    let mut current_var = String::new();
+
+    while let Some(_char) = chars.next() {
+        match _char {
+            '{' => {
+                if chars.peek() == Some(&'{') {
+                    // Экранированная открывающая скобка {{
+                    chars.next();
+                    continue;
+                }
+                in_brace = true;
+                current_var.clear();
+            }
+
+            '}' => {
+                if chars.peek() == Some(&'}') {
+                    // Экранированная закрывающая скобка }}
+                    chars.next();
+                    continue;
+                }
+
+                if in_brace
+                    && !current_var.is_empty()
+                    && let Some(var_name) = current_var.split(':').next()
+                    && !var_name.is_empty()
+                {
+                    variables.push(var_name.to_string());
+                }
+
+                in_brace = false;
+                current_var.clear();
+            }
+
+            _char if in_brace => {
+                current_var.push(_char);
+            }
+
+            _ => {}
+        }
+    }
+
+    variables
 }
 
 #[cfg(test)]
@@ -500,5 +598,124 @@ mod tests {
         assert_eq!(validator.spark_count, 1);
         assert!(validator.spark_parse_error.is_some());
         assert!(validator.spark_async_closure.is_none());
+    }
+
+    #[test]
+    fn test_format_with_braced_spark() {
+        let mut scope = Scope::new();
+        let spark_var = Variable {
+            variable_type: "i32".to_string(),
+            is_spark: true,
+            is_mut: false,
+            spark_id: 1,
+            is_spark_ref: None,
+            in_closure: false,
+        };
+        scope.variables.insert("my_spark".to_string(), spark_var);
+
+        let mut found = Vec::new();
+        let mut finder = SparkFinder {
+            scope: &scope,
+            found: &mut found,
+        };
+
+        let expr: Expr = parse_quote! {
+            format!("{my_spark}")
+        };
+
+        finder.visit_expr(&expr);
+        assert_eq!(found, vec!["my_spark"]);
+    }
+
+    #[test]
+    fn test_format_with_braced_spark_and_text() {
+        let mut scope = Scope::new();
+        let spark_var = Variable {
+            variable_type: "String".to_string(),
+            is_spark: true,
+            is_mut: false,
+            spark_id: 2,
+            is_spark_ref: None,
+            in_closure: false,
+        };
+        scope.variables.insert("name".to_string(), spark_var);
+
+        let mut found = Vec::new();
+        let mut finder = SparkFinder {
+            scope: &scope,
+            found: &mut found,
+        };
+
+        let expr: Expr = parse_quote! {
+            format!("Hello, {name}!")
+        };
+
+        finder.visit_expr(&expr);
+        assert_eq!(found, vec!["name"]);
+    }
+
+    #[test]
+    fn test_format_with_multiple_braced_sparks() {
+        let mut scope = Scope::new();
+        let spark1 = Variable {
+            variable_type: "i32".to_string(),
+            is_spark: true,
+            is_mut: false,
+            spark_id: 1,
+            is_spark_ref: None,
+            in_closure: false,
+        };
+        let spark2 = Variable {
+            variable_type: "i32".to_string(),
+            is_spark: true,
+            is_mut: false,
+            spark_id: 2,
+            is_spark_ref: None,
+            in_closure: false,
+        };
+        scope.variables.insert("a".to_string(), spark1);
+        scope.variables.insert("b".to_string(), spark2);
+
+        let mut found = Vec::new();
+        let mut finder = SparkFinder {
+            scope: &scope,
+            found: &mut found,
+        };
+
+        let expr: Expr = parse_quote! {
+            format!("{a} + {b} = {}", a + b)
+        };
+
+        finder.visit_expr(&expr);
+        assert!(found.contains(&"a".to_string()));
+        assert!(found.contains(&"b".to_string()));
+        assert_eq!(found.len(), 2);
+    }
+
+    #[test]
+    fn test_format_with_positional_spark() {
+        let mut scope = Scope::new();
+        let spark_var = Variable {
+            variable_type: "i32".to_string(),
+            is_spark: true,
+            is_mut: false,
+            spark_id: 1,
+            is_spark_ref: None,
+            in_closure: false,
+        };
+        scope.variables.insert("value".to_string(), spark_var);
+
+        let mut found = Vec::new();
+        let mut finder = SparkFinder {
+            scope: &scope,
+            found: &mut found,
+        };
+
+        let expr: Expr = parse_quote! {
+            format!("{}", value)
+        };
+
+        finder.visit_expr(&expr);
+        assert_eq!(found, vec!["value"]);
     }
 }
