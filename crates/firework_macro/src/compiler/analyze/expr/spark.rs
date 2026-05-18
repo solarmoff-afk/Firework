@@ -167,7 +167,16 @@ impl<'ast> Visit<'ast> for SparkFinder<'_> {
                     }
                 }
             }
+
+            if let Ok(args) =
+                punctuated::Punctuated::<Expr, Token![,]>::parse_terminated.parse2(tokens)
+            {
+                for arg in args {
+                    self.visit_expr(&arg);
+                }
+            }
         }
+
         visit::visit_expr_macro(self, i);
     }
 }
@@ -212,7 +221,16 @@ impl<'ast> Visit<'ast> for SparkFinderWithId<'_> {
                     }
                 }
             }
+
+            if let Ok(args) =
+                punctuated::Punctuated::<Expr, Token![,]>::parse_terminated.parse2(tokens)
+            {
+                for arg in args {
+                    self.visit_expr(&arg);
+                }
+            }
         }
+
         visit::visit_expr_macro(self, i);
     }
 }
