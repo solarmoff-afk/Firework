@@ -30,7 +30,7 @@ fn test_combine_nested_structures_screen() {
 
     let mut state = spark!(0);
     let mut state2 = spark!(0);
-    
+
     state = derived!(state2);
 
     rect! {
