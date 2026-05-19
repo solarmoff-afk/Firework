@@ -77,9 +77,6 @@ pub struct AnalyzeContext {
 
     // Хук на последний лайаут
     pub layout_hook: Option<IrHook>,
-
-    // Сче́тчик поколений, при входе в область видимости к нему добавляется 1
-    pub gen_counter: u32,
 }
 
 impl AnalyzeContext {
@@ -126,7 +123,6 @@ impl AnalyzeContext {
             first_cycle: None,
             now_component: None,
             layout_hook: None,
-            gen_counter: 0,
         }
     }
 }

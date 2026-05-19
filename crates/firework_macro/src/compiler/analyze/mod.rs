@@ -154,7 +154,6 @@ impl<'ast> Visit<'ast> for Analyzer {
                 spark_id: 0,
                 is_spark_ref: None,
                 in_closure: self.lifetime_manager.in_closure,
-                _gen: self.context.gen_counter,
             },
         ));
 
