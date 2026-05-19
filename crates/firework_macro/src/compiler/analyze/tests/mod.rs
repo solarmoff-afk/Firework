@@ -321,7 +321,7 @@ fn test_analyze_compute_spark() {
 
             if a == 5 {
                 let b: f32 = spark!(10.0);
-                a = b * 2;
+                a = derived!(b * 2);
             }
         }
     };
