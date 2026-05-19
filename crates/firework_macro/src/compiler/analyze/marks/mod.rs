@@ -5,6 +5,7 @@
 // но служат только для того чтобы компилятор firework (не rustc) смог правильно обработать
 // код без угадываний
 
+pub mod derived;
 pub mod effect;
 pub mod spark;
 pub mod spark_ref;

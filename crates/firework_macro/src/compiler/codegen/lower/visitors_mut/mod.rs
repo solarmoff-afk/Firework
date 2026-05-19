@@ -1,6 +1,7 @@
 // Часть проекта Firework с открытым исходным кодом.
 // Лицензия EPL 2.0, подробнее в файле LICENSE. Copyright (c) 2026 Firework
 
+mod assign;
 mod block;
 mod item;
 
@@ -85,5 +86,15 @@ impl<'a> VisitMut for LowerVisitor<'a> {
         }
 
         self.pending_drops = old_drops;
+    }
+
+    fn visit_expr_assign_mut(&mut self, i: &mut ExprAssign) {
+        self.lower_assign_derived(i);
+        syn::visit_mut::visit_expr_assign_mut(self, i);
+    }
+
+    fn visit_expr_binary_mut(&mut self, i: &mut ExprBinary) {
+        self.lower_binary_derived(i);
+        syn::visit_mut::visit_expr_binary_mut(self, i);
     }
 }

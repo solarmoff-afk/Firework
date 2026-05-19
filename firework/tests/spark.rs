@@ -49,7 +49,7 @@ fn test_spark_derived_rect_screen() {
     let mut pos = spark!((10, 10)); // (i32, i32)
 
     // Вычислительный спарк
-    pos.0 = x;
+    pos.0 = derived!(x);
 
     rect! {
         position: pos, // Должна быть инициализация с (10, 10)
@@ -232,10 +232,10 @@ fn test_spark_chained_effects_screen() {
     let mut c = spark!(1);
 
     // Вычислительный спарк щависит от A, меняет B
-    b = a * 2;
+    b = derived!(a * 2);
 
     // Вычислительный спарк зависит от B, меняет C
-    c = b + 1;
+    c = derived!(b + 1);
 
     rect! {
         position: (c, 0),
