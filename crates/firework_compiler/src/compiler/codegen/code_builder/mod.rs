@@ -1,0 +1,220 @@
+// Часть проекта Firework с открытым исходным кодом.
+// Лицензия EPL 2.0, подробнее в файле LICENSE. Copyright (c) 2026 Firework
+
+mod cache;
+mod nodes;
+
+#[cfg(feature = "trace")]
+use tracing::instrument;
+
+use cache::CodeBuilderCache;
+use proc_macro2::{Span, TokenStream};
+use quote::{format_ident, quote, quote_spanned};
+use std::collections::BTreeMap;
+use syn::spanned::Spanned;
+
+use super::generator::bitmask_gen::*;
+use super::generator::static_gen;
+use super::ir::{FireworkAction, FireworkIR, FireworkStatement};
+use super::transform::traits::ToExpr;
+
+use crate::CompileFlags;
+use crate::compiler::CodegenVisitor;
+
+pub struct CodeBuilder {
+    /// Токены которые вставляются под конец функции за пределами цикла реактивности
+    pub tokens: Vec<TokenStream>,
+    pub flags: CompileFlags,
+    pub cache: CodeBuilderCache,
+}
+
+impl CodeBuilder {
+    pub fn new(flags: CompileFlags) -> Self {
+        Self {
+            tokens: Vec::new(),
+            flags,
+            cache: CodeBuilderCache::new(),
+        }
+    }
+
+    pub fn convert_string_to_syn(code: &str) -> TokenStream {
+        code.parse()
+            .unwrap_or_else(|_| panic!("Invalid syntax: {}", code))
+    }
+
+    /// Сборка токенов из реального стейтемента и набора семантических меток. Через quote
+    /// генерируется набор токенов и возвращается после чего вставляется на место стейтемента.
+    /// Ноды сами решают использовать ли оригинальный стейтемент
+    #[cfg_attr(feature = "trace", tracing::instrument(skip_all, fields(node = %quote!(#stmt), span = ?stmt.span(), statements = ?statements)))]
+    pub fn build(
+        &mut self,
+        stmt: &syn::Stmt,
+        statements: &[FireworkStatement],
+        mut processed_body: TokenStream,
+        visitor: &mut CodegenVisitor,
+    ) -> TokenStream {
+        // Спан нужен для того чтобы вставить код в нужное место для правильных ошибок
+        // rustc
+        let span = stmt.span();
+
+        let mut final_tokens = TokenStream::new();
+        let mut is_body_handled = false;
+
+        // Ноды которые полностью меняют оригинальный код перезаписывая его
+        for statement in statements {
+            let struct_name = format!("ApplicationUiBlockStruct{}", statement.screen_index);
+            let mut temp_tokens = TokenStream::new();
+
+            let tokens = &mut temp_tokens;
+            if self.node_initial_spark(span, struct_name.clone(), tokens, statement)
+                || self.node_spark_ref(span, struct_name.clone(), tokens, statement, visitor)
+                || self.node_widget_block(span, struct_name.clone(), tokens, statement, visitor)
+            {
+                processed_body = temp_tokens;
+                is_body_handled = true;
+                break;
+            }
+        }
+
+        for statement in statements {
+            let mut temp_tokens = TokenStream::new();
+            if let FireworkAction::UpdateSpark(..) = statement.action
+                && self.node_update_spark(
+                    span,
+                    &mut temp_tokens,
+                    statement,
+                    &processed_body,
+                    visitor,
+                )
+            {
+                processed_body = temp_tokens;
+                is_body_handled = true;
+            }
+        }
+
+        for statement in statements {
+            let mut temp_tokens = TokenStream::new();
+            if let FireworkAction::DynamicLoopBegin(..) = statement.action {
+                let struct_name = format!("ApplicationUiBlockStruct{}", statement.screen_index);
+                if self.node_dynamic_list(
+                    span,
+                    &mut temp_tokens,
+                    struct_name,
+                    statement,
+                    &processed_body,
+                ) {
+                    processed_body = temp_tokens;
+                    is_body_handled = true;
+                }
+            }
+        }
+
+        for statement in statements {
+            let mut temp_tokens = TokenStream::new();
+            if let FireworkAction::ReactiveBlock(..) = statement.action
+                && self.node_reactive_block(span, &mut temp_tokens, statement, &processed_body)
+            {
+                processed_body = temp_tokens;
+                is_body_handled = true;
+            }
+        }
+
+        // Возврат владения в статику
+        let mut drop_tokens = TokenStream::new();
+        for statement in statements {
+            if let FireworkAction::DropSpark { .. } = statement.action {
+                let struct_name = format!("ApplicationUiBlockStruct{}", statement.screen_index);
+
+                self.node_drop_spark(span, struct_name, &mut drop_tokens, statement);
+            }
+        }
+
+        // Финальная сборка
+        if is_body_handled && !processed_body.is_empty() {
+            final_tokens.extend(processed_body);
+        } else {
+            final_tokens.extend(quote_spanned!(span=>
+                #processed_body
+            ));
+        }
+
+        // DropSpark всегда идёт вне контекстных условий
+        final_tokens.extend(drop_tokens);
+        final_tokens
+    }
+
+    /// Выполняется при выходе из функции чтобы подготовить билдер к генерации кода для
+    /// следующей функции
+    pub fn function_end(&mut self) {
+        self.tokens.clear();
+    }
+
+    pub(crate) fn generate_check_spark_bit(&self, code: &mut String, id: usize) {
+        self.generate_check(code, id, "_fwc_bitmask", "_clone");
+    }
+
+    fn generate_check(&self, code: &mut String, id: usize, mask_name: &str, mask_suffix: &str) {
+        // Получение маски на основе айди спарка
+        let mask = get_spark_mask(id);
+        let id_in_mask = normalize_bit_index(id);
+
+        code.push_str(
+            check_flag(
+                // Имя маски
+                format!("{}{}{}", mask_name, mask, mask_suffix).as_str(),
+                // Индекс внутри этой маски
+                id_in_mask,
+            )
+            .as_str(),
+        );
+    }
+
+    /// Метод для генерации деактивации битов в маске при изменении спарка который
+    /// был в условии от которых зависит декларация условного виджета
+    pub(crate) fn generate_widget_spark_update(
+        &self,
+        statement: &FireworkStatement,
+        spark_id: &usize,
+        ir: &mut FireworkIR,
+    ) -> TokenStream {
+        let mut update_widgets_statements = TokenStream::new();
+
+        if let Some(data) = ir.screen_data.get(&statement.screen_index)
+            && let Some(widgets) = data.maybe_widgets.spark_widget_map.get(spark_id)
+        {
+            let mut mask_groups: BTreeMap<u8, Vec<u8>> = BTreeMap::new();
+
+            for widget in widgets {
+                // Битовая маска этого условного виджета
+                let mask_idx = get_spark_mask(*widget);
+                let bit_idx = normalize_bit_index(*widget);
+
+                // Комбинирование здесь используется для оптимизиации, 940 мкс -> 783 мкс
+                mask_groups.entry(mask_idx).or_default().push(bit_idx);
+            }
+
+            for (mask_id, bits) in mask_groups {
+                let mask_ident = format_ident!("_fwc_widget_bitmask{}", mask_id);
+
+                let bits_combined = bits.iter().map(|b| quote!(1 << #b));
+
+                update_widgets_statements.extend(quote! {
+                    #mask_ident &= !( #(#bits_combined)|* );
+                });
+            }
+        }
+
+        update_widgets_statements
+    }
+}
+
+// Для std::mem::take
+impl Default for CodeBuilder {
+    fn default() -> Self {
+        Self {
+            tokens: Vec::new(),
+            flags: CompileFlags::new(),
+            cache: CodeBuilderCache::new(),
+        }
+    }
+}

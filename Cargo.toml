@@ -5,6 +5,8 @@ members = ["examples/example-async",
   "crates/firework_macro", "examples/example-async", "examples/example-component", "examples/example-egui", "examples/example-service",
   "examples/example-simple", "examples/example-window",
   "firework",
+  "crates/firework_compiler",
+  "crates/firework_dev",
 ]
 
 [profile.release]
@@ -20,3 +22,5 @@ strip = true
 firework_ui = { path = "./firework" }
 firework_macro = { path = "./crates/firework_macro" }
 firework_adapter = { path = "./crates/firework_adapter" }
+firework_compiler = { path = "./crates/firework_compiler" }
+firework_dev = { path = "./crates/firework_dev" }

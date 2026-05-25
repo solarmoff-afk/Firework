@@ -1,0 +1,10 @@
+[package]
+name = "firework_dev"
+version = "0.1.0"
+edition = "2024"
+
+[lib]
+proc-macro = false
+
+[dependencies]
+firework_adapter = { workspace = true }
