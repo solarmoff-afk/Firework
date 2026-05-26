@@ -5,8 +5,8 @@ use syn::spanned::Spanned;
 
 pub use super::super::*;
 
-use crate::compiler::analyze::expr::widget::is_functional_widget;
 use crate::compiler::codegen::ir::WidgetDescription;
+use crate::compiler::common::widget_kind::is_functional_widget;
 
 impl<'ast> Analyzer {
     /// Макрос который используются не в выражении, а как отдельный statement (команда)
@@ -146,14 +146,6 @@ impl<'ast> Analyzer {
                 }
             }
 
-            // Только если в skin_struct была добавлена структура нужно добавить поле
-            // в структуру экрана. Если поля нет то это функциональный виджет который
-            // не получил скин через поле skin
-            self.add_field_to_struct(
-                format!("widget_object_{}", self.context.widget_counter),
-                skin_field.to_string(),
-            );
-
             self.context.statement.string = i.to_token_stream().to_string();
             let descriptor = WidgetDescription {
                 widget_type: name.clone(),
@@ -190,6 +182,15 @@ impl<'ast> Analyzer {
                 visit::visit_macro(self, i);
                 return;
             }
+
+            // Только если в skin_struct была добавлена структура нужно добавить поле
+            // в структуру экрана. Если поля нет то это функциональный виджет который
+            // не получил скин через поле skin. Это делается после обработки layout!
+            // дескриптора так как для layout не нужно поле виджета со скином
+            self.add_field_to_struct(
+                format!("widget_object_{}", self.context.widget_counter),
+                skin_field.to_string(),
+            );
 
             let widget_block = FireworkAction::WidgetBlock(descriptor);
             self.context.statement.action = widget_block;

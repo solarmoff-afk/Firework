@@ -4,6 +4,7 @@
 pub mod drop_spark;
 pub mod dynamic_list;
 pub mod initial_spark;
+pub mod layout;
 pub mod reactive_block;
 pub mod spark_ref;
 pub mod update_spark;

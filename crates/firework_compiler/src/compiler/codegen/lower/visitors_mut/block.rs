@@ -8,13 +8,13 @@ use super::super::macro_resolver::MacroResolver;
 use super::*;
 
 use crate::compiler::codegen::ir::FireworkAction;
+use crate::compiler::common::widget_kind::is_layout;
 
 impl LowerVisitor<'_> {
     #[cfg_attr(feature = "trace", tracing::instrument(skip_all))]
     pub(crate) fn lower_block_mut(&mut self, i: &mut Block) {
         let mut new_statements = Vec::new();
-        let original_statements = i.stmts.clone();
-        i.stmts.clear();
+        let original_statements = std::mem::take(&mut i.stmts);
 
         for mut statement in original_statements {
             if let Some(expanded_statements) = MacroResolver::expand(&statement) {
@@ -22,12 +22,31 @@ impl LowerVisitor<'_> {
                     brace_token: Default::default(),
                     stmts: expanded_statements,
                 };
+                
                 self.lower_block_mut(&mut inner_block);
                 new_statements.extend(inner_block.stmts);
-            } else {
-                self.visit_stmt_mut(&mut statement);
-                new_statements.push(statement);
+                
+                continue;
             }
+
+            if let Stmt::Macro(m) = &mut statement {
+                if let Some(segment) = m.mac.path.segments.last() {
+                    let name = segment.ident.to_string();
+                    if is_layout(&name) {
+                        let tokens = &m.mac.tokens;
+                        let tokens_with_braces = quote::quote!({ #tokens });
+                        if let Ok(mut inner_block) = syn::parse2::<Block>(tokens_with_braces) {
+                            self.lower_block_mut(&mut inner_block);
+                            let cleaned = &inner_block.stmts;
+
+                            m.mac.tokens = quote::quote!(#(#cleaned)*);
+                        }
+                    }
+                }
+            }
+
+            self.visit_stmt_mut(&mut statement);
+            new_statements.push(statement);
         }
 
         let closing_span = i.brace_token.span.close();

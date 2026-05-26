@@ -21,9 +21,10 @@ use std::collections::HashMap;
 use syn::visit::Visit;
 use syn::*;
 
+use crate::compiler::common::widget_kind::{is_layout, is_widget};
 use context::AnalyzeContext;
 use expr::spark::{SparkFinderWithId, SparkValidator, get_root_variable_name};
-use expr::widget::{WidgetArgs, is_layout, is_widget, map_skin};
+use expr::widget::{WidgetArgs, map_skin};
 use lifetime::{LifetimeManager, Scope, Variable};
 use linter::FireworkLinter;
 use type_inference::mut_check::is_mutable_method;

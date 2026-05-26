@@ -15,7 +15,6 @@ fn test_screen() {
 
 #[ui]
 fn test_combine_nested_structures_screen() {
-    /*
     vertical! {
         layout! {
             padding: (10, 10, 10, 10),
@@ -25,17 +24,6 @@ fn test_combine_nested_structures_screen() {
             position: (10, 10),
             color: (255, 255, 255),
         }
-    }
-    */
-
-    let mut state = spark!(0);
-
-    rect! {
-        position: (10, 10),
-        on_click: || {
-            // println!("Hi");
-            state += 1;
-        },
     }
 }
 

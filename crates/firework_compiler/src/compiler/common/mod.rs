@@ -2,6 +2,7 @@
 // Лицензия EPL 2.0, подробнее в файле LICENSE. Copyright (c) 2026 Firework
 
 pub mod find_expr_attrs;
+pub mod widget_kind;
 
 use syn::*;
 

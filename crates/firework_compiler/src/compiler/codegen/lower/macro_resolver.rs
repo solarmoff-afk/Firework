@@ -34,6 +34,11 @@ impl MacroResolver {
                 Self::expand_effect_macro(&statement_macro.mac.tokens, statement_macro.span())
             }
 
+            // Удаление дескриптора лайаута так как он не нужен в выходном коде
+            "layout" => {
+                Some(Vec::new())
+            }
+
             // Это не маркер или его не нужно развёртывать на этом этапе
             _ => None,
         }

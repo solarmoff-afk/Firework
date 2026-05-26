@@ -69,6 +69,7 @@ impl CodeBuilder {
             if self.node_initial_spark(span, struct_name.clone(), tokens, statement)
                 || self.node_spark_ref(span, struct_name.clone(), tokens, statement, visitor)
                 || self.node_widget_block(span, struct_name.clone(), tokens, statement, visitor)
+                || self.node_layout(span, tokens, statement, visitor, &processed_body)
             {
                 processed_body = temp_tokens;
                 is_body_handled = true;
