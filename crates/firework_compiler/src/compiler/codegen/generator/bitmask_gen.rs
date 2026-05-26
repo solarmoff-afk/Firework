@@ -48,7 +48,7 @@ pub(crate) fn normalize_bit_index(id: usize) -> u8 {
 /// Определяет в какую маску нужно поместить значение принимая его не нормализованный айди.
 /// Возвращает u8 (индекс маски)
 pub(crate) fn get_spark_mask(id: usize) -> u8 {
-    // 1 -> 1, 19 -> 1, 64 -> 1, 67 -> 2, 98 -> 2, 128 -> 2, 136 -> 3
+    // 1 -> 1, 19 -> 1, 63 -> 1, 67 -> 2, 98 -> 2, 128 -> 3, 136 -> 3
     ((id / 64) + 1) as u8
 }
 
@@ -59,4 +59,23 @@ pub(crate) fn check_flag_tokens(mask_name: &str, flag: u8) -> TokenStream {
 
 pub(crate) fn get_mask_name(id: usize) -> String {
     format!("_fwc_bitmask{}_clone", (id / 64) + 1)
+}
+
+#[test]
+fn test_get_spark_mask() {
+    let test_cases = vec![
+        (1, 1),
+        (19, 1),
+        (64, 2),
+        (65, 2),
+        (67, 2),
+        (98, 2),
+        (128, 3),
+        (136, 3),
+    ];
+    
+    for (id, expected) in test_cases {
+        let result = get_spark_mask(id);
+        assert_eq!(result, expected, "id={} expected={} got={}", id, expected, result);
+    }
 }
