@@ -6,11 +6,13 @@ pub mod flags;
 mod analyze;
 mod codegen;
 mod common;
+mod desugaring;
 mod error;
 
 use analyze::prepare_tokens;
 use codegen::lower::visitors_mut::LowerVisitor;
 use codegen::transform::CodegenVisitor;
+use desugaring::normalize_ast;
 use flags::CompileFlags;
 
 use proc_macro2::TokenStream;
@@ -57,6 +59,13 @@ pub fn run_firework_compiler(
 
     let token_stream: TokenStream = ast.tokens;
     let mut file: File = syn::parse2(token_stream).unwrap();
+
+    {
+        #[cfg(feature = "trace")]
+        let _span = info_span!("desugaring").entered();
+
+        normalize_ast(&mut file);
+    }
 
     let output = {
         #[cfg(feature = "trace")]
