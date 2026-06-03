@@ -35,9 +35,7 @@ impl MacroResolver {
             }
 
             // Удаление дескриптора лайаута так как он не нужен в выходном коде
-            "layout" => {
-                Some(Vec::new())
-            }
+            "layout" => Some(Vec::new()),
 
             // Это не маркер или его не нужно развёртывать на этом этапе
             _ => None,
@@ -81,7 +79,7 @@ impl MacroResolver {
 mod tests {
     use super::*;
     use proc_macro2::TokenStream;
-    use quote::{quote, ToTokens};
+    use quote::{ToTokens, quote};
 
     fn parse_stmt(tokens: TokenStream) -> Stmt {
         syn::parse2(tokens).unwrap()
@@ -96,13 +94,13 @@ mod tests {
             });
         };
         let stmt = parse_stmt(input);
-        
+
         let result = MacroResolver::expand(&stmt);
         assert!(result.is_some());
-        
+
         let expanded_stmts = result.unwrap();
         assert_eq!(expanded_stmts.len(), 1);
-        
+
         let expanded_str = expanded_stmts[0].to_token_stream().to_string();
         assert!(expanded_str.contains("if true"));
         assert!(expanded_str.contains("let x = 42"));
@@ -117,13 +115,18 @@ mod tests {
             });
         };
         let stmt = parse_stmt(input);
-        
+
         let result = MacroResolver::expand(&stmt);
         assert!(result.is_some());
-        
+
         let expanded_stmts = result.unwrap();
         assert_eq!(expanded_stmts.len(), 1);
-        assert!(expanded_stmts[0].to_token_stream().to_string().contains("let y = 10"));
+        assert!(
+            expanded_stmts[0]
+                .to_token_stream()
+                .to_string()
+                .contains("let y = 10")
+        );
     }
 
     #[test]
@@ -139,10 +142,10 @@ mod tests {
             });
         };
         let stmt = parse_stmt(input);
-        
+
         let result = MacroResolver::expand(&stmt);
         assert!(result.is_some());
-        
+
         let expanded = result.unwrap();
         let expanded_code = expanded[0].to_token_stream().to_string();
         assert!(expanded_code.contains("if true"));
@@ -158,10 +161,10 @@ mod tests {
             layout!(Some, Args, Here);
         };
         let stmt = parse_stmt(input);
-        
+
         let result = MacroResolver::expand(&stmt);
         assert!(result.is_some());
-        
+
         let expanded_stmts = result.unwrap();
         assert!(expanded_stmts.is_empty());
     }
@@ -172,7 +175,7 @@ mod tests {
             let x = 5;
         };
         let stmt = parse_stmt(input);
-        
+
         let result = MacroResolver::expand(&stmt);
         assert!(result.is_none());
     }
@@ -183,7 +186,7 @@ mod tests {
             unknown_macro!(something);
         };
         let stmt = parse_stmt(input);
-        
+
         let result = MacroResolver::expand(&stmt);
         assert!(result.is_none());
     }
@@ -194,7 +197,7 @@ mod tests {
             effect!(spark, 42);
         };
         let stmt = parse_stmt(input);
-        
+
         let result = MacroResolver::expand(&stmt);
         assert!(result.is_none());
     }
@@ -205,13 +208,13 @@ mod tests {
             effect!(spark, {});
         };
         let stmt = parse_stmt(input);
-        
+
         let result = MacroResolver::expand(&stmt);
         assert!(result.is_some());
-        
+
         let expanded_stmts = result.unwrap();
         assert_eq!(expanded_stmts.len(), 1);
-        
+
         let expanded_code = expanded_stmts[0].to_token_stream().to_string();
         assert!(expanded_code.contains("if true"));
     }
@@ -224,13 +227,18 @@ mod tests {
             });
         };
         let stmt = parse_stmt(input);
-        
+
         let result = MacroResolver::expand(&stmt);
         assert!(result.is_some());
-        
+
         let expanded = result.unwrap();
         assert_eq!(expanded.len(), 1);
-        assert!(expanded[0].to_token_stream().to_string().contains("let x = 1"));
+        assert!(
+            expanded[0]
+                .to_token_stream()
+                .to_string()
+                .contains("let x = 1")
+        );
     }
 
     #[test]
@@ -239,30 +247,36 @@ mod tests {
             effect!(spark {});
         };
         let parse_result1 = syn::parse2::<Stmt>(input1);
-        
+
         if let Ok(stmt) = parse_result1 {
             let result = MacroResolver::expand(&stmt);
             assert!(result.is_none(), "Expected None for invalid macro syntax");
         } else {
             assert!(parse_result1.is_err());
         }
-        
+
         let input2 = quote! {
             effect!();
         };
         let parse_result2 = syn::parse2::<Stmt>(input2);
         if let Ok(stmt) = parse_result2 {
             let result = MacroResolver::expand(&stmt);
-            assert!(result.is_none(), "Expected None for effect without arguments");
+            assert!(
+                result.is_none(),
+                "Expected None for effect without arguments"
+            );
         }
-        
+
         let input3 = quote! {
             effect!(spark, 42, "not a block");
         };
         let parse_result3 = syn::parse2::<Stmt>(input3);
         if let Ok(stmt) = parse_result3 {
             let result = MacroResolver::expand(&stmt);
-            assert!(result.is_none(), "Expected None when last argument is not a block");
+            assert!(
+                result.is_none(),
+                "Expected None when last argument is not a block"
+            );
         }
     }
 
@@ -277,13 +291,13 @@ mod tests {
             });
         };
         let stmt = parse_stmt(input);
-        
+
         let result = MacroResolver::expand(&stmt);
         assert!(result.is_some());
-        
+
         let expanded = result.unwrap();
         let expanded_code = expanded[0].to_token_stream().to_string();
-        
+
         assert!(expanded_code.contains("let x = 1"));
         assert!(expanded_code.contains("let y = 2"));
         assert!(expanded_code.contains("let z = x + y"));
@@ -299,10 +313,10 @@ mod tests {
             });
         };
         let stmt = parse_stmt(input);
-        
+
         let result = MacroResolver::expand(&stmt);
         assert!(result.is_some());
-        
+
         let expanded = result.unwrap();
         let expanded_code = expanded[0].to_token_stream().to_string();
         assert!(expanded_code.contains("if true"));

@@ -22,10 +22,10 @@ impl LowerVisitor<'_> {
                     brace_token: Default::default(),
                     stmts: expanded_statements,
                 };
-                
+
                 self.lower_block_mut(&mut inner_block);
                 new_statements.extend(inner_block.stmts);
-                
+
                 continue;
             }
 

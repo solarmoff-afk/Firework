@@ -73,9 +73,13 @@ fn test_get_spark_mask() {
         (128, 3),
         (136, 3),
     ];
-    
+
     for (id, expected) in test_cases {
         let result = get_spark_mask(id);
-        assert_eq!(result, expected, "id={} expected={} got={}", id, expected, result);
+        assert_eq!(
+            result, expected,
+            "id={} expected={} got={}",
+            id, expected, result
+        );
     }
 }
