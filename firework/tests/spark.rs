@@ -337,3 +337,23 @@ fn test_spark_unused() {
         ]
     );
 }
+
+// Issue #5
+#[ui]
+fn test_closure_spark_screen() {
+    let mut a = spark!(10);
+    let mut b = spark!(10);
+
+    let mut change1 = || a += 1;
+    let mut change2 = || b += 1;
+
+    change1();
+    change2();
+}
+
+#[test]
+fn test_closure_spark() {
+    // Проверяется не поведение, а то, что Cell<u64> решает проблему захвата битовых
+    // масок спарков
+    TestHarness::run(test_closure_spark_screen);
+}
