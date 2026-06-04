@@ -54,7 +54,7 @@ pub(crate) fn get_spark_mask(id: usize) -> u8 {
 
 pub(crate) fn check_flag_tokens(mask_name: &str, flag: u8) -> TokenStream {
     let mask = format_ident!("{}", mask_name);
-    quote! { (#mask & (1 << #flag)) != 0 }
+    quote! { (#mask.get() & (1 << #flag)) != 0 }
 }
 
 pub(crate) fn get_mask_name(id: usize) -> String {

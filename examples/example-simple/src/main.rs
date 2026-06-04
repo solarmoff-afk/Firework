@@ -15,16 +15,14 @@ fn test_screen() {
 
 #[ui]
 fn test_combine_nested_structures_screen() {
-    vertical! {
-        layout! {
-            padding: (10, 10, 10, 10),
-        }
+    let mut a = spark!(10);
+    let mut b = spark!(10);
 
-        rect! {
-            position: (10, 10),
-            color: (255, 255, 255),
-        }
-    }
+    let mut change1 = || a += 1;
+    let mut change2 = || b += 1;
+
+    change1();
+    change2();
 }
 
 fn main() {

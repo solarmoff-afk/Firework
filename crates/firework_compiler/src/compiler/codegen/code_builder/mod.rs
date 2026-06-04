@@ -151,7 +151,7 @@ impl CodeBuilder {
     }
 
     pub(crate) fn generate_check_spark_bit(&self, code: &mut String, id: usize) {
-        self.generate_check(code, id, "_fwc_bitmask", "_clone");
+        self.generate_check(code, id, "_fwc_bitmask", "_clone.get()");
     }
 
     fn generate_check(&self, code: &mut String, id: usize, mask_name: &str, mask_suffix: &str) {
@@ -200,7 +200,7 @@ impl CodeBuilder {
                 let bits_combined = bits.iter().map(|b| quote!(1 << #b));
 
                 update_widgets_statements.extend(quote! {
-                    #mask_ident &= !( #(#bits_combined)|* );
+                    #mask_ident.set(#mask_ident.get() & !( #(#bits_combined)|* ));
                 });
             }
         }

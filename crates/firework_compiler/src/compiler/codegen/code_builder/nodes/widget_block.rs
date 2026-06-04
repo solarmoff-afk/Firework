@@ -135,10 +135,10 @@ impl CodeBuilder {
                 let mask_name = self.cache.cache_widget_bitmask(mask_id);
 
                 widget_update_bitmask.extend(quote! {
-                    #mask_name |= 1 << #bit;
+                    #mask_name.set(#mask_name.get() | (1 << #bit));
                 });
 
-                quote! { (#mask_name & (1 << #bit)) != 0 }
+                quote! { (#mask_name.get() & (1 << #bit)) != 0 }
             } else {
                 quote! { true }
             };

@@ -284,3 +284,23 @@ pub(crate) fn copy_field(instance_name: &str, field_name: &str, var_name: &str) 
         instance_name_upper, field_name, var_name,
     )
 }
+
+#[cfg(not(feature = "safety-multithread"))]
+pub(crate) fn copy_cell_field(instance_name: &str, field_name: &str, var_name: &str) -> String {
+    let instance_name_upper = instance_name.to_uppercase();
+
+    format!(
+        "if let Some(val) = unsafe {{ (*::core::ptr::addr_of!({}_INSTANCE)).{}.as_ref() }} {{ {}.set(*val); }}",
+        instance_name_upper, field_name, var_name,
+    )
+}
+
+#[cfg(feature = "safety-multithread")]
+pub(crate) fn copy_cell_field(instance_name: &str, field_name: &str, var_name: &str) -> String {
+    let instance_name_upper = instance_name.to_uppercase();
+
+    format!(
+        "if let Some(val) = {}_INSTANCE.get().unwrap().lock().unwrap().{}.as_ref() {{ {}.set(*val); }}",
+        instance_name_upper, field_name, var_name,
+    )
+}

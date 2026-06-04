@@ -81,7 +81,7 @@ impl CodeBuilder {
             // который позволяет использовать даже айди больше 64
             // для множества битовых масок
             let bit_id = normalize_bit_index(*id);
-            let statement = quote! { #mask_ident |= 1 << #bit_id; };
+            let statement = quote! { #mask_ident.set(#mask_ident.get() | (1 << #bit_id)); };
 
             if need_condition {
                 final_tokens.extend(quote_spanned!(span=>

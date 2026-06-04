@@ -1,6 +1,6 @@
 [package]
 name = "firework_compiler"
-version = "0.19.7"
+version = "0.19.8"
 edition = "2024"
 
 [features]

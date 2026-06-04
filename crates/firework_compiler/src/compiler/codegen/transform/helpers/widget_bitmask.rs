@@ -21,9 +21,13 @@ impl CodegenVisitor<'_> {
             // Первая битовая маска позволяет проверить есть ли изменение
             let mask_name = format!("_fwc_widget_bitmask{}", mask_index + 1);
             let field_name = format!("_fwc__fwc_widget_bitmask{}", mask_index + 1);
-            bitmask_strings.push(format!("let mut {} = 0u64;\n", mask_name));
 
-            let copy_field_str = static_gen::copy_field(struct_name, &field_name, &mask_name);
+            bitmask_strings.push(format!(
+                "let {} = core::cell::Cell::new(0u64);\n",
+                mask_name
+            ));
+
+            let copy_field_str = static_gen::copy_cell_field(struct_name, &field_name, &mask_name);
 
             bitmask_strings.push(format!(
                 "if {} {{ {} }}",

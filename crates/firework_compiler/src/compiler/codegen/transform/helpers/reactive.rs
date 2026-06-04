@@ -54,14 +54,19 @@ impl CodegenVisitor<'_> {
         for mask_index in 0u8..*mask_count {
             // Первое, делается клон (копия, так как маска u64) каждой битовой
             // маски. Он нужен чтобы ЧИТАТЬ его и проверять измненение состояния.
-            // Это локальная переменная которая будет дропнута
-            bitmask_strings.push(format!("let mut _fwc_bitmask{} = 0u64;\n", mask_index + 1));
+            // Это локальная переменная которая будет дропнута. core::cell::Cell
+            // позволяет изменять Copy типы без мутабельного допустпа что помогает
+            // решить проблему захвата битовых масок в FnMut (issue 5)
+            bitmask_strings.push(format!(
+                "let _fwc_bitmask{} = core::cell::Cell::new(0u64);\n",
+                mask_index + 1
+            ));
 
             // Первое, делается клон (копия, так как маска u64) каждой битовой
             // маски. Он нужен чтобы ЧИТАТЬ его и проверять измненение состояния.
             // Это локальная переменная которая будет дропнута
             bitmask_clone_strings.push(format!(
-                "let _fwc_bitmask{}_clone = _fwc_bitmask{};",
+                "let _fwc_bitmask{}_clone = _fwc_bitmask{}.clone();",
                 mask_index + 1,
                 mask_index + 1
             ));
@@ -74,7 +79,7 @@ impl CodegenVisitor<'_> {
             // обновления будет скопирована для чтения, а сама маска обнулится
             // чтобы в неё сами писали. Это самый элегантный способ реализации,
             // так как, например, точечный сброс бита имеют огромные недостатки
-            bitmask_clone_strings.push(format!("_fwc_bitmask{} = 0;\n", mask_index + 1));
+            bitmask_clone_strings.push(format!("_fwc_bitmask{}.set(0);\n", mask_index + 1));
 
             // Генерация условия проверки всех битовых масок. Только если все
             // битовые маски пустые (== 0, не содержат активных битов) то
@@ -82,7 +87,7 @@ impl CodegenVisitor<'_> {
             // больше 64 (Для того чтобы безопасно разрешить циклическую
             // зависимость)
             bitmask_check_string
-                .push_str(format!("_fwc_bitmask{} == 0 && ", mask_index + 1).as_str());
+                .push_str(format!("_fwc_bitmask{}.get() == 0 && ", mask_index + 1).as_str());
         }
 
         // Небольшой хак. Вторая часть выражения сгенерирует код типа
