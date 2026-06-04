@@ -1,4 +1,4 @@
-use firework_ui::{ComponentContext, Prop, component};
+use firework_ui::{BuildContext, Prop, component};
 
 component! {
     pub struct Button {
@@ -14,7 +14,7 @@ component! {
             }
         }
 
-        pub fn flash(&mut self, _context: ComponentContext) {
+        pub fn flash(&mut self, _context: BuildContext) {
             let mut my_state = spark!(123);
 
             effect!(my_state, {
@@ -22,7 +22,6 @@ component! {
             });
 
             my_state += 1;
-            // my_state += self.example_prop;
         }
     }
 }

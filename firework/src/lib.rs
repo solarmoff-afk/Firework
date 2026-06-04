@@ -25,19 +25,23 @@ pub const TOUCH_HIT_GROUP: u16 = u16::MAX;
 pub type Prop<T> = Option<T>;
 
 #[derive(Debug, Clone, Copy)]
-pub struct ComponentContext {
+pub struct BuildContext {
     pub depth: u16,
+    pub cycle: LifeCycle,
 }
 
-impl Default for ComponentContext {
+impl Default for BuildContext {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl ComponentContext {
+impl BuildContext {
     pub fn new() -> Self {
-        Self { depth: 0 }
+        Self {
+            depth: 0,
+            cycle: LifeCycle::Zero,
+        }
     }
 }
 

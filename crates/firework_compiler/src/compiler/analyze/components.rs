@@ -54,7 +54,7 @@ impl<'ast> Analyzer {
             Some((_, FnArg::Typed(pat_type))) => {
                 let ty_str = pat_type.ty.to_token_stream().to_string().replace(" ", "");
 
-                if ty_str.contains("ComponentContext") {
+                if ty_str.contains("BuildContext") {
                     if let Pat::Ident(ref id) = *pat_type.pat {
                         context_name = Some(id.ident.to_string());
                     }
@@ -81,8 +81,8 @@ impl<'ast> Analyzer {
                 let clean_type = raw_type_name.replace(" ", "");
 
                 // Если контекст не вторым аргументом
-                let is_context = clean_type.contains("ComponentContext")
-                    || clean_type.contains("firework_ui::ComponentContext");
+                let is_context = clean_type.contains("BuildContext")
+                    || clean_type.contains("firework_ui::BuildContext");
 
                 if is_context {
                     self.context.errors.push(compile_error_spanned(

@@ -221,17 +221,17 @@ error[FE022]: method `flash` must take `&mut self`
 ";
 
 pub const COMPONENT_FLASH_CONTEXT_MISSING_ERROR: &str = "\
-error[FE023]: `ComponentContext` is missing or misplaced in `flash` signature
+error[FE023]: `BuildContext` is missing or misplaced in `flash` signature
    = note: the context is required to communicate with the parent and determine the current execution mode
-   = note: `ComponentContext` must be the second argument, immediately following `&mut self`
-   = help: add `context: ComponentContext` as the second argument: `fn flash(&mut self, context: ComponentContext, ...)`
-   = note: `ComponentContext` implements `Copy` and should not be passed by reference
+   = note: `BuildContext` must be the second argument, immediately following `&mut self`
+   = help: add `context: BuildContext` as the second argument: `fn flash(&mut self, context: BuildContext, ...)`
+   = note: `BuildContext` implements `Copy` and should not be passed by reference
    = note: for more information, see: [WORK IN PROGRESS]
 ";
 
 pub const COMPONENT_FLASH_INVALID_ARG_ERROR: &str = "\
 error[FE024]: invalid argument type `{}` in `flash` method
-   = note: only `Prop<T>` (or `firework_ui::Prop<T>`) and `ComponentContext` are allowed as arguments
+   = note: only `Prop<T>` (or `firework_ui::Prop<T>`) and `BuildContext` are allowed as arguments
    = note: `Prop<T>` in arguments acts as a 'functional prop', typically used for passing references or transient data
    = note: functional props are guaranteed to be `Some` only during `Build`, `Navigate`, or full tree updates
    = help: wrap the type in a Prop: `Prop<{}>`
@@ -239,10 +239,10 @@ error[FE024]: invalid argument type `{}` in `flash` method
 ";
 
 pub const COMPONENT_FLASH_MULTIPLE_CONTEXT_ERROR: &str = "\
-error[FE025]: multiple `ComponentContext` arguments found
+error[FE025]: multiple `BuildContext` arguments found
    = note: the Firework compiler requires exactly one primary context to be defined
-   = help: remove redundant context arguments; only the second argument can be a `ComponentContext`
-   = help: expected signature: `fn flash(&mut self, context: ComponentContext, ...)`
+   = help: remove redundant context arguments; only the second argument can be a `BuildContext`
+   = help: expected signature: `fn flash(&mut self, context: BuildContext, ...)`
    = note: for more information, see: [WORK IN PROGRESS]
 ";
 
