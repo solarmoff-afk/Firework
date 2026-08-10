@@ -35,6 +35,13 @@ pub fn null_adapter(_cmd: AdapterCommand) -> AdapterResult {
             AdapterResult::Handle(0)
         }
 
+        AdapterCommand::NewText { layout: _layout } => {
+            #[cfg(feature = "detail")]
+            println!("[NULL_ADAPTER] NewText: layout={:?}", _layout);
+
+            AdapterResult::Handle(0)
+        }
+
         AdapterCommand::SetPosition(_id, _pos) => {
             #[cfg(feature = "detail")]
             println!(

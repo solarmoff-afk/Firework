@@ -18,6 +18,7 @@ pub use null_adapter::null_adapter;
 pub use runtime::dyn_list::{DynList, ListEntry};
 pub use runtime_errors::RENDER_ADAPTER_MISSING_ERROR;
 pub use std_widgets::DefaultRectSkin;
+pub use std_widgets::text::DefaultTextSkin;
 
 pub const TOUCH_HIT_GROUP: u16 = u16::MAX;
 
