@@ -209,8 +209,18 @@ impl CodeBuilder {
                 final_tokens.extend(quote_spanned!(span=>
                     match #match_value {
                         Some(ref _fwc_wb_1) => {
-                            #widget_reactive
+                            // widget_update_bitmask всегда должен стоять выше widget_reactive
+                            // это нужно чтобы при изменении состояния в on_click или другом
+                            // ивенте который обрабатывается в widget_reactive наборе токенов
+                            // изменения в виджетных битмасках срабатывали. Дело в том, что
+                            // в widget_update_bitmask битмаске в которой бит виджета и самому
+                            // биту виджета всегда даётся 1. Но если в on_click написать строку
+                            // с изменением состояния связанного с виджетом то в
+                            // widget_reactive бит может стать 0. Благодаря такому порядку
+                            // дефольная единица на бит виджета из widget_update_bitmask
+                            // не будет вляить на ивенты из widget_reactive
                             #widget_update_bitmask
+                            #widget_reactive
                         },
 
                         None => {
@@ -229,8 +239,8 @@ impl CodeBuilder {
                 final_tokens.extend(quote_spanned!(span=>
                     match #match_value {
                         Some(ref _fwc_wb_1) => {
-                            #widget_reactive
                             #widget_update_bitmask
+                            #widget_reactive
                         },
 
                         None => {
@@ -249,7 +259,9 @@ impl CodeBuilder {
                 self.tokens.push(quote_spanned!(span=>
                     match #match_value {
                         Some(ref _fwc_wb_1) => {
-                            if #condition_statement { _fwc_wb_1.visible(true); } else {
+                            if #condition_statement {
+                                _fwc_wb_1.visible(true);
+                            } else {
                                 _fwc_wb_1.visible(false);
                             }
                         },
