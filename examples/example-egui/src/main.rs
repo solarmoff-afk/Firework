@@ -1,7 +1,6 @@
 mod adapter;
 
 use adapter::egui_adapter;
-use firework_devtools::visual_dt::{init_visual_devtool, visual_devtool_adapter};
 use firework_ui::ui;
 
 /*
@@ -123,6 +122,8 @@ fn main() {
 }
 
 /*
+// use firework_devtools::visual_dt::{init_visual_devtool, visual_devtool_adapter};
+
 // Включение визуального инспектора
 fn main() {
     init_visual_devtool(egui_adapter);
