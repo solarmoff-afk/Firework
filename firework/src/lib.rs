@@ -94,22 +94,15 @@ pub fn set_current_event(event: CurrentEvent) {
 /// Получить и ОЧИСТИТЬ текущее событие (заменить на None)
 #[cfg(not(feature = "safety-multithread"))]
 pub fn take_current_event() -> CurrentEvent {
-    unsafe {
-        let event = CURRENT_EVENT;
-        CURRENT_EVENT = CurrentEvent::None;
-        event
-    }
+    unsafe { CURRENT_EVENT }
 }
 
 #[cfg(feature = "safety-multithread")]
 pub fn take_current_event() -> CurrentEvent {
-    let mut lock = CURRENT_EVENT
+    *CURRENT_EVENT
         .get_or_init(|| Mutex::new(CurrentEvent::None))
         .lock()
-        .unwrap();
-    let event = *lock;
-    *lock = CurrentEvent::None;
-    event
+        .unwrap()
 }
 
 /// Current Flash pass context of the screen or component

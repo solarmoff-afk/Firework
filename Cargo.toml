@@ -6,7 +6,7 @@ members = ["examples/example-async",
   "examples/example-simple", "examples/example-window",
   "firework",
   "crates/firework_compiler",
-  "crates/firework_dev",
+  "crates/firework_dev", "crates/firework_devtools",
 ]
 
 [profile.release]
@@ -24,3 +24,4 @@ firework_macro = { path = "./crates/firework_macro" }
 firework_adapter = { path = "./crates/firework_adapter" }
 firework_compiler = { path = "./crates/firework_compiler" }
 firework_dev = { path = "./crates/firework_dev" }
+firework_devtools = { path = "./crates/firework_devtools" }

@@ -1,6 +1,7 @@
 mod adapter;
 
 use adapter::egui_adapter;
+use firework_devtools::visual_dt::{init_visual_devtool, visual_devtool_adapter};
 use firework_ui::ui;
 
 /*
@@ -20,6 +21,7 @@ fn test_screen() {
 }
 */
 
+/*
 #[ui]
 fn test_screen() {
     let mut rect_state = spark!(true);
@@ -38,6 +40,39 @@ fn test_screen() {
     }
 
     // rect_state = false;
+}
+*/
+
+#[ui]
+fn test_screen() {
+    let mut x = spark!(10);
+
+    rect! {
+        position: (10, 10),
+        width: 100,
+        height: 100,
+        color: (0, 255, 0),
+        on_click: || {
+            x += 25;
+        },
+    }
+
+    rect! {
+        position: (150, 10),
+        width: 100,
+        height: 100,
+        color: (255, 0, 0),
+        on_click: || {
+            x -= 25;
+        },
+    }
+
+    text! {
+        text: "Firework",
+        position: (x, 200),
+        color: (255, 165, 0),
+        font_size: 72,
+    }
 }
 
 /*
@@ -86,3 +121,11 @@ fn test_screen() {
 fn main() {
     firework_ui::run_with_adapter(egui_adapter, test_screen);
 }
+
+/*
+// Включение визуального инспектора
+fn main() {
+    init_visual_devtool(egui_adapter);
+    firework_ui::run_with_adapter(visual_devtool_adapter, test_screen);
+}
+*/
