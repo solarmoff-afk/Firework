@@ -3,7 +3,6 @@ mod adapter;
 use adapter::egui_adapter;
 use firework_ui::ui;
 
-/*
 #[ui]
 fn test_screen() {
     let mut rect_state = spark!(true);
@@ -18,9 +17,8 @@ fn test_screen() {
 
     // rect_state = false;
 }
-*/
 
-#[ui]
+/*
 fn test_screen() {
     let mut rect_state = spark!(true);
 
@@ -35,6 +33,7 @@ fn test_screen() {
 
     // rect_state = false;
 }
+*/
 
 /*
 #[ui]
