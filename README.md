@@ -3,9 +3,3 @@
 </p>
 
 Coming soon...
-
-<p align="center">
-  <img src="assets/pyro_header.png" alt="Pyro" width="600">
-</p>
-
-Comming soon...

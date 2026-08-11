@@ -68,8 +68,14 @@ impl CodeBuilder {
                         visitor.visit_expr_mut(&mut closure_expr);
 
                         widget_reactive.extend(quote_spanned! (span => {
-                            let _fwc_cl = #closure_expr;
-                            // _fwc_cl();
+                            if let firework_ui::CurrentEvent::Touch {
+                                hit_object_id: Some(id), phase, ..
+                            } = firework_ui::take_current_event() {
+                                if id == _fwc_wb_1.__id() && firework_ui::tiny_matches!(phase, firework_ui::AdapterClickPhase::Ended) {
+                                    let mut _fwc_cl = #closure_expr;
+                                    _fwc_cl();
+                                }
+                            }
                         }));
 
                         continue;

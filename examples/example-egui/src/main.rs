@@ -3,6 +3,7 @@ mod adapter;
 use adapter::egui_adapter;
 use firework_ui::ui;
 
+/*
 #[ui]
 fn test_screen() {
     let mut rect_state = spark!(true);
@@ -12,6 +13,23 @@ fn test_screen() {
             text: "Hello world",
             position: (10, 10),
             color: (0, 255, 0),
+        }
+    }
+
+    // rect_state = false;
+}
+*/
+
+#[ui]
+fn test_screen() {
+    let mut rect_state = spark!(true);
+
+    if rect_state {
+        rect! {
+            position: (10, 10),
+            size: (100, 100),
+            color: (0, 255, 0),
+            on_click: || rect_state = false,
         }
     }
 
