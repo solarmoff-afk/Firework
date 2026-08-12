@@ -48,8 +48,7 @@ fn test_screen() {
 
     rect! {
         position: (10, 10),
-        width: 100,
-        height: 100,
+        size: 100,
         color: (0, 255, 0),
         on_click: || {
             x += 25;
@@ -58,8 +57,7 @@ fn test_screen() {
 
     rect! {
         position: (150, 10),
-        width: 100,
-        height: 100,
+        size: 100,
         color: (255, 0, 0),
         on_click: || {
             x -= 25;

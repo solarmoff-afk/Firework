@@ -52,6 +52,12 @@ impl DefaultRectSkin {
         *self
     }
 
+    pub fn size(&mut self, size: i32) -> Self {
+        self.size = (size, size);
+        let _ = adapter_command(AdapterCommand::SetSize(self.handle, self.size));
+        *self
+    }
+
     /// Устанавливает цвет прямоугольника
     pub fn color(self, color: (u8, u8, u8)) -> Self {
         let _ = adapter_command(AdapterCommand::SetColor(
