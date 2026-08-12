@@ -43,11 +43,15 @@ impl DefaultTextSkin {
             // TODO: Сделать выбор шрифта. Сейчас стандартный
             mode: 0,
         });
+
+        self.update_size();
         self
     }
 
     pub fn font_size(self, size: u16) -> Self {
         let _ = adapter_command(AdapterCommand::SetFontSize(self.handle, size));
+
+        self.update_size();
         self
     }
 
@@ -66,6 +70,15 @@ impl DefaultTextSkin {
 
     pub fn __id(&self) -> usize {
         self.handle
+    }
+
+    /// Внутренний метод хелпер, он нужен чтобы обновить размеры текста под размер шрифта чтобы
+    /// фиксировать клики на него
+    fn update_size(&self) {
+        if let AdapterResult::Size(w, h) = adapter_command(AdapterCommand::MeasureText(self.handle))
+        {
+            let _ = adapter_command(AdapterCommand::SetSize(self.handle, (w as i32, h as i32)));
+        }
     }
 }
 

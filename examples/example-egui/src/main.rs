@@ -69,6 +69,9 @@ fn test_screen() {
         position: (x, 200),
         color: (255, 165, 0),
         font_size: 72,
+        on_click: || {
+            println!("Hello world");
+        }
     }
 }
 

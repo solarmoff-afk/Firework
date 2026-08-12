@@ -227,20 +227,39 @@ pub fn egui_adapter(cmd: AdapterCommand<'_>) -> AdapterResult {
         }
 
         AdapterCommand::MeasureText(id) => {
-            if state.ctx.is_none() {
-                state.ctx = Some(egui::Context::default());
-            }
+            // Проверка на то, что окно открыто. В таком случае можно измерить текст
+            if let Some(ctx) = &state.ctx {
+                if let Some(obj) = state.objects.get(id) {
+                    if obj.alive && obj.is_text {
+                        let job = create_layout_job(obj);
+                        let galley = ctx.fonts(|f| f.layout_job(job));
 
-            if let Some(obj) = state.objects.get(id) {
-                if obj.alive && obj.is_text {
-                    let job = create_layout_job(obj);
-                    let galley = state.ctx.as_ref().unwrap().fonts(|f| f.layout_job(job));
-                    return AdapterResult::Size(
-                        galley.rect.width().ceil() as u32,
-                        galley.rect.height().ceil() as u32,
-                    );
+                        return AdapterResult::Size(
+                            galley.rect.width().ceil() as u32,
+                            galley.rect.height().ceil() as u32,
+                        );
+                    }
+                }
+            } else {
+                // Если окно ещё не открыто то примерный размер
+                if let Some(obj) = state.objects.get(id) {
+                    if obj.alive && obj.is_text {
+                        let text_len = obj
+                            .text_segments
+                            .iter()
+                            .map(|(s, _)| s.chars().count())
+                            .sum::<usize>();
+                        // Примерная ширина это количество букв * (размер шрифта / 2)
+                        let w = text_len as u32 * (obj.font_size as u32 / 2);
+
+                        // Примерная высота это размер шрифта + 20%
+                        let h = (obj.font_size as f32 * 1.2) as u32;
+
+                        return AdapterResult::Size(w, h);
+                    }
                 }
             }
+
             AdapterResult::Size(0, 0)
         }
 
