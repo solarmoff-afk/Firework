@@ -69,6 +69,7 @@ fn test_ui_text() {
                 text: "Hello".to_string(),
                 mode: 0
             },
+            AdapterCommand::MeasureText(0),
             AdapterCommand::SetPosition(0, (10, 10)),
             AdapterCommand::SetColor(0, (255, 255, 255, 255)),
         ]
