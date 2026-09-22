@@ -72,8 +72,9 @@ pub struct AnalyzeContext {
     // записи о них туда
     pub first_cycle: Option<IrHook>,
 
-    // Какой компонент сейчас реализуется
-    pub now_component: Option<String>,
+    // Какой компонент сейчас реализуется и как называется его аргумент контекста у метода
+    // flash
+    pub now_component: (Option<String>, /* Аргумент context у flash */ Option<String>),
 
     // Хук на последний лайаут
     pub layout_hook: Option<IrHook>,
@@ -121,7 +122,7 @@ impl AnalyzeContext {
             reactive_block_stack: Vec::new(),
             first_ui_reactive_block: None,
             first_cycle: None,
-            now_component: None,
+            now_component: (None, None),
             layout_hook: None,
         }
     }

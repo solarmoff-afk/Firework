@@ -22,7 +22,7 @@ impl Analyzer {
         let mut result = ExprAnalyzeResult::new();
         result.sparks = found;
 
-        if let Some(component_name) = &self.context.now_component
+        if let Some(component_name) = &self.context.now_component.0
             && let Some(props) = self.context.ir.component_props.get(component_name)
         {
             let mut found = Vec::new();

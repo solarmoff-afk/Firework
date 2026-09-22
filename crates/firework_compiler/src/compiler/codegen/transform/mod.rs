@@ -40,6 +40,10 @@ pub struct CodegenVisitor<'a> {
 
     flags: CompileFlags,
     functions_count: u16,
+
+    // Нвходясь в компоненте мы берём соотвествующее имя аргумента контекста из данных
+    // анализатора чтобы использовать для вытаскивания фазы цикла
+    last_context_arg_name: Option<String>,
 }
 
 impl<'a> CodegenVisitor<'a> {
@@ -52,6 +56,7 @@ impl<'a> CodegenVisitor<'a> {
             widget_mask_count: HashMap::new(),
             flags: CompileFlags::new(),
             functions_count: 0,
+            last_context_arg_name: None,
         }
     }
 

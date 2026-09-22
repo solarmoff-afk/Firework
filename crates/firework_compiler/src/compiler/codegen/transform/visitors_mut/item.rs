@@ -211,11 +211,24 @@ impl CodegenVisitor<'_> {
 
                 let mut final_stmts = Vec::new();
 
+                // Для компонента мы берём не Navigate, а фазу цикла из контекста родителя
+                let init_event_statement = if is_component {
+                    // SAFETY: Так как для компонента обязательно должен существовать метод
+                    // flash и аргумент контекста, тут всегда будет Some
+                    let context_arg_name = format_ident!(
+                        "{}", self.last_context_arg_name.as_ref().expect("IE:13")
+                    );
+
+                    quote! { let mut _fwc_event = #context_arg_name.cycle; }
+                } else {
+                    quote! { let mut _fwc_event = firework_ui::LifeCycle::Navigate; }
+                };
+
                 // Мёртвый код для shared режима, но так как он весь завёрнут в _{name}
                 // (с _) то предупреждений не будет, а компилятор раста просто вырежет
                 // этот код в релизной сборке как мёртвый
                 final_stmts.extend(parse_batch(quote! {
-                    let mut _fwc_event = firework_ui::LifeCycle::Navigate;
+                    #init_event_statement
                     #init_code
                     let mut _fwc_guard: u8 = 0;
                     #(#bitmask_statements)*
@@ -451,6 +464,7 @@ impl CodegenVisitor<'_> {
     fn extend_new(&self, item_impl: &mut ItemImpl, struct_name: &str) {
         if let Some(fields) = self.ir.component_structs.get(struct_name) {
             let fields_data: Vec<(String, String)> = fields
+                .fields
                 .iter()
                 .map(|(name, _type)| (name.clone(), _type.clone()))
                 .collect();

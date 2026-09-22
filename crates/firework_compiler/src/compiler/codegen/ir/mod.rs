@@ -67,7 +67,7 @@ pub struct FireworkIR {
 
     // Соотвествие компонента (название структуры) и дополнительных полей которые собрал
     // анализатор
-    pub component_structs: HashMap<String, Vec<(String, String)>>,
+    pub component_structs: HashMap<String, ComponentDeclaration>,
 
     pub screens: Vec<(
         String,
@@ -90,6 +90,12 @@ pub struct FireworkIR {
     >,
 
     span: Span,
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct ComponentDeclaration {
+    pub fields: Vec<(String, String)>,
+    pub context_arg_name: String,
 }
 
 #[derive(Debug, Clone, Default)]

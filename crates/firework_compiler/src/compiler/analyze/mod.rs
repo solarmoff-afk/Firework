@@ -310,7 +310,7 @@ impl<'ast> Visit<'ast> for Analyzer {
                 let struct_name = &segment.ident;
 
                 // Структура для которой идёт реализация становится текущим компонентом
-                self.context.now_component = Some(struct_name.to_string())
+                self.context.now_component.0 = Some(struct_name.to_string())
             } else {
                 return;
             }
@@ -320,13 +320,13 @@ impl<'ast> Visit<'ast> for Analyzer {
             if let ImplItem::Fn(method) = item
                 && method.sig.ident == "flash"
             {
-                self.validate_flash_signature(method);
+                self.context.now_component.1 = self.validate_flash_signature(method);
                 self.analyze_item_fn(method);
             }
         }
 
         // Теперь никакой компонент не реализуется
-        self.context.now_component = None;
+        self.context.now_component = (None, None);
     }
 
     #[cfg_attr(feature = "trace", tracing::instrument(skip_all, fields(node = %quote!(#i))))]
