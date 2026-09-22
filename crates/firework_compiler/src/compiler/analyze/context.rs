@@ -74,7 +74,10 @@ pub struct AnalyzeContext {
 
     // Какой компонент сейчас реализуется и как называется его аргумент контекста у метода
     // flash
-    pub now_component: (Option<String>, /* Аргумент context у flash */ Option<String>),
+    pub now_component: (
+        Option<String>,
+        /* Аргумент context у flash */ Option<String>,
+    ),
 
     // Хук на последний лайаут
     pub layout_hook: Option<IrHook>,

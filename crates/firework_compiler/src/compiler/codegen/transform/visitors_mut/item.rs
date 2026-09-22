@@ -215,9 +215,8 @@ impl CodegenVisitor<'_> {
                 let init_event_statement = if is_component {
                     // SAFETY: Так как для компонента обязательно должен существовать метод
                     // flash и аргумент контекста, тут всегда будет Some
-                    let context_arg_name = format_ident!(
-                        "{}", self.last_context_arg_name.as_ref().expect("IE:13")
-                    );
+                    let context_arg_name =
+                        format_ident!("{}", self.last_context_arg_name.as_ref().expect("IE:13"));
 
                     quote! { let mut _fwc_event = #context_arg_name.cycle; }
                 } else {
