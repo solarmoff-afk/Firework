@@ -43,13 +43,11 @@ impl CodeBuilder {
             };
 
             // При навигации нужно сгенерировать конструкцию виджета на основе скина
-            let constructor = match description.widget_type.as_str() {
-                "component" => quote_spanned! { span=> new() },
-                _ => quote_spanned! { span=> new(1) },
-            };
-
-            let mut widget_init = quote_spanned! { span=>
-                #skin_path::#constructor.expect("Failed to create widget instance")
+            let mut widget_init = match description.widget_type.as_str() {
+                "component" => quote_spanned! { span=> #skin_path::new() },
+                _ => quote_spanned! { span=>
+                    #skin_path::new(1).expect("Failed to create widget instance")
+                },
             };
 
             let mut widget_reactive = quote! {};
