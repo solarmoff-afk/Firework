@@ -1,4 +1,4 @@
-use firework_ui::{ui, BuildContext, Prop, component};
+use firework_ui::{BuildContext, Prop, component, ui};
 
 component! {
     pub struct Button {
