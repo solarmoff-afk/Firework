@@ -61,7 +61,7 @@ impl<'ast> Analyzer {
             let mut has_key = false;
             let mut has_skin: Option<String> = None;
 
-            for prop in args.properties {
+            for prop in &args.properties {
                 let prop_name = prop.name.to_string();
                 if prop_name == "key" {
                     has_key = true;
@@ -181,6 +181,15 @@ impl<'ast> Analyzer {
 
                 visit::visit_macro(self, i);
                 return;
+            }
+
+            if name == "component" {
+                for prop in &args.properties {
+                    if prop.name == "target" {
+                        let expr = &prop.value;
+                        skin_field = quote::quote!(#expr).to_string();
+                    }
+                }
             }
 
             // Только если в skin_struct была добавлена структура нужно добавить поле

@@ -24,11 +24,32 @@ impl CodeBuilder {
             let instance_ident_upper = format_ident!("{}_INSTANCE", struct_name.to_uppercase());
             let field_ident = format_ident!("_fwc_widget_object_{}", description.id);
 
-            let skin_path = self.cache.cache_skin_path(&description.skin);
+            let mut skin_path = self.cache.cache_skin_path(&description.skin);
+
+            // Если это декларация компонента (функциональный виджет component!), то
+            // необходимо записать в skin_path название структуры из поля target
+            let is_component_declaration = if description.widget_type == "component" {
+                let mut raw_component_path = String::new();
+                for (name, field) in &description.fields {
+                    if name == "target" {
+                        raw_component_path = field.string.clone();
+                    }
+                }
+
+                skin_path = self.cache.cache_skin_path(&raw_component_path);
+                true
+            } else {
+                false
+            };
 
             // При навигации нужно сгенерировать конструкцию виджета на основе скина
+            let constructor = match description.widget_type.as_str() {
+                "component" => quote_spanned! { span=> new() },
+                _ => quote_spanned! { span=> new(1) },
+            };
+
             let mut widget_init = quote_spanned! { span=>
-                #skin_path::new(1).expect("Failed to create new widget instance")
+                #skin_path::#constructor.expect("Failed to create widget instance")
             };
 
             let mut widget_reactive = quote! {};
@@ -44,6 +65,12 @@ impl CodeBuilder {
 
                 if name == "key" {
                     key_expr = Some(field.token_stream.clone());
+                    continue;
+                }
+
+                // Target у функционального виджета компонента это функциональное поле
+                // которое не нужно в аргументах
+                if is_component_declaration && name == "target" {
                     continue;
                 }
 

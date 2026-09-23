@@ -30,11 +30,9 @@ component! {
 fn test_screen() {
     let mut my_state = spark!(0);
 
-    /*
     component! {
         target: Button,
     }
-    */
 
     effect!(my_state, {
         println!("Screen mount");
