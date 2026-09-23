@@ -1,4 +1,4 @@
-use firework_ui::{BuildContext, Prop, component};
+use firework_ui::{ui, BuildContext, Prop, component};
 
 component! {
     pub struct Button {
@@ -26,6 +26,23 @@ component! {
     }
 }
 
+#[ui]
+fn test_screen() {
+    let mut my_state = spark!(0);
+
+    /*
+    component! {
+        target: Button,
+    }
+    */
+
+    effect!(my_state, {
+        println!("Screen mount");
+    });
+
+    my_state += 1;
+}
+
 /*
 use firework_ui::ui;
 #[ui]
@@ -44,5 +61,5 @@ fn test_screen() {
 */
 
 fn main() {
-    // firework_ui::run(test_screen);
+    firework_ui::run(test_screen);
 }
