@@ -187,8 +187,30 @@ impl CodeBuilder {
             #[cfg(not(feature = "safety-multithread"))]
             let match_value = quote! {
                 unsafe {
-                    (*::core::ptr::addr_of!(#instance_ident_upper)).#field_ident.as_ref()
+                    (*::core::ptr::addr_of_mut!(#instance_ident_upper)).#field_ident.as_mut()
                 }
+            };
+
+            // Распределитель (distributor) это фильтр который фильтрует фазы циклы перед
+            // передачей дочернему компоненту
+            let distributor = if is_component_declaration {
+                quote_spanned!(span=>
+                    {
+                        if matches!(
+                            _fwc_event,
+                            firework_ui::LifeCycle::Build | firework_ui::LifeCycle::Navigate
+                        ) {
+                            let _fwc_context = firework_ui::BuildContext {
+                                depth: 0, // TODO: Сделать реальную глубину
+                                cycle: _fwc_event,
+                            };
+
+                            _fwc_component_instance.flash(_fwc_context);
+                        }
+                    }
+                )
+            } else {
+                quote::quote!()
             };
 
             let is_in_loop = description.has_microruntime;
@@ -210,6 +232,12 @@ impl CodeBuilder {
                             firework_ui::ListEntry::Vacant(vacant) => vacant.insert(#widget_init),
                         };
 
+                        {
+                            let _fwc_component_instance = _fwc_wb_1;
+                            #distributor
+                            _fwc_wb_1 = _fwc_component_instance;
+                        }
+
                         #widget_reactive
                         #widget_update_bitmask
                     }
@@ -227,6 +255,12 @@ impl CodeBuilder {
                             firework_ui::ListEntry::Vacant(vacant) => vacant.insert(#widget_init),
                         };
 
+                        {
+                            let _fwc_component_instance = _fwc_wb_1;
+                            #distributor
+                            _fwc_wb_1 = _fwc_component_instance;
+                        }
+
                         #widget_reactive
                         #widget_update_bitmask
                     }
@@ -236,6 +270,12 @@ impl CodeBuilder {
                 final_tokens.extend(quote_spanned!(span=>
                     match #match_value {
                         Some(ref _fwc_wb_1) => {
+                            {
+                                _fwc_component_instance = _fwc_wb_1;
+                                #distributor
+                                _fwc_wb_1 = _fwc_component_instance
+                            }
+
                             // widget_update_bitmask всегда должен стоять выше widget_reactive
                             // это нужно чтобы при изменении состояния в on_click или другом
                             // ивенте который обрабатывается в widget_reactive наборе токенов
@@ -256,6 +296,7 @@ impl CodeBuilder {
                                 .lock()
                                 .unwrap()
                                 .#field_ident = Some(#widget_init);
+                            #distributor
                             #widget_update_bitmask
                         },
                     };
@@ -265,18 +306,31 @@ impl CodeBuilder {
                 #[cfg(not(feature = "safety-multithread"))]
                 final_tokens.extend(quote_spanned!(span=>
                     match #match_value {
-                        Some(ref _fwc_wb_1) => {
+                        Some(ref mut _fwc_wb_1) => {
+                            {
+                                let _fwc_component_instance = &mut *_fwc_wb_1;
+                                #distributor
+                            }
+
                             #widget_update_bitmask
                             #widget_reactive
                         },
 
                         None => {
                             unsafe {
-                                (*::core::ptr::addr_of_mut!(#instance_ident_upper)).#field_ident
-                                    = Some(#widget_init);
-                                #widget_update_bitmask
+                                let slot =
+                                    &mut (*::core::ptr::addr_of_mut!(#instance_ident_upper)).#field_ident;
+
+                                *slot = Some(#widget_init);
+
+                                {
+                                    let _fwc_component_instance = slot.as_mut().unwrap_unchecked();
+                                    #distributor
+                                }
                             }
-                        },
+
+                            #widget_update_bitmask
+                        }
                     };
                 ));
             }
