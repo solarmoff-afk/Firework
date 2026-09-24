@@ -44,10 +44,52 @@ impl CodegenVisitor<'_> {
                         self.codegen_item_struct(&mut item_struct);
                         new_items.push(Item::Struct(item_struct));
 
-                        let widget_funcs = parse_quote! {
+                        // Методы компонента
+                        let component_funcs = parse_quote! {
+                            impl #struct_name {
+                                fn __set_position(&self, position: (i32, i32)) {
+                                    println!("Position: {}, {}", position.0, position.1);
+                                }
+
+                                fn __set_width(&self, width: i32) {
+                                    println!("Width: {}", width);
+                                }
+
+                                fn __set_height(&self, height: i32) {
+                                    println!("Height: {}", height);
+                                }
+
+                                fn __set_size(&self, size: i32) {
+                                    println!("Size: {}", size);
+                                }
+
+                                pub fn position(self, position: (i32, i32)) -> Self {
+                                    self.__set_position(position);
+                                    self
+                                }
+
+                                pub fn width(self, width: i32) -> Self {
+                                    self.__set_width(width);
+                                    self
+                                }
+
+                                pub fn height(self, height: i32) -> Self {
+                                    self.__set_height(height);
+                                    self
+                                }
+
+                                pub fn size(self, size: i32) -> Self {
+                                    self.__set_size(size);
+                                    self
+                                }
+                            }
+                        };
+
+                        // Реализация виджета
+                        let widget_impl = parse_quote! {
                             impl firework_ui::std_widgets::widget::Widget for #struct_name {
                                 fn position(&self, position: (i32, i32)) {
-                                    println!("Position: {}, {}", position.0, position.1);
+                                    self.__set_position(position);
                                 }
 
                                 fn visible(&self, state: bool) {
@@ -70,7 +112,9 @@ impl CodegenVisitor<'_> {
                                 }
                             }
                         };
-                        new_items.push(widget_funcs);
+
+                        new_items.push(component_funcs);
+                        new_items.push(widget_impl);
                     }
                 }
 
