@@ -36,9 +36,12 @@ impl CodegenVisitor<'_> {
                 }
 
                 Item::Struct(mut item_struct) => {
-                    self.generate_component_setters(&mut item_struct, &mut new_items);
-                    self.codegen_item_struct(&mut item_struct);
-                    new_items.push(Item::Struct(item_struct));
+                    // Только если это компонент
+                    if matches!(self.flags.compile_type, CompileType::Component) {
+                        self.generate_component_setters(&mut item_struct, &mut new_items);
+                        self.codegen_item_struct(&mut item_struct);
+                        new_items.push(Item::Struct(item_struct));
+                    }
                 }
 
                 Item::Impl(mut item_impl) => {
