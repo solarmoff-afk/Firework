@@ -38,9 +38,39 @@ impl CodegenVisitor<'_> {
                 Item::Struct(mut item_struct) => {
                     // Только если это компонент
                     if matches!(self.flags.compile_type, CompileType::Component) {
+                        let struct_name = item_struct.ident.clone();
+
                         self.generate_component_setters(&mut item_struct, &mut new_items);
                         self.codegen_item_struct(&mut item_struct);
                         new_items.push(Item::Struct(item_struct));
+
+                        let widget_funcs = parse_quote! {
+                            impl firework_ui::std_widgets::widget::Widget for #struct_name {
+                                fn position(&self, position: (i32, i32)) {
+                                    println!("Position: {}, {}", position.0, position.1);
+                                }
+
+                                fn visible(&self, state: bool) {
+                                    println!("Visible: {}", state);
+                                }
+
+                                fn unmount(self) {
+                                    println!("Unmount");
+                                }
+
+                                fn layout(
+                                    &mut self,
+                                    constraints: firework_ui::layout::Constraints
+                                ) -> firework_ui::layout::Size {
+                                    // TODO: Заменить на реальный расчёт размера
+                                    firework_ui::layout::Size {
+                                        width: 0,
+                                        height: 0,
+                                    }
+                                }
+                            }
+                        };
+                        new_items.push(widget_funcs);
                     }
                 }
 
