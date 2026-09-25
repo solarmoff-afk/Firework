@@ -58,8 +58,10 @@ impl CodegenVisitor<'_> {
                                     }
                                 }
 
-                                fn __set_width(&self, width: i32) {
-                                    println!("Width: {}", width);
+                                fn __set_width(&mut self, width: i32) {
+                                    if let Some(_fwc_component) = &mut self._fwc__fwc_component {
+                                        _fwc_component.size.0 = width;
+                                    }
                                 }
 
                                 fn __set_height(&self, height: i32) {
@@ -75,7 +77,7 @@ impl CodegenVisitor<'_> {
                                     self
                                 }
 
-                                pub fn width(self, width: i32) -> Self {
+                                pub fn width(mut self, width: i32) -> Self {
                                     self.__set_width(width);
                                     self
                                 }
