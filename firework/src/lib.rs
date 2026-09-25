@@ -33,13 +33,24 @@ pub struct ComponentData {
     pub position: Cell<(i32, i32)>,
 
     pub size: (i32, i32),
+
+    pub substrate: usize,
 }
 
 impl ComponentData {
     pub fn new() -> Self {
+        // Подложка (substrate) это специальный прямоугольник по размерам компонента который
+        // нужен чтобы ловить клики и подгонять VCanvas компонента
+        let substrate = match adapter_command(AdapterCommand::NewRect { layout: 1 }) {
+            AdapterResult::Handle(handle) => Some(handle),
+            _ => None,
+        };
+        // adapter_command(AdapterCommand::SetVisible(substrate, false));
+
         Self {
             position: Cell::new((0, 0)),
             size: (0, 0),
+            substrate: substrate.unwrap_or(0),
         }
     }
 
@@ -49,6 +60,11 @@ impl ComponentData {
 
     pub fn set_position(&self, position: (i32, i32)) {
         self.position.set(position);
+        adapter_command(AdapterCommand::SetPosition(self.substrate, position));
+    }
+
+    pub fn set_size(&self, size: (i32, i32)) {
+        adapter_command(AdapterCommand::SetSize(self.substrate, size));
     }
 }
 

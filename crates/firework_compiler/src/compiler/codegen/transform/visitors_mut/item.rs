@@ -61,18 +61,21 @@ impl CodegenVisitor<'_> {
                                 fn __set_width(&mut self, width: i32) {
                                     if let Some(_fwc_component) = &mut self._fwc__fwc_component {
                                         _fwc_component.size.0 = width;
+                                        _fwc_component.set_size(_fwc_component.size);
                                     }
                                 }
 
                                 fn __set_height(&mut self, height: i32) {
                                     if let Some(_fwc_component) = &mut self._fwc__fwc_component {
                                         _fwc_component.size.1 = height;
+                                        _fwc_component.set_size(_fwc_component.size);
                                     }
                                 }
 
                                 fn __set_size(&mut self, size: (i32, i32)) {
                                     if let Some(_fwc_component) = &mut self._fwc__fwc_component {
                                         _fwc_component.size = size;
+                                        _fwc_component.set_size(size);
                                     }
                                 }
 
