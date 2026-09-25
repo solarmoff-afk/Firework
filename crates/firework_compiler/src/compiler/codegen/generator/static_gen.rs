@@ -145,7 +145,6 @@ pub(crate) fn init_instance_tokens(
 
     quote! {
         let mut instance = #instance_ident.get_or_init(|| std::sync::Mutex::new(#struct_ident {
-            _fwc_screen_id: None,
             #(#field_initializers),*
         })).lock().unwrap();
 

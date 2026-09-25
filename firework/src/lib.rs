@@ -26,6 +26,21 @@ pub const TOUCH_HIT_GROUP: u16 = u16::MAX;
 pub type Prop<T> = Option<T>;
 
 #[derive(Debug, Clone, Copy)]
+pub struct ComponentData {
+    pub position: (i32, i32),
+    pub size: (i32, i32),
+}
+
+impl ComponentData {
+    pub fn new() -> Self {
+        Self {
+            position: (0, 0),
+            size: (0, 0),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
 pub struct BuildContext {
     pub depth: u16,
     pub cycle: LifeCycle,

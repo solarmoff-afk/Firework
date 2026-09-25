@@ -269,11 +269,10 @@ impl CodeBuilder {
                 #[cfg(feature = "safety-multithread")]
                 final_tokens.extend(quote_spanned!(span=>
                     match #match_value {
-                        Some(ref _fwc_wb_1) => {
+                        Some(ref mut _fwc_wb_1) => {
                             {
-                                _fwc_component_instance = _fwc_wb_1;
+                                let _fwc_component_instance: &mut _ = &mut *_fwc_wb_1;
                                 #distributor
-                                _fwc_wb_1 = _fwc_component_instance
                             }
 
                             // widget_update_bitmask всегда должен стоять выше widget_reactive

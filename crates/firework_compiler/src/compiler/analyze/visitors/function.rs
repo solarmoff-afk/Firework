@@ -194,6 +194,13 @@ impl<'ast> Analyzer {
             return;
         }
 
+        if matches!(self.context.flags.compile_type, CompileType::Component) {
+            self.add_field_to_struct(
+                "_fwc_component".to_string(),
+                "firework_ui::ComponentData".to_string(),
+            );
+        }
+
         // HACK: Быстрый фикс проблемы с тем, что если в экране не используются спарки
         // то структура не генерируется. Всегда добавляется _fwc_null на u8 (1 байт)
         self.add_field_to_struct("_fwc_screen_id".to_string(), "u8".to_string());

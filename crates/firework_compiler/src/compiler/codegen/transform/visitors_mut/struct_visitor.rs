@@ -28,10 +28,15 @@ impl CodegenVisitor<'_> {
 
             for (field_name, field_type) in &declaration.fields {
                 let field_name_ident = format_ident!("{}", field_name);
-                let type_ident = format_ident!("{}", field_type);
+                let type_ty: syn::Type = syn::parse_str(field_type).unwrap_or_else(|e| {
+                    panic!(
+                        "struct_visitor: Failed to parse type `{}`: {}",
+                        field_type, e
+                    )
+                });
 
                 let new_field: syn::Field = parse_quote! {
-                    pub #field_name_ident: core::option::Option<#type_ident>
+                    pub #field_name_ident: core::option::Option<#type_ty>
                 };
 
                 fields_named.named.push(new_field);

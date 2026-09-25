@@ -459,7 +459,7 @@ impl CodegenVisitor<'_> {
     ) {
         // Только для shared
         let build_name = format_ident!("_fwc_fn_build{}", id);
-
+        let _instance_ident = format_ident!("APPLICATIONUIBLOCKSTRUCT{}_INSTANCE", id);
         let struct_name = format_ident!("ApplicationUiBlockStruct{}", id);
 
         let mut fields_punctuated = syn::punctuated::Punctuated::<Field, token::Comma>::new();
