@@ -269,6 +269,6 @@ pub fn network_adapter<'a>(cmd: AdapterCommand<'a>) -> AdapterResult {
         }
 
         // TODO
-        AdapterCommand::SetVCanvas(_, _) | AdapterCommand::SharedVCanvas(_, _) => todo!()
+        AdapterCommand::SetVCanvas(_, _) | AdapterCommand::SharedVCanvas(_, _) => todo!(),
     }
 }

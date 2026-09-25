@@ -532,10 +532,7 @@ impl eframe::App for FireworkEguiApp {
                     clip_rects.insert(
                         i,
                         egui::Rect::from_min_size(
-                            egui::pos2(
-                                (obj.pos.0 + v.0) as f32,
-                                (obj.pos.1 + v.1) as f32,
-                            ),
+                            egui::pos2((obj.pos.0 + v.0) as f32, (obj.pos.1 + v.1) as f32),
                             egui::vec2(obj.size.0 as f32, obj.size.1 as f32),
                         ),
                     );
