@@ -91,8 +91,8 @@ impl CodegenVisitor<'_> {
                                     self
                                 }
 
-                                pub fn size(mut self, size: (i32, i32)) -> Self {
-                                    self.__set_size(size);
+                                pub fn size<S: firework_ui::IntoSise>(mut self, size: S) -> Self {
+                                    self.__set_size(size.into_size());
                                     self
                                 }
                             }

@@ -358,3 +358,19 @@ pub fn dispatch_event(event: CurrentEvent) {
     get_focus()();
     set_current_event(CurrentEvent::None);
 }
+
+pub trait IntoSise {
+    fn into_size(self) -> (i32, i32);
+}
+
+impl IntoSise for i32 {
+    fn into_size(self) -> (i32, i32) {
+        (self, self)
+    }
+}
+
+impl IntoSise for (i32, i32) {
+    fn into_size(self) -> (i32, i32) {
+        self
+    }
+}
