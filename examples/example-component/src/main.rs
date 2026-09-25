@@ -33,7 +33,7 @@ fn test_screen() {
     component! {
         target: Button,
         position: (150, 10),
-        size: 100,
+        size: (100, 100),
     }
 
     effect!(my_state, {

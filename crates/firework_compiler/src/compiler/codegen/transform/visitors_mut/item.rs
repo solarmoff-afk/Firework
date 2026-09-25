@@ -64,12 +64,16 @@ impl CodegenVisitor<'_> {
                                     }
                                 }
 
-                                fn __set_height(&self, height: i32) {
-                                    println!("Height: {}", height);
+                                fn __set_height(&mut self, height: i32) {
+                                    if let Some(_fwc_component) = &mut self._fwc__fwc_component {
+                                        _fwc_component.size.1 = height;
+                                    }
                                 }
 
-                                fn __set_size(&self, size: i32) {
-                                    println!("Size: {}", size);
+                                fn __set_size(&mut self, size: (i32, i32)) {
+                                    if let Some(_fwc_component) = &mut self._fwc__fwc_component {
+                                        _fwc_component.size = size;
+                                    }
                                 }
 
                                 pub fn position(self, position: (i32, i32)) -> Self {
@@ -82,12 +86,12 @@ impl CodegenVisitor<'_> {
                                     self
                                 }
 
-                                pub fn height(self, height: i32) -> Self {
+                                pub fn height(mut self, height: i32) -> Self {
                                     self.__set_height(height);
                                     self
                                 }
 
-                                pub fn size(self, size: i32) -> Self {
+                                pub fn size(mut self, size: (i32, i32)) -> Self {
                                     self.__set_size(size);
                                     self
                                 }
