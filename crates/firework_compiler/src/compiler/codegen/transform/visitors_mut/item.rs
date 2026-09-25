@@ -273,9 +273,11 @@ impl CodegenVisitor<'_> {
             // при Event получить снапшот вместо нуля
             let mut widgets_gen_snapshot = TokenStream::new();
 
-            // SAFETY: Для всех id экранов генерируется количество масок, а так как
-            // id взят из IR то такой элемент точно есть в карте
-            let widget_mask_count = self.widget_mask_count.get(&id).expect("IE:5");
+            let default_wmask_count = 0;
+            let widget_mask_count = self
+                .widget_mask_count
+                .get(&id)
+                .unwrap_or(&default_wmask_count);
 
             for mask_index in 0..*widget_mask_count {
                 // Имя локальной маски и имя поле идентично

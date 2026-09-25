@@ -57,7 +57,6 @@ component! {
         }
 
         pub fn flash(&mut self, _context: BuildContext) {
-            println!("Hello");
         }
     }
 }
