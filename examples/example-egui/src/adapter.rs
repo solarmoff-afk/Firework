@@ -24,6 +24,8 @@ struct RenderObject {
     border_color: (u8, u8, u8, u8),
     font_size: u16,
     clip_to: Option<usize>,
+    vcanvas: (i32, i32, i32, i32),
+    vcanvas_ref: Option<usize>,
 }
 
 impl Default for RenderObject {
@@ -45,6 +47,8 @@ impl Default for RenderObject {
             border_color: (0, 0, 0, 0),
             font_size: 14,
             clip_to: None,
+            vcanvas: (0, 0, 0, 0),
+            vcanvas_ref: None,
         }
     }
 }
@@ -68,6 +72,8 @@ impl RenderObject {
             border_color: (0, 0, 0, 0),
             font_size: 14,
             clip_to: None,
+            vcanvas: (0, 0, 0, 0),
+            vcanvas_ref: None,
         }
     }
 }
@@ -85,6 +91,16 @@ static ADAPTER_STATE: Mutex<AdapterState> = Mutex::new(AdapterState {
     dirty: false,
     ctx: None,
 });
+
+fn resolve_vcanvas(objects: &[RenderObject], obj: &RenderObject) -> (i32, i32, i32, i32) {
+    if let Some(rect_id) = obj.vcanvas_ref {
+        if let Some(target) = objects.get(rect_id) {
+            return (target.pos.0, target.pos.1, target.size.0, target.size.1);
+        }
+    }
+
+    obj.vcanvas
+}
 
 fn create_layout_job(obj: &RenderObject) -> egui::text::LayoutJob {
     let mut job = egui::text::LayoutJob::default();
@@ -170,6 +186,7 @@ pub fn egui_adapter(cmd: AdapterCommand<'_>) -> AdapterResult {
                 obj.alive = false;
                 obj.text_segments.clear();
                 obj.clip_to = None;
+                obj.vcanvas_ref = None;
             }
 
             AdapterResult::Void
@@ -359,6 +376,24 @@ pub fn egui_adapter(cmd: AdapterCommand<'_>) -> AdapterResult {
             AdapterResult::Void
         }
 
+        AdapterCommand::SetVCanvas(id, rect) => {
+            if let Some(obj) = state.objects.get_mut(id) {
+                obj.vcanvas = rect;
+                state.dirty = true;
+            }
+
+            AdapterResult::Void
+        }
+
+        AdapterCommand::SharedVCanvas(id, rect_id) => {
+            if let Some(obj) = state.objects.get_mut(id) {
+                obj.vcanvas_ref = Some(rect_id);
+                state.dirty = true;
+            }
+
+            AdapterResult::Void
+        }
+
         AdapterCommand::SetShadow(..) => AdapterResult::Void,
 
         AdapterCommand::Remove(id) => {
@@ -366,6 +401,7 @@ pub fn egui_adapter(cmd: AdapterCommand<'_>) -> AdapterResult {
                 obj.alive = false;
                 obj.text_segments.clear();
                 obj.clip_to = None;
+                obj.vcanvas_ref = None;
                 state.dirty = true;
             }
 
@@ -391,10 +427,12 @@ pub fn egui_adapter(cmd: AdapterCommand<'_>) -> AdapterResult {
 
             for (id, obj) in state.objects.iter().enumerate() {
                 if obj.alive && obj.visible && obj.hit_group == group {
-                    let b_left = obj.pos.0;
-                    let b_right = obj.pos.0 + obj.size.0;
-                    let b_top = obj.pos.1;
-                    let b_bottom = obj.pos.1 + obj.size.1;
+                    let v = resolve_vcanvas(&state.objects, obj);
+
+                    let b_left = obj.pos.0 + v.0;
+                    let b_right = obj.pos.0 + v.0 + obj.size.0;
+                    let b_top = obj.pos.1 + v.1;
+                    let b_bottom = obj.pos.1 + v.1 + obj.size.1;
 
                     let intersects = a_left < b_right
                         && a_right > b_left
@@ -483,14 +521,21 @@ impl eframe::App for FireworkEguiApp {
 
             for (i, obj) in state.objects.iter().enumerate() {
                 if obj.alive {
+                    let v = resolve_vcanvas(&state.objects, obj);
+
                     if obj.visible {
-                        objects_to_draw.push(obj.clone());
+                        let mut draw_obj = obj.clone();
+                        draw_obj.vcanvas = v;
+                        objects_to_draw.push(draw_obj);
                     }
 
                     clip_rects.insert(
                         i,
                         egui::Rect::from_min_size(
-                            egui::pos2(obj.pos.0 as f32, obj.pos.1 as f32),
+                            egui::pos2(
+                                (obj.pos.0 + v.0) as f32,
+                                (obj.pos.1 + v.1) as f32,
+                            ),
                             egui::vec2(obj.size.0 as f32, obj.size.1 as f32),
                         ),
                     );
@@ -508,7 +553,10 @@ impl eframe::App for FireworkEguiApp {
             .show(ctx, |ui| {
                 for obj in objects_to_draw {
                     let rect = egui::Rect::from_min_size(
-                        egui::pos2(obj.pos.0 as f32, obj.pos.1 as f32),
+                        egui::pos2(
+                            (obj.pos.0 + obj.vcanvas.0) as f32,
+                            (obj.pos.1 + obj.vcanvas.1) as f32,
+                        ),
                         egui::vec2(obj.size.0 as f32, obj.size.1 as f32),
                     );
 
@@ -529,9 +577,23 @@ impl eframe::App for FireworkEguiApp {
                         ui.painter().clone()
                     };
 
+                    let current_painter = if obj.vcanvas.2 > 0 && obj.vcanvas.3 > 0 {
+                        let vcanvas_rect = egui::Rect::from_min_size(
+                            egui::pos2(obj.vcanvas.0 as f32, obj.vcanvas.1 as f32),
+                            egui::vec2(obj.vcanvas.2 as f32, obj.vcanvas.3 as f32),
+                        );
+
+                        current_painter.with_clip_rect(vcanvas_rect)
+                    } else {
+                        current_painter
+                    };
+
                     if obj.is_text {
                         let job = create_layout_job(&obj);
-                        let pos = egui::pos2(obj.pos.0 as f32, obj.pos.1 as f32);
+                        let pos = egui::pos2(
+                            (obj.pos.0 + obj.vcanvas.0) as f32,
+                            (obj.pos.1 + obj.vcanvas.1) as f32,
+                        );
                         current_painter.galley(pos, ctx.fonts(|f| f.layout_job(job)), color);
                     } else {
                         let rounding = egui::Rounding {
