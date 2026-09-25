@@ -7,8 +7,8 @@ pub mod widget;
 use firework_adapter::{AdapterCommand, AdapterResult};
 use widget::Widget;
 
-use crate::adapter_command;
 use crate::layout::{Constraints, Size};
+use crate::{IntoSise, adapter_command};
 
 #[derive(Debug, Clone, Copy)]
 pub struct DefaultRectSkin {
@@ -52,10 +52,10 @@ impl DefaultRectSkin {
         *self
     }
 
-    pub fn size(&mut self, size: i32) -> Self {
-        self.size = (size, size);
+    pub fn size<S: IntoSise>(mut self, size: S) -> Self {
+        self.size = size.into_size();
         let _ = adapter_command(AdapterCommand::SetSize(self.handle, self.size));
-        *self
+        self
     }
 
     /// Устанавливает цвет прямоугольника
