@@ -1,7 +1,7 @@
 mod adapter;
 
 use adapter::egui_adapter;
-use firework_ui::ui;
+use firework_ui::{BuildContext, Prop, component, ui};
 
 /*
 #[ui]
@@ -42,6 +42,26 @@ fn test_screen() {
 }
 */
 
+component! {
+    pub struct Button {
+        pub example_prop: Prop<bool>,
+        pub hello: i32,
+    }
+
+    impl Button {
+        pub fn new() -> Self {
+            Self {
+                example_prop: None,
+                hello: 0,
+            }
+        }
+
+        pub fn flash(&mut self, _context: BuildContext) {
+            println!("Hello");
+        }
+    }
+}
+
 #[ui]
 fn test_screen() {
     let mut x = spark!(10);
@@ -62,6 +82,12 @@ fn test_screen() {
         on_click: || {
             x -= 25;
         },
+    }
+
+    component! {
+        target: Button,
+        position: (290, 10),
+        size: 100,
     }
 
     text! {

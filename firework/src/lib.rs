@@ -45,7 +45,10 @@ impl ComponentData {
             AdapterResult::Handle(handle) => Some(handle),
             _ => None,
         };
-        // adapter_command(AdapterCommand::SetVisible(substrate, false));
+
+        if let Some(sub) = substrate {
+            adapter_command(AdapterCommand::SetVisible(sub, false));
+        }
 
         Self {
             position: Cell::new((0, 0)),
