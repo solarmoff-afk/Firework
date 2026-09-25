@@ -20,23 +20,35 @@ pub use runtime_errors::RENDER_ADAPTER_MISSING_ERROR;
 pub use std_widgets::DefaultRectSkin;
 pub use std_widgets::text::DefaultTextSkin;
 
+use core::cell::Cell;
+
 pub const TOUCH_HIT_GROUP: u16 = u16::MAX;
 
 /// Type for component props
 pub type Prop<T> = Option<T>;
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 pub struct ComponentData {
-    pub position: (i32, i32),
+    // Трейт Widget требует &self вместо &mut self для метода position
+    pub position: Cell<(i32, i32)>,
+
     pub size: (i32, i32),
 }
 
 impl ComponentData {
     pub fn new() -> Self {
         Self {
-            position: (0, 0),
+            position: Cell::new((0, 0)),
             size: (0, 0),
         }
+    }
+
+    pub fn position(&self) -> (i32, i32) {
+        self.position.get()
+    }
+
+    pub fn set_position(&self, position: (i32, i32)) {
+        self.position.set(position);
     }
 }
 

@@ -47,8 +47,15 @@ impl CodegenVisitor<'_> {
                         // Методы компонента
                         let component_funcs = parse_quote! {
                             impl #struct_name {
+                                // &mut self нельзя так как трейт Widget требует position с
+                                // &self, а __set_position используется в position, а он
+                                // используется в position для реализации трейта Widget
+                                // для компонента, а без трейта Widget компонент не может
+                                // использоваться в динамических списках и так далее
                                 fn __set_position(&self, position: (i32, i32)) {
-                                    println!("Position: {}, {}", position.0, position.1);
+                                    if let Some(_fwc_component) = &self._fwc__fwc_component {
+                                        _fwc_component.set_position(position);
+                                    }
                                 }
 
                                 fn __set_width(&self, width: i32) {
@@ -459,7 +466,7 @@ impl CodegenVisitor<'_> {
     ) {
         // Только для shared
         let build_name = format_ident!("_fwc_fn_build{}", id);
-        let _instance_ident = format_ident!("APPLICATIONUIBLOCKSTRUCT{}_INSTANCE", id);
+
         let struct_name = format_ident!("ApplicationUiBlockStruct{}", id);
 
         let mut fields_punctuated = syn::punctuated::Punctuated::<Field, token::Comma>::new();
