@@ -75,7 +75,7 @@ fn test_screen() {
     }
 
     rect! {
-        position: (150, 10),
+        position: (50, 10),
         size: 100,
         color: (255, 0, 0),
         on_click: || {

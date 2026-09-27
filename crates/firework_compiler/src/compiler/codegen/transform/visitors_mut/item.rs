@@ -322,6 +322,7 @@ impl CodegenVisitor<'_> {
                 // (с _) то предупреждений не будет, а компилятор раста просто вырежет
                 // этот код в релизной сборке как мёртвый
                 final_stmts.extend(parse_batch(quote! {
+                    let mut _fwc_z: i32 = 0;
                     #init_event_statement
                     #init_code
                     let mut _fwc_guard: u8 = 0;
