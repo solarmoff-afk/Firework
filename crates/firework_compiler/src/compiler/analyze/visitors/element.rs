@@ -125,6 +125,8 @@ impl<'ast> Analyzer {
             // то значит это функиональный виджет
             let mut skin_field = _skin_struct.clone().unwrap_or("".to_string());
 
+            // Если это цикл (for, while или loop) необходимо обработать его специально, ибо
+            // все виджеты внутри являются частью динамических списков
             if self.is_loop {
                 has_microruntime = true;
                 self.context.microruntime_widgets.has_widgets = true;
@@ -148,13 +150,32 @@ impl<'ast> Analyzer {
 
             self.context.statement.string = i.to_token_stream().to_string();
             let descriptor = WidgetDescription {
+                // Тип виджета это то, что указывается в макросе при его декларации как имя
+                // макросы. Например: rect!, text!, component!, layout! и так далее
                 widget_type: name.clone(),
+
+                // Поля это пропсы виджета, они находятся внутри макроса, например:
+                // rect! { size: 100 }, size это проп виджета. Он будет в HashMap
                 fields: fields_map,
+
+                // Функциональный виджет означает, что он не имеет отображения на экране, а
+                // является лишь функцией. Например: component! для вставки компонента и
+                // layout! для настройки компоновки
                 is_functional: is_functional_widget(&name),
+
                 id: self.context.widget_counter,
+
+                // Микрорантайм значит, что это не один вмджет, а динамический список, так как
+                // виджет создан внутри цикла
                 has_microruntime,
+
+                // Скин означает то, какой тип данных будет создан в структуре экрана или
+                // компонента. Например Button, но конкретно там будет Option<Button> из-за
+                // природы кодогенерации
                 skin: _skin_struct.unwrap_or("".to_string()),
 
+                // is_maybe означает, является ли виджет условным, то есть находится ли он
+                // в условии
                 is_maybe: if self.context.is_maybe {
                     for spark in &self.context.spark_stack {
                         self.context
@@ -173,6 +194,9 @@ impl<'ast> Analyzer {
             if name == "layout"
                 && let Some(hook) = &self.context.layout_hook
             {
+                // Мы сохранили стейтемент где находится основной лайаут (vertical! или другой)
+                // чтобы в дескрипторе (тут, в функциональном виджете) мы могли добавить его
+                // в LayoutBlock. Благодаря этому layout! {} может быть где угодно
                 let statement = self.get_statement_from_hook(hook.clone());
 
                 if let FireworkAction::LayoutBlock(_, _, desc) = &mut statement.action {
@@ -183,12 +207,17 @@ impl<'ast> Analyzer {
                 return;
             }
 
+            // Если это вставка компонента в экран или другой компонент мы должны найти target
+            // (это структура компонента) и использовать его как поле для структуры экрана
+            // или компонента куда мы вставим компонент
             if name == "component" {
                 for prop in &args.properties {
                     if prop.name == "target" {
                         let expr = &prop.value;
                         skin_field = quote::quote!(#expr).to_string();
                     }
+
+                    // TODO: Добавить generic компоненты с T: ...
                 }
             }
 
