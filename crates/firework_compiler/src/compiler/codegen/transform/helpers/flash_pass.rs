@@ -18,7 +18,7 @@ impl CodegenVisitor<'_> {
             .ir
             .screen_structs
             .get(&struct_name_raw)
-            .map(|v| v.as_slice())
+            .map(|v| v.fields.as_slice())
             .unwrap_or(&[]);
 
         let instance_init = init_instance_tokens(&instance_name, &struct_name_raw, fields);

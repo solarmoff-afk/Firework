@@ -20,8 +20,14 @@ impl CodegenVisitor<'_> {
             statements.push(CodeBuilder::convert_string_to_syn(&set_field_str));
         }
 
+        // Это нужно, чтобы можно было вернуть ссылку на пустоту в fields_data
         let default = Vec::new();
-        let fields_data = self.ir.screen_structs.get(&struct_name).unwrap_or(&default);
+
+        let fields_data = if let Some(screen) = self.ir.screen_structs.get(&struct_name) {
+            &screen.fields
+        } else {
+            &default
+        };
 
         let build_check =
             static_gen::init_instance(&struct_name.to_uppercase(), &struct_name, fields_data);

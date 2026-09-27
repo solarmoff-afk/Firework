@@ -402,14 +402,16 @@ impl CodegenVisitor<'_> {
         fields: &mut Vec<Field>,
         span: Span,
     ) -> Vec<(String, String)> {
+        let default = Vec::new();
+        let screen_name = format!("ApplicationUiBlockStruct{}", id);
+
         // Вектор полей структуры, хранит кортежи (имя, тип). Они собраны
         // анализатором для имени структуры ApplicationUiBlockStruct{id}
-        let default = Vec::new();
-        let fields_data = self
-            .ir
-            .screen_structs
-            .get(&format!("ApplicationUiBlockStruct{}", id))
-            .unwrap_or(&default);
+        let fields_data = if let Some(screen) = self.ir.screen_structs.get(&screen_name) {
+            &screen.fields
+        } else {
+            &default
+        };
 
         // Проход по всем сырым полям чтобы сгенерировать field через quote
         // с сохранением спана (для ошибок)

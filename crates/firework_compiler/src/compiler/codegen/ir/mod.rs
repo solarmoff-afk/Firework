@@ -63,7 +63,7 @@ pub struct FireworkIR {
 
     // Соотвествие экрана (название функции) и структуры экрана в формате вектора
     // кортежей (Имя поля, тип) для структуры
-    pub screen_structs: HashMap<String, Vec<(String, String)>>,
+    pub screen_structs: HashMap<String, ScreenDeclaration>,
 
     // Соотвествие компонента (название структуры) и дополнительных полей которые собрал
     // анализатор
@@ -96,6 +96,28 @@ pub struct FireworkIR {
 pub struct ComponentDeclaration {
     pub fields: Vec<(String, String)>,
     pub context_arg_name: String,
+    pub widgets: WidgetsStorage,
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct ScreenDeclaration {
+    pub fields: Vec<(String, String)>,
+    pub widgets: WidgetsStorage,
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct WidgetsStorage {
+    pub widgets: Vec<(
+        /* Имя поля */ String,
+        /* Тип виджета */ ScreenWidgetType,
+        /* В цикле ли он */ bool,
+    )>,
+}
+
+#[derive(Debug, Clone)]
+pub enum ScreenWidgetType {
+    Base,      // Обычный виджет
+    Component, // Компонент
 }
 
 #[derive(Debug, Clone, Default)]

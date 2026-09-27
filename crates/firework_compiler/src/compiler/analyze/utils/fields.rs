@@ -29,6 +29,7 @@ impl Analyzer {
                 self.lifetime_manager.scope.screen_index
             ))
             .or_default()
+            .fields
             .push((format!("_fwc_{}", field_name), field_type));
     }
 
