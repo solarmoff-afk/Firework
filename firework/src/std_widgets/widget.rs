@@ -10,4 +10,7 @@ pub trait Widget {
     fn visible(&self, state: bool);
     fn unmount(self);
     fn layout(&mut self, constraints: Constraints) -> Size;
+
+    /// Сколько z занимает этот виджет (для компоновки)
+    fn get_z_size(&self) -> i16;
 }

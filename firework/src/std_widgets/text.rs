@@ -111,4 +111,8 @@ impl Widget for DefaultTextSkin {
             height: self.size.1,
         }
     }
+
+    fn get_z_size(&self) -> i16 {
+        1
+    }
 }

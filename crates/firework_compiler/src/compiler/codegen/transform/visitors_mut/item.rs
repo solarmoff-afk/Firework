@@ -126,6 +126,10 @@ impl CodegenVisitor<'_> {
                                         height: 0,
                                     }
                                 }
+
+                                fn get_z_size(&self) -> i16 {
+                                    1
+                                }
                             }
                         };
 
