@@ -30,6 +30,7 @@ impl CodegenVisitor<'_> {
                         &mut item_fn.sig,
                         &mut item_fn.block,
                         &mut new_items,
+                        None,
                     );
 
                     new_items.push(Item::Fn(item_fn));
@@ -139,12 +140,16 @@ impl CodegenVisitor<'_> {
                 }
 
                 Item::Impl(mut item_impl) => {
-                    if let Type::Path(type_path) = &*item_impl.self_ty
+                    let component_name = if let Type::Path(type_path) = &*item_impl.self_ty
                         && let Some(segment) = type_path.path.segments.last()
                     {
                         let struct_name = segment.ident.to_string();
                         self.extend_new(&mut item_impl, &struct_name);
-                    }
+
+                        Some(struct_name)
+                    } else {
+                        None
+                    };
 
                     for item in &mut item_impl.items {
                         if let ImplItem::Fn(method) = item
@@ -154,6 +159,7 @@ impl CodegenVisitor<'_> {
                                 &mut method.sig,
                                 &mut method.block,
                                 &mut new_items,
+                                component_name.clone(),
                             );
                         }
                     }
@@ -178,6 +184,7 @@ impl CodegenVisitor<'_> {
         sig: &mut Signature,
         block: &mut Block,
         new_items: &mut Vec<Item>,
+        component_name: Option<String>,
     ) {
         // Возвращает ли что-то функция, это нужно чтобы понять нужно ли сгенерировать
         // панику в конце цикла чтобы избежать ошибки
@@ -326,7 +333,7 @@ impl CodegenVisitor<'_> {
                 // (с _) то предупреждений не будет, а компилятор раста просто вырежет
                 // этот код в релизной сборке как мёртвый
                 final_stmts.extend(parse_batch(quote! {
-                    let mut _fwc_z: i32 = 0;
+                    let mut _fwc_z: i16 = 0;
                     #init_event_statement
                     #init_code
                     let mut _fwc_guard: u8 = 0;
@@ -378,6 +385,25 @@ impl CodegenVisitor<'_> {
 
                     final_stmts.append(&mut original_block.stmts);
                 }
+
+                let default = Vec::new();
+                let _widget = if is_component
+                    && let Some(name) = component_name
+                    && let Some(component) = self.ir.component_structs.get(&name)
+                {
+                    &component.widgets.widgets
+                } else if let Some(screen) = self.ir.screen_structs.get(&struct_name_raw) {
+                    &screen.widgets.widgets
+                } else {
+                    &default
+                };
+
+                /*
+                // TODO: Сделать подсчёт и компоновку по z
+                for i in widget {
+                    println!("{:?}", i);
+                }
+                */
 
                 final_stmts.extend(parse_batch(quote! {
                     // #dyn_lists_end
