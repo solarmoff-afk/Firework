@@ -1,6 +1,8 @@
 // Часть проекта Firework с открытым исходным кодом.
 // Лицензия EPL 2.0, подробнее в файле LICENSE. Copyright (c) 2026 Firework
 
+use crate::compiler::codegen::ir::ScreenWidgetType;
+
 pub use super::super::*;
 
 impl Analyzer {
@@ -52,5 +54,56 @@ impl Analyzer {
         }
 
         self.add_field_to_screen(field_name, field_type);
+    }
+
+    pub fn add_widget_to_struct(
+        &mut self,
+        field_name: String,
+        widget_type: ScreenWidgetType,
+        is_microruntime: bool,
+    ) {
+        if let Some(_function_name) = &self.function_name {
+            match self.context.now_component.0 {
+                Some(_) => self.add_widget_to_component(field_name, widget_type, is_microruntime),
+                None => self.add_widget_to_screen(field_name, widget_type, is_microruntime),
+            }
+        }
+    }
+
+    fn add_widget_to_screen(
+        &mut self,
+        field_name: String,
+        widget_type: ScreenWidgetType,
+        is_microruntime: bool,
+    ) {
+        self.context
+            .ir
+            .screen_structs
+            .entry(format!(
+                "ApplicationUiBlockStruct{}",
+                self.lifetime_manager.scope.screen_index
+            ))
+            .or_default()
+            .widgets
+            .widgets
+            .push((format!("_fwc_{}", field_name), widget_type, is_microruntime));
+    }
+
+    fn add_widget_to_component(
+        &mut self,
+        field_name: String,
+        widget_type: ScreenWidgetType,
+        is_microruntime: bool,
+    ) {
+        // SAFETY: Этот метож вызывается только из add_field_to_struct и только если
+        // now_component это Some
+        self.context
+            .ir
+            .component_structs
+            .entry(self.context.now_component.clone().0.expect("IE:7"))
+            .or_default()
+            .widgets
+            .widgets
+            .push((format!("_fwc_{}", field_name), widget_type, is_microruntime));
     }
 }

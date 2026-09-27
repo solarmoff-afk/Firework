@@ -5,7 +5,7 @@ use syn::spanned::Spanned;
 
 pub use super::super::*;
 
-use crate::compiler::codegen::ir::WidgetDescription;
+use crate::compiler::codegen::ir::{ScreenWidgetType, WidgetDescription};
 use crate::compiler::common::widget_kind::is_functional_widget;
 
 impl<'ast> Analyzer {
@@ -148,6 +148,10 @@ impl<'ast> Analyzer {
                 }
             }
 
+            // Для того, чтобы добавить виджет в IR к экрану, нужны параметры для создания
+            // структуры WidgetStorage
+            let mut widget_type = ScreenWidgetType::Base;
+
             self.context.statement.string = i.to_token_stream().to_string();
             let descriptor = WidgetDescription {
                 // Тип виджета это то, что указывается в макросе при его декларации как имя
@@ -211,6 +215,10 @@ impl<'ast> Analyzer {
             // (это структура компонента) и использовать его как поле для структуры экрана
             // или компонента куда мы вставим компонент
             if name == "component" {
+                // Виджет нужно добавить в структуру как коипонент. Это нужно для расчёта z
+                // иерархии деерва
+                widget_type = ScreenWidgetType::Component;
+
                 for prop in &args.properties {
                     if prop.name == "target" {
                         let expr = &prop.value;
@@ -221,14 +229,20 @@ impl<'ast> Analyzer {
                 }
             }
 
+            // Имя поля в структуре куда будет записан виджет через скин или компонент. Это
+            // отдельная переменная чтобы использовать в добавлении и как поля структуры для
+            // основной кодегенерации, как и как виджет в структуру для генерации расчёта
+            // иерархии дерева по z координате
+            let widget_field_name = format!("widget_object_{}", self.context.widget_counter);
+
             // Только если в skin_struct была добавлена структура нужно добавить поле
             // в структуру экрана. Если поля нет то это функциональный виджет который
             // не получил скин через поле skin. Это делается после обработки layout!
             // дескриптора так как для layout не нужно поле виджета со скином
-            self.add_field_to_struct(
-                format!("widget_object_{}", self.context.widget_counter),
-                skin_field.to_string(),
-            );
+            self.add_field_to_struct(widget_field_name.clone(), skin_field.to_string());
+
+            // Отдельное добавление виджета для кодоегенрации расчёта z иерархии
+            self.add_widget_to_struct(widget_field_name, widget_type, has_microruntime);
 
             let widget_block = FireworkAction::WidgetBlock(descriptor);
             self.context.statement.action = widget_block;
