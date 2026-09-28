@@ -153,13 +153,13 @@ impl CodeBuilder {
                 }
             }
 
-            /*
-            let after_init = if is_component {
-                quote! {
-                    _fwc_wb_1
-                };
+            if is_component {
+                widget_init.extend(quote! {
+                    // ComponentData существует всегда, а без unwrap/expect нельзя сделать
+                    // это в рамках Builder pattern
+                    .__set_vcanvas(self._fwc__fwc_component.as_ref().expect("IE:14").substrate)
+                });
             }
-            */
 
             // Токен стрим для хранения обновления нужного бита в бит маске (активации
             // бита) чтобы показать что виджет жив
