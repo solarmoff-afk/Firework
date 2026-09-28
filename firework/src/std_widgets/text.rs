@@ -72,8 +72,9 @@ impl DefaultTextSkin {
         self.handle
     }
 
-    pub fn __set_vcanvas(&self, handle: usize) {
+    pub fn __set_vcanvas(self, handle: usize) -> Self {
         self.set_vcanvas(handle);
+        self
     }
 
     /// Внутренний метод хелпер, он нужен чтобы обновить размеры текста под размер шрифта чтобы

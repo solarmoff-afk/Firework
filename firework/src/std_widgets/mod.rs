@@ -95,8 +95,9 @@ impl DefaultRectSkin {
         self.handle
     }
 
-    pub fn __set_vcanvas(&self, handle: usize) {
+    pub fn __set_vcanvas(self, handle: usize) -> Self {
         self.set_vcanvas(handle);
+        self
     }
 }
 
