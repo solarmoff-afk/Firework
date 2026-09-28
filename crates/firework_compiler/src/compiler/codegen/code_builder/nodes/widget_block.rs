@@ -153,6 +153,14 @@ impl CodeBuilder {
                 }
             }
 
+            /*
+            let after_init = if is_component {
+                quote! {
+                    _fwc_wb_1
+                };
+            }
+            */
+
             // Токен стрим для хранения обновления нужного бита в бит маске (активации
             // бита) чтобы показать что виджет жив
             let mut widget_update_bitmask = TokenStream::new();
