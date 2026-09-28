@@ -57,6 +57,11 @@ component! {
         }
 
         pub fn flash(&mut self, _context: BuildContext) {
+            rect! {
+                position: (0, 0),
+                size: 100,
+                color: (0, 0, 255),
+            }
         }
     }
 }

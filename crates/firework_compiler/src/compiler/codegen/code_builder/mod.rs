@@ -103,6 +103,7 @@ impl CodeBuilder {
                     struct_name,
                     statement,
                     &processed_body,
+                    visitor,
                 ) {
                     processed_body = temp_tokens;
                     is_body_handled = true;

@@ -14,9 +14,10 @@ impl CodeBuilder {
         _struct_name: String,
         statement: &FireworkStatement,
         processed_body: &TokenStream,
+        visitor: &mut CodegenVisitor,
     ) -> bool {
         if let FireworkAction::DynamicLoopBegin(_depth, _widgets) = &statement.action {
-            let (list_begin, list_end) = generate_lifecycle(&_struct_name, _widgets, span);
+            let (list_begin, list_end) = generate_lifecycle(visitor, &_struct_name, _widgets, span);
 
             final_tokens.extend(quote_spanned!(span=>
                 #list_begin

@@ -38,7 +38,10 @@ pub struct CodegenVisitor<'a> {
     pub mask_count: HashMap<u128, u8>,
     pub widget_mask_count: HashMap<u128, u8>,
 
-    flags: CompileFlags,
+    // Поле публичное, так как оно нужно в CocdeBuilder для генерации специального кода
+    // обращения для компонентов
+    pub flags: CompileFlags,
+
     functions_count: u16,
 
     // Нвходясь в компоненте мы берём соотвествующее имя аргумента контекста из данных

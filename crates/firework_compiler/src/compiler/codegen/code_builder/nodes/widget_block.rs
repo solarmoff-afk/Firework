@@ -6,6 +6,7 @@ use syn::visit_mut::VisitMut;
 
 use super::super::*;
 
+use crate::CompileType;
 use crate::compiler::CodegenVisitor;
 
 impl CodeBuilder {
@@ -19,6 +20,8 @@ impl CodeBuilder {
         visitor: &mut CodegenVisitor,
     ) -> bool {
         if let FireworkAction::WidgetBlock(description) = &statement.action {
+            let is_component = matches!(visitor.flags.compile_type, CompileType::Component);
+
             // Не кэшируется так как здесь профилирование показывает что расходы HashMap
             // выше чем экономия, без кэширование 780 микросекунд, с нмм ~970
             let instance_ident_upper = format_ident!("{}_INSTANCE", struct_name.to_uppercase());
@@ -219,36 +222,48 @@ impl CodeBuilder {
                 let key_token = key_expr.expect("Key field not found");
 
                 #[cfg(feature = "safety-multithread")]
-                final_tokens.extend(quote_spanned!(span=>
-                    {
-                        let mut _fwc_inst = #instance_ident_upper.get()
-                            .expect("Instance not initialized").lock().unwrap();
-
-                        // SAFETY: List initialized before
-                        let mut _fwc_list_ref = _fwc_inst.#field_ident.as_mut().unwrap();
-
-                        let mut _fwc_wb_1 = match _fwc_list_ref.entry(#key_token) {
-                            firework_ui::ListEntry::Occupied(existing) => existing,
-                            firework_ui::ListEntry::Vacant(vacant) => vacant.insert(#widget_init),
-                        };
-
-                        {
-                            let _fwc_component_instance = _fwc_wb_1;
-                            #distributor
-                            _fwc_wb_1 = _fwc_component_instance;
-                        }
-
-                        #widget_reactive
-                        #widget_update_bitmask
-                    }
-                ));
+                let (guard_prologue, list_ref_expr_inner) = if is_component {
+                    (
+                        quote!(),
+                        quote_spanned!(span=>
+                            self.#field_ident.as_mut().unwrap()
+                        ),
+                    )
+                } else {
+                    (
+                        quote_spanned!(span=>
+                            let mut _fwc_inst = #instance_ident_upper.get()
+                                .expect("Instance not initialized")
+                                .lock()
+                                .unwrap();
+                        ),
+                        quote_spanned!(span=>
+                            _fwc_inst.#field_ident.as_mut().unwrap()
+                        ),
+                    )
+                };
 
                 #[cfg(not(feature = "safety-multithread"))]
+                let (guard_prologue, list_ref_expr_inner) = (
+                    quote!(),
+                    if is_component {
+                        quote_spanned!(span=>
+                            self.#field_ident.as_mut().unwrap()
+                        )
+                    } else {
+                        quote_spanned!(span=>
+                            unsafe {
+                                (*::core::ptr::addr_of_mut!(#instance_ident_upper)).#field_ident.as_mut().unwrap()
+                            }
+                        )
+                    },
+                );
+
                 final_tokens.extend(quote_spanned!(span=>
                     {
-                        let mut _fwc_list_ref = unsafe {
-                            (*::core::ptr::addr_of_mut!(#instance_ident_upper)).#field_ident.as_mut().unwrap()
-                        };
+                        #guard_prologue
+
+                        let mut _fwc_list_ref = #list_ref_expr_inner;
 
                         let mut _fwc_wb_1 = match _fwc_list_ref.entry(#key_token) {
                             firework_ui::ListEntry::Occupied(existing) => existing,
@@ -267,8 +282,8 @@ impl CodeBuilder {
                 ));
             } else {
                 #[cfg(feature = "safety-multithread")]
-                final_tokens.extend(quote_spanned!(span=>
-                    match #match_value {
+                {
+                    let some_safe = quote_spanned!(span =>
                         Some(ref mut _fwc_wb_1) => {
                             {
                                 let _fwc_component_instance: &mut _ = &mut *_fwc_wb_1;
@@ -288,23 +303,54 @@ impl CodeBuilder {
                             #widget_update_bitmask
                             #widget_reactive
                         },
+                    );
 
-                        None => {
-                            #instance_ident_upper.get()
-                                .expect("Instance not initialized")
-                                .lock()
-                                .unwrap()
-                                .#field_ident = Some(#widget_init);
-                            #distributor
-                            #widget_update_bitmask
-                        },
-                    };
-                ));
+                    if !is_component {
+                        final_tokens.extend(quote_spanned!(span=>
+                            {
+                                let mut _fwc_inst = #instance_ident_upper.get()
+                                    .expect("Instance not initialized").lock().unwrap();
+
+                                match _fwc_inst.#field_ident.as_mut() {
+                                    #some_safe
+
+                                    None => {
+                                        _fwc_inst.#field_ident = Some(#widget_init);
+
+                                        {
+                                            let _fwc_component_instance = _fwc_inst.#field_ident.as_mut().unwrap();
+                                            #distributor
+                                        }
+
+                                        #widget_update_bitmask
+                                    },
+                                };
+                            }
+                        ));
+                    } else {
+                        final_tokens.extend(quote_spanned!(span=>
+                            match self.#field_ident.as_mut() {
+                                #some_safe
+
+                                None => {
+                                    self.#field_ident = Some(#widget_init);
+
+                                    {
+                                        let _fwc_component_instance = self.#field_ident.as_mut().unwrap();
+                                        #distributor
+                                    }
+
+                                    #widget_update_bitmask
+                                },
+                            };
+                        ));
+                    }
+                }
 
                 // Обычный режим
                 #[cfg(not(feature = "safety-multithread"))]
-                final_tokens.extend(quote_spanned!(span=>
-                    match #match_value {
+                {
+                    let some_unsafe = quote_spanned!(span =>
                         Some(ref mut _fwc_wb_1) => {
                             {
                                 let _fwc_component_instance = &mut *_fwc_wb_1;
@@ -314,41 +360,127 @@ impl CodeBuilder {
                             #widget_update_bitmask
                             #widget_reactive
                         },
+                    );
 
-                        None => {
-                            unsafe {
-                                let slot =
-                                    &mut (*::core::ptr::addr_of_mut!(#instance_ident_upper)).#field_ident;
+                    if !is_component {
+                        final_tokens.extend(quote_spanned!(span=>
+                            match #match_value {
+                                #some_unsafe
 
-                                *slot = Some(#widget_init);
+                                None => {
+                                    unsafe {
+                                        let slot =
+                                            &mut (*::core::ptr::addr_of_mut!(#instance_ident_upper)).#field_ident;
 
-                                {
-                                    let _fwc_component_instance = slot.as_mut().unwrap_unchecked();
-                                    #distributor
+                                        *slot = Some(#widget_init);
+
+                                        {
+                                            let _fwc_component_instance = slot.as_mut().unwrap_unchecked();
+                                            #distributor
+                                        }
+                                    }
+
+                                    #widget_update_bitmask
                                 }
-                            }
+                            };
+                        ));
+                    } else {
+                        final_tokens.extend(quote_spanned!(span=>
+                            match self.#field_ident.as_mut() {
+                                #some_unsafe
 
-                            #widget_update_bitmask
-                        }
-                    };
-                ));
+                                None => {
+                                    self.#field_ident = Some(#widget_init);
+
+                                    {
+                                        let _fwc_component_instance = unsafe {
+                                            self.#field_ident.as_mut().unwrap_unchecked()
+                                        };
+                                        #distributor
+                                    }
+
+                                    #widget_update_bitmask
+                                }
+                            };
+                        ));
+                    }
+                }
             }
 
             // Финализация
             if description.is_maybe.is_some() {
-                self.tokens.push(quote_spanned!(span=>
-                    match #match_value {
-                        Some(ref _fwc_wb_1) => {
-                            if #condition_statement {
-                                _fwc_wb_1.visible(true);
-                            } else {
-                                _fwc_wb_1.visible(false);
-                            }
-                        },
+                #[cfg(feature = "safety-multithread")]
+                if !is_component {
+                    self.tokens.push(quote_spanned!(span=>
+                        {
+                            let mut _fwc_inst = #instance_ident_upper.get()
+                                .expect("Instance not initialized").lock().unwrap();
 
-                        None => {},
-                    };
-                ));
+                            match _fwc_inst.#field_ident.as_mut() {
+                                Some(_fwc_wb_1) => {
+                                    if #condition_statement {
+                                        _fwc_wb_1.visible(true);
+                                    } else {
+                                        _fwc_wb_1.visible(false);
+                                    }
+                                },
+
+                                None => {},
+                            };
+                        }
+                    ));
+                }
+
+                #[cfg(feature = "safety-multithread")]
+                if is_component {
+                    self.tokens.push(quote_spanned!(span=>
+                        match self.#field_ident.as_mut() {
+                            Some(_fwc_wb_1) => {
+                                if #condition_statement {
+                                    _fwc_wb_1.visible(true);
+                                } else {
+                                    _fwc_wb_1.visible(false);
+                                }
+                            },
+
+                            None => {},
+                        };
+                    ));
+                }
+
+                #[cfg(not(feature = "safety-multithread"))]
+                if !is_component {
+                    self.tokens.push(quote_spanned!(span=>
+                        match #match_value {
+                            Some(ref _fwc_wb_1) => {
+                                if #condition_statement {
+                                    _fwc_wb_1.visible(true);
+                                } else {
+                                    _fwc_wb_1.visible(false);
+                                }
+                            },
+
+                            None => {},
+                        };
+                    ));
+                }
+
+                #[cfg(not(feature = "safety-multithread"))]
+                if is_component {
+                    self.tokens.push(quote_spanned!(span=>
+                        match self.#field_ident.as_mut() {
+                            Some(_fwc_wb_1) => {
+                                if #condition_statement {
+                                    _fwc_wb_1.visible(true);
+                                } else {
+                                    _fwc_wb_1.visible(false);
+                                }
+                            },
+
+                            None => {},
+                        };
+                    ));
+                }
             }
 
             return true;
