@@ -128,8 +128,14 @@ impl CodegenVisitor<'_> {
                                     }
                                 }
 
+                                // TODO: Подсчитывать z размер компонента
                                 fn get_z_size(&self) -> i16 {
                                     1
+                                }
+
+                                // TODO: Установить vcanvas
+                                fn set_vcanvas(&self, vcanvas_handle: usize) {
+                                    println!("{}", vcanvas_handle);
                                 }
                             }
                         };

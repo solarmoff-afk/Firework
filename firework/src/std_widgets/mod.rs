@@ -135,4 +135,8 @@ impl Widget for DefaultRectSkin {
     fn get_z_size(&self) -> i16 {
         1
     }
+
+    fn set_vcanvas(&self, vcanvas_handle: usize) {
+        adapter_command(AdapterCommand::SharedVCanvas(self.handle, vcanvas_handle));
+    }
 }
