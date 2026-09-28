@@ -86,6 +86,10 @@ impl<K: Eq + PartialEq, T: Widget> DynList<K, T> {
             item.visible(state);
         }
     }
+
+    pub fn len(&self) -> usize {
+        self.current_items.len()
+    }
 }
 
 #[cfg(feature = "no-alloc")]
@@ -159,5 +163,9 @@ impl<K: Eq + PartialEq, T: Widget> DynList<K, T> {
                 item.visible(state);
             }
         }
+    }
+
+    pub fn len(&self) -> usize {
+        64
     }
 }
