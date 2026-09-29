@@ -420,19 +420,39 @@ impl CodegenVisitor<'_> {
                 };
 
                 let mut z_compute_tokens = quote! {};
+                let z_compute_widget_tokens = quote! {
+                    firework_ui::std_widgets::widget::Widget::set_z(&_fwc_element, _fwc_z);
+
+                    // +1 так как следующий виджет займёт именно _fwc_z позицию,
+                    // поэтому выделяется место под следующий
+                    _fwc_z += firework_ui::std_widgets::widget::Widget::get_z_size(&_fwc_element) + 1;
+                };
+
+                let z_compute_dynlist_tokens = quote! {
+                    // Устаналиваем списку этот z, DynList сам распределит z по элементам.
+                    // Первый получит актуальный z, второй z+1 и так далее
+                    _fwc_element.set_z_range(_fwc_z);
+
+                    // Добавляем к _fwc_z количество элементов в списке +1 для слуедующего
+                    // элемента
+                    _fwc_z += _fwc_element.len() + 1;
+                };
 
                 // TODO: Сделать подсчёт и компоновку по z
                 for i in widget {
                     let name = format_ident!("{}", i.0);
+                    let is_microruntime = i.2;
+
+                    let z_compute_variant = if is_microruntime {
+                        &z_compute_dynlist_tokens
+                    } else {
+                        &z_compute_widget_tokens
+                    };
 
                     if is_component {
                         z_compute_tokens.extend(quote! {
                             if let Some(_fwc_element) = self.#name {
-                                firework_ui::std_widgets::widget::Widget::set_z(&_fwc_element, _fwc_z);
-
-                                // +1 так как следующий виджет займёт именно _fwc_z позицию,
-                                // поэтому выделяется место под следующий
-                                _fwc_z += firework_ui::std_widgets::widget::Widget::get_z_size(&_fwc_element) + 1;
+                                #z_compute_variant
                             }
                         });
                     }
