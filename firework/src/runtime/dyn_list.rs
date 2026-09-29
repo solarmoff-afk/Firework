@@ -90,6 +90,22 @@ impl<K: Eq + PartialEq, T: Widget> DynList<K, T> {
     pub fn len(&self) -> usize {
         self.current_items.len()
     }
+
+    /// Устанавливает z координату в диапазоне. Нужно вызывать после end_pass
+    pub fn set_z_range(
+        &self,
+        /* z координата первого элемента списка, для каждого следующего элемента
+         * делается +1 к этому параметру. Так продолжается пока элементы не подойдут
+         * к концу */
+        z_start: i16,
+    ) {
+        let mut z = z_start;
+
+        for (_, item) in self.current_items.iter() {
+            item.set_z(z);
+            z = z.saturating_add(1);
+        }
+    }
 }
 
 #[cfg(feature = "no-alloc")]
