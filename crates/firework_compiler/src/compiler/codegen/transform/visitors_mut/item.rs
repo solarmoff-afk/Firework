@@ -135,7 +135,13 @@ impl CodegenVisitor<'_> {
 
                                 // TODO: Установить vcanvas
                                 fn set_vcanvas(&self, vcanvas_handle: usize) {
-                                    println!("{}", vcanvas_handle);
+                                    if let Some(component_data) = &self._fwc__fwc_component {
+                                        firework_ui::adapter_command(
+                                            firework_ui::AdapterCommand::SharedVCanvas(
+                                                component_data.substrate, vcanvas_handle
+                                            )
+                                        );
+                                    }
                                 }
                             }
                         };
