@@ -184,4 +184,15 @@ impl<K: Eq + PartialEq, T: Widget> DynList<K, T> {
     pub fn len(&self) -> usize {
         64
     }
+
+    pub fn set_z_range(&self, z_start: i16) {
+        let mut current_z = z_start;
+
+        for i in 0..self.current_count {
+            if let Some((_, item)) = &self.current_items[i] {
+                item.set_z(current_z);
+                current_z = current_z.saturating_add(1);
+            }
+        }
+    }
 }
