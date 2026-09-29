@@ -99,6 +99,11 @@ impl CodegenVisitor<'_> {
                                     self.__set_size(size.into_size());
                                     self
                                 }
+
+                                pub fn __set_vcanvas(self, handle: usize) -> Self {
+                                    <Self as firework_ui::std_widgets::widget::Widget>::set_vcanvas(&self, handle);
+                                    self
+                                }
                             }
                         };
 
@@ -133,7 +138,6 @@ impl CodegenVisitor<'_> {
                                     1
                                 }
 
-                                // TODO: Установить vcanvas
                                 fn set_vcanvas(&self, vcanvas_handle: usize) {
                                     if let Some(component_data) = &self._fwc__fwc_component {
                                         firework_ui::adapter_command(
