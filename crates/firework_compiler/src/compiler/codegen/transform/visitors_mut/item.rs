@@ -408,7 +408,7 @@ impl CodegenVisitor<'_> {
                 }
 
                 let default = Vec::new();
-                let _widget = if is_component
+                let widget = if is_component
                     && let Some(name) = component_name
                     && let Some(component) = self.ir.component_structs.get(&name)
                 {
@@ -419,17 +419,33 @@ impl CodegenVisitor<'_> {
                     &default
                 };
 
-                /*
+                let mut z_compute_tokens = quote! {};
+
                 // TODO: Сделать подсчёт и компоновку по z
                 for i in widget {
+                    let name = format_ident!("{}", i.0);
+
+                    if is_component {
+                        z_compute_tokens.extend(quote! {
+                            if let Some(_fwc_element) = self.#name {
+                                firework_ui::std_widgets::widget::Widget::set_z(&_fwc_element, _fwc_z);
+
+                                // +1 так как следующий виджет займёт именно _fwc_z позицию,
+                                // поэтому выделяется место под следующий
+                                _fwc_z += firework_ui::std_widgets::widget::Widget::get_z_size(&_fwc_element) + 1;
+                            }
+                        });
+                    }
+
                     println!("{:?}", i);
                 }
-                */
 
                 final_stmts.extend(parse_batch(quote! {
                     // #dyn_lists_end
                     #(#post_tokens)*
                     #widgets_gen_snapshot
+
+                    #z_compute_tokens
                 }));
 
                 block.stmts = final_stmts;
