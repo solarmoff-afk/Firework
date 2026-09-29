@@ -138,6 +138,11 @@ impl CodegenVisitor<'_> {
                                     1
                                 }
 
+                                // TODO: Поставить указанный z
+                                fn set_z(&self, z: i16) {
+                                    println!("Set Z: {}", z);
+                                }
+
                                 fn set_vcanvas(&self, vcanvas_handle: usize) {
                                     if let Some(component_data) = &self._fwc__fwc_component {
                                         firework_ui::adapter_command(

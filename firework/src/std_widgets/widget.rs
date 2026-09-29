@@ -14,6 +14,8 @@ pub trait Widget {
     /// Сколько z занимает этот виджет (для компоновки)
     fn get_z_size(&self) -> i16;
 
+    fn set_z(&self, z: i16);
+
     /// Устаналивает VCanvas для проекции компонента
     fn set_vcanvas(&self, vcanvas_handle: usize);
 }

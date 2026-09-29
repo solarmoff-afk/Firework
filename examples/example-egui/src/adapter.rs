@@ -12,7 +12,7 @@ struct RenderObject {
     pos: (i32, i32),
     size: (i32, i32),
     color: (u8, u8, u8, u8),
-    z_index: i32,
+    z_index: i16,
     visible: bool,
     hit_group: u16,
     is_text: bool,
@@ -417,7 +417,7 @@ pub fn egui_adapter(cmd: AdapterCommand<'_>) -> AdapterResult {
         }
 
         AdapterCommand::ResolveHit(group, (ax, ay, aw, ah)) => {
-            let mut highest_z = i32::MIN;
+            let mut highest_z = i16::MIN;
             let mut found_id = None;
 
             let a_left = ax;

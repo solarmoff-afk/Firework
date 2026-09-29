@@ -55,7 +55,7 @@ pub enum AdapterCommand<'a> {
     /// R, G, B, A цвет от 0 до 255
     SetColor(usize, (u8, u8, u8, u8)),
 
-    SetZ(usize, i32),
+    SetZ(usize, i16),
 
     SetVisible(usize, bool),
 

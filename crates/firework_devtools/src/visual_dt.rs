@@ -10,7 +10,7 @@ use firework_adapter::{AdapterClickPhase, AdapterCommand, AdapterEvent, AdapterR
 /// в настоящий адаптер
 struct ObjectMeta {
     label_id: usize,
-    z: i32,
+    z: i16,
     hit_group: u16,
 }
 
@@ -100,7 +100,7 @@ pub fn visual_devtool_adapter(cmd: AdapterCommand) -> AdapterResult {
 
                 let x = state_lock.screen_width.saturating_sub(200) as i32;
                 inner(AdapterCommand::SetPosition(info_id, (x, 10)));
-                inner(AdapterCommand::SetZ(info_id, 999999));
+                inner(AdapterCommand::SetZ(info_id, i16::MAX));
                 inner(AdapterCommand::SetColor(info_id, (255, 0, 0, 255)));
                 inner(AdapterCommand::SetFontSize(info_id, 14));
 
@@ -119,7 +119,7 @@ pub fn visual_devtool_adapter(cmd: AdapterCommand) -> AdapterResult {
                 if let AdapterResult::Handle(label_id) =
                     inner(AdapterCommand::NewText { layout: 1 })
                 {
-                    inner(AdapterCommand::SetZ(label_id, 999998));
+                    inner(AdapterCommand::SetZ(label_id, i16::MAX));
                     inner(AdapterCommand::SetColor(label_id, (0, 0, 255, 255)));
                     inner(AdapterCommand::SetFontSize(label_id, 12));
 

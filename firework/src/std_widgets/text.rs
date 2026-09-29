@@ -68,6 +68,11 @@ impl DefaultTextSkin {
         self
     }
 
+    pub fn z(self, z: i16) -> Self {
+        let _ = adapter_command(AdapterCommand::SetZ(self.handle, z));
+        self
+    }
+
     pub fn __id(&self) -> usize {
         self.handle
     }
@@ -119,6 +124,10 @@ impl Widget for DefaultTextSkin {
 
     fn get_z_size(&self) -> i16 {
         1
+    }
+
+    fn set_z(&self, z: i16) {
+        self.z(z);
     }
 
     fn set_vcanvas(&self, vcanvas_handle: usize) {

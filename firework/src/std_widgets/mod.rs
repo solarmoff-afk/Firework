@@ -74,7 +74,7 @@ impl DefaultRectSkin {
     }
 
     /// Устанавливает Z-индекс
-    pub fn z(self, z: i32) -> Self {
+    pub fn z(self, z: i16) -> Self {
         let _ = adapter_command(AdapterCommand::SetZ(self.handle, z));
         self
     }
@@ -139,6 +139,10 @@ impl Widget for DefaultRectSkin {
 
     fn get_z_size(&self) -> i16 {
         1
+    }
+
+    fn set_z(&self, z: i16) {
+        self.z(z);
     }
 
     fn set_vcanvas(&self, vcanvas_handle: usize) {
