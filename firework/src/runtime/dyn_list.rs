@@ -182,7 +182,7 @@ impl<K: Eq + PartialEq, T: Widget> DynList<K, T> {
     }
 
     pub fn len(&self) -> usize {
-        64
+        self.current_count
     }
 
     pub fn set_z_range(&self, z_start: i16) {
