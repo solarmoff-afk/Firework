@@ -1,3 +1,4 @@
+/*
 use firework_ui::{effect, shared};
 
 shared! {
@@ -16,8 +17,9 @@ shared! {
         println!("Update!");
     }
 }
+*/
 
 fn main() {
-    set_theme(10);
-    println!("{}", get_theme());
+    // set_theme(10);
+    // println!("{}", get_theme());
 }

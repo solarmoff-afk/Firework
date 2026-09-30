@@ -187,11 +187,6 @@ impl CodeBuilder {
                 quote! { true }
             };
 
-            #[cfg(feature = "safety")]
-            let _match_value = quote! {
-                #instance_ident_upper.with(|inst| inst.borrow_mut().#field_ident.as_mut())
-            };
-
             #[cfg(not(feature = "safety"))]
             let _match_value = quote! {
                 unsafe {
@@ -226,62 +221,62 @@ impl CodeBuilder {
                 // У виджетов в циклах обязан быть ключ, это проверяется анализатором
                 let key_token = key_expr.expect("Key field not found");
 
-                #[cfg(feature = "safety")]
-                let (guard_prologue, list_ref_expr_inner) = if is_component {
-                    (
-                        quote!(),
-                        quote_spanned!(span=>
-                            self.#field_ident.as_mut().unwrap()
-                        ),
-                    )
-                } else {
-                    (
-                        quote_spanned!(span=>
-                            let mut _fwc_inst = #instance_ident_upper.with(|inst| inst.borrow_mut());
-                        ),
-                        quote_spanned!(span=>
-                            _fwc_inst.#field_ident.as_mut().unwrap()
-                        ),
-                    )
-                };
+                let inner_tokens = quote_spanned!(span=>
+                    let mut _fwc_wb_1 = match _fwc_list_ref.entry(#key_token) {
+                        firework_ui::ListEntry::Occupied(existing) => existing,
+                        firework_ui::ListEntry::Vacant(vacant) => vacant.insert(#widget_init),
+                    };
 
-                #[cfg(not(feature = "safety"))]
-                let (guard_prologue, list_ref_expr_inner) = (
-                    quote!(),
-                    if is_component {
-                        quote_spanned!(span=>
-                            self.#field_ident.as_mut().unwrap()
-                        )
-                    } else {
-                        quote_spanned!(span=>
-                            unsafe {
-                                (*::core::ptr::addr_of_mut!(#instance_ident_upper)).#field_ident.as_mut().unwrap()
-                            }
-                        )
-                    },
+                    {
+                        let _fwc_component_instance = _fwc_wb_1;
+                        #distributor
+                        _fwc_wb_1 = _fwc_component_instance;
+                    }
+
+                    #widget_reactive
+                    #widget_update_bitmask
                 );
 
-                final_tokens.extend(quote_spanned!(span=>
-                    {
-                        #guard_prologue
-
-                        let mut _fwc_list_ref = #list_ref_expr_inner;
-
-                        let mut _fwc_wb_1 = match _fwc_list_ref.entry(#key_token) {
-                            firework_ui::ListEntry::Occupied(existing) => existing,
-                            firework_ui::ListEntry::Vacant(vacant) => vacant.insert(#widget_init),
-                        };
-
-                        {
-                            let _fwc_component_instance = _fwc_wb_1;
-                            #distributor
-                            _fwc_wb_1 = _fwc_component_instance;
-                        }
-
-                        #widget_reactive
-                        #widget_update_bitmask
+                #[cfg(feature = "safety")]
+                {
+                    if is_component {
+                        final_tokens.extend(quote_spanned!(span=>
+                            {
+                                let mut _fwc_list_ref = self.#field_ident.as_mut().unwrap();
+                                #inner_tokens
+                            }
+                        ));
+                    } else {
+                        final_tokens.extend(quote_spanned!(span=>
+                            #instance_ident_upper.with(|inst| {
+                                let mut _fwc_inst = inst.borrow_mut();
+                                let mut _fwc_list_ref = _fwc_inst.#field_ident.as_mut().unwrap();
+                                #inner_tokens
+                            });
+                        ));
                     }
-                ));
+                }
+
+                #[cfg(not(feature = "safety"))]
+                {
+                    if is_component {
+                        final_tokens.extend(quote_spanned!(span=>
+                            {
+                                let mut _fwc_list_ref = self.#field_ident.as_mut().unwrap();
+                                #inner_tokens
+                            }
+                        ));
+                    } else {
+                        final_tokens.extend(quote_spanned!(span=>
+                            {
+                                let mut _fwc_list_ref = unsafe {
+                                    (*::core::ptr::addr_of_mut!(#instance_ident_upper)).#field_ident.as_mut().unwrap()
+                                };
+                                #inner_tokens
+                            }
+                        ));
+                    }
+                }
             } else {
                 #[cfg(feature = "safety")]
                 {

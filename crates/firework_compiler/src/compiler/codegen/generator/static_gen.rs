@@ -208,8 +208,8 @@ pub(crate) fn get_field_ref(instance_name: &str, field_name: &str, var_name: &st
 pub(crate) fn get_field_ref(instance_name: &str, field_name: &str, var_name: &str) -> String {
     let instance_name_upper = instance_name.to_uppercase();
     format!(
-        "let {} = {}_INSTANCE.with(|inst| inst.borrow().{}.as_ref().unwrap().clone());",
-        var_name, instance_name_upper, field_name,
+        "let _fwc_inst = {}_INSTANCE.with(|c| c.borrow());\nlet {} = _fwc_inst.{}.as_ref().unwrap();",
+        instance_name_upper, var_name, field_name,
     )
 }
 
@@ -227,8 +227,8 @@ pub(crate) fn get_field_ref_mut(instance_name: &str, field_name: &str, var_name:
 pub(crate) fn get_field_ref_mut(instance_name: &str, field_name: &str, var_name: &str) -> String {
     let instance_name_upper = instance_name.to_uppercase();
     format!(
-        "let mut {} = {}_INSTANCE.with(|inst| inst.borrow_mut().{}.as_mut().unwrap());",
-        var_name, instance_name_upper, field_name,
+        "let mut _fwc_inst = {}_INSTANCE.with(|c| c.borrow_mut());\nlet mut {} = _fwc_inst.{}.as_mut().unwrap();",
+        instance_name_upper, var_name, field_name,
     )
 }
 
@@ -247,7 +247,7 @@ pub(crate) fn copy_field(instance_name: &str, field_name: &str, var_name: &str) 
 pub(crate) fn copy_field(instance_name: &str, field_name: &str, var_name: &str) -> String {
     let instance_name_upper = instance_name.to_uppercase();
     format!(
-        "if let Some(val) = {}_INSTANCE.with(|inst| inst.borrow().{}.as_ref()) {{ {} = *val; }}",
+        "if let Some(val) = {}_INSTANCE.with(|c| c.borrow().{}.as_ref().copied()) {{ {} = val; }}",
         instance_name_upper, field_name, var_name,
     )
 }
@@ -265,7 +265,7 @@ pub(crate) fn copy_cell_field(instance_name: &str, field_name: &str, var_name: &
 pub(crate) fn copy_cell_field(instance_name: &str, field_name: &str, var_name: &str) -> String {
     let instance_name_upper = instance_name.to_uppercase();
     format!(
-        "if let Some(val) = {}_INSTANCE.with(|inst| inst.borrow().{}.as_ref()) {{ {}.set(*val); }}",
+        "if let Some(val) = {}_INSTANCE.with(|c| c.borrow().{}.as_ref().copied()) {{ {}.set(val); }}",
         instance_name_upper, field_name, var_name,
     )
 }
