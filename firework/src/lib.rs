@@ -8,8 +8,8 @@ pub mod std_widgets;
 
 mod runtime_errors;
 
-#[cfg(feature = "safety-multithread")]
-use std::sync::{Mutex, OnceLock};
+#[cfg(feature = "safety")]
+use std::cell::RefCell;
 
 pub use firework_adapter::{AdapterClickPhase, AdapterCommand, AdapterEvent, AdapterResult};
 pub use firework_macro::{component, effect, shared, ui};
@@ -115,40 +115,36 @@ pub enum CurrentEvent {
     },
 }
 
-#[cfg(not(feature = "safety-multithread"))]
+#[cfg(not(feature = "safety"))]
 static mut CURRENT_EVENT: CurrentEvent = CurrentEvent::None;
 
-#[cfg(feature = "safety-multithread")]
-static CURRENT_EVENT: OnceLock<Mutex<CurrentEvent>> = OnceLock::new();
+#[cfg(feature = "safety")]
+std::thread_local! {
+    static CURRENT_EVENT: RefCell<CurrentEvent> = const { RefCell::new(CurrentEvent::None) };
+}
 
 /// Установить текущее событие
-#[cfg(not(feature = "safety-multithread"))]
+#[cfg(not(feature = "safety"))]
 pub fn set_current_event(event: CurrentEvent) {
     unsafe {
         CURRENT_EVENT = event;
     }
 }
 
-#[cfg(feature = "safety-multithread")]
+#[cfg(feature = "safety")]
 pub fn set_current_event(event: CurrentEvent) {
-    *CURRENT_EVENT
-        .get_or_init(|| Mutex::new(CurrentEvent::None))
-        .lock()
-        .unwrap() = event;
+    CURRENT_EVENT.with(|e| *e.borrow_mut() = event);
 }
 
-/// Получить и ОЧИСТИТЬ текущее событие (заменить на None)
-#[cfg(not(feature = "safety-multithread"))]
+/// Получить текущее событие (заменить на None)
+#[cfg(not(feature = "safety"))]
 pub fn take_current_event() -> CurrentEvent {
     unsafe { CURRENT_EVENT }
 }
 
-#[cfg(feature = "safety-multithread")]
+#[cfg(feature = "safety")]
 pub fn take_current_event() -> CurrentEvent {
-    *CURRENT_EVENT
-        .get_or_init(|| Mutex::new(CurrentEvent::None))
-        .lock()
-        .unwrap()
+    CURRENT_EVENT.with(|e| *e.borrow())
 }
 
 /// Current Flash pass context of the screen or component
@@ -162,151 +158,121 @@ pub enum LifeCycle {
 }
 
 // Текущий тик (вызывается каждый кадр)
-#[cfg(not(feature = "safety-multithread"))]
+#[cfg(not(feature = "safety"))]
 static mut CURRENT_TICK: Option<fn()> = None;
 
-#[cfg(feature = "safety-multithread")]
-static CURRENT_TICK: OnceLock<Mutex<Option<fn()>>> = OnceLock::new();
+#[cfg(feature = "safety")]
+std::thread_local! {
+    static CURRENT_TICK: RefCell<Option<fn()>> = const { RefCell::new(None) };
+}
 
-#[cfg(not(feature = "safety-multithread"))]
+#[cfg(not(feature = "safety"))]
 pub fn get_tick_fn() -> fn() {
     unsafe { CURRENT_TICK.unwrap_or(|| {}) }
 }
 
-#[cfg(feature = "safety-multithread")]
+#[cfg(feature = "safety")]
 pub fn get_tick_fn() -> fn() {
-    CURRENT_TICK
-        .get_or_init(|| Mutex::new(None))
-        .lock()
-        .unwrap()
-        .unwrap_or(|| {})
+    CURRENT_TICK.with(|t| t.borrow().unwrap_or(|| {}))
 }
 
-#[cfg(not(feature = "safety-multithread"))]
+#[cfg(not(feature = "safety"))]
 pub fn set_tick_fn(f: fn()) {
     unsafe {
         CURRENT_TICK = Some(f);
     }
 }
 
-#[cfg(feature = "safety-multithread")]
+#[cfg(feature = "safety")]
 pub fn set_tick_fn(f: fn()) {
-    *CURRENT_TICK
-        .get_or_init(|| Mutex::new(None))
-        .lock()
-        .unwrap() = Some(f);
+    CURRENT_TICK.with(|t| *t.borrow_mut() = Some(f));
 }
 
-#[cfg(not(feature = "safety-multithread"))]
+#[cfg(not(feature = "safety"))]
 // Хранилище текущего фокуса (активного слайда) для ивентов
 static mut CURRENT_FOCUS: Option<fn()> = None;
 
-#[cfg(not(feature = "safety-multithread"))]
+#[cfg(not(feature = "safety"))]
 static mut CURRENT_ADAPTER: Option<fn(AdapterCommand) -> AdapterResult> = None;
 
-#[cfg(not(feature = "safety-multithread"))]
+#[cfg(not(feature = "safety"))]
 // Айди текущего фокуса для сравнения
 static mut CURRENT_FOCUS_ID: Option<u128> = None;
 
-#[cfg(feature = "safety-multithread")]
-static CURRENT_FOCUS: OnceLock<Mutex<Option<fn()>>> = OnceLock::new();
-
-#[cfg(feature = "safety-multithread")]
-static CURRENT_ADAPTER: OnceLock<Mutex<Option<fn(AdapterCommand) -> AdapterResult>>> =
-    OnceLock::new();
-
-#[cfg(feature = "safety-multithread")]
-static CURRENT_FOCUS_ID: OnceLock<Mutex<Option<u128>>> = OnceLock::new();
+#[cfg(feature = "safety")]
+std::thread_local! {
+    static CURRENT_FOCUS: RefCell<Option<fn()>> = const { RefCell::new(None) };
+    static CURRENT_ADAPTER: RefCell<Option<fn(AdapterCommand) -> AdapterResult>> = const { RefCell::new(None) };
+    static CURRENT_FOCUS_ID: RefCell<Option<u128>> = const { RefCell::new(None) };
+}
 
 /// Возвращает указатель на текущий активный слайд. Используется макросом для
 /// определения явлется ли лайфцикл Build
-#[cfg(not(feature = "safety-multithread"))]
+#[cfg(not(feature = "safety"))]
 pub fn get_focus() -> fn() {
     unsafe { CURRENT_FOCUS.unwrap_or(|| {}) }
 }
 
-#[cfg(feature = "safety-multithread")]
+#[cfg(feature = "safety")]
 pub fn get_focus() -> fn() {
-    CURRENT_FOCUS
-        .get_or_init(|| Mutex::new(None))
-        .lock()
-        .unwrap()
-        .unwrap_or(|| {})
+    CURRENT_FOCUS.with(|f| f.borrow().unwrap_or(|| {}))
 }
 
 /// Устанавливает текущий слайд в глобальный фокус
-#[cfg(not(feature = "safety-multithread"))]
+#[cfg(not(feature = "safety"))]
 pub fn set_focus(f: fn()) {
     unsafe {
         CURRENT_FOCUS = Some(f);
     }
 }
 
-#[cfg(not(feature = "safety-multithread"))]
+#[cfg(not(feature = "safety"))]
 pub fn set_adapter(f: fn(AdapterCommand) -> AdapterResult) {
     unsafe {
         CURRENT_ADAPTER = Some(f);
     }
 }
 
-#[cfg(feature = "safety-multithread")]
+#[cfg(feature = "safety")]
 pub fn set_adapter(f: fn(AdapterCommand) -> AdapterResult) {
-    CURRENT_ADAPTER
-        .get_or_init(|| Mutex::new(Some(f)))
-        .lock()
-        .unwrap()
-        .expect(RENDER_ADAPTER_MISSING_ERROR);
+    CURRENT_ADAPTER.with(|a| *a.borrow_mut() = Some(f));
 }
 
-#[cfg(feature = "safety-multithread")]
+#[cfg(feature = "safety")]
 pub fn get_adapter() -> fn(AdapterCommand) -> AdapterResult {
-    CURRENT_ADAPTER
-        .get_or_init(|| Mutex::new(None))
-        .lock()
-        .unwrap()
-        .expect(RENDER_ADAPTER_MISSING_ERROR)
+    CURRENT_ADAPTER.with(|a| a.borrow().expect(RENDER_ADAPTER_MISSING_ERROR))
 }
 
-#[cfg(not(feature = "safety-multithread"))]
+#[cfg(not(feature = "safety"))]
 pub fn get_adapter() -> fn(AdapterCommand) -> AdapterResult {
     unsafe { CURRENT_ADAPTER.expect(RENDER_ADAPTER_MISSING_ERROR) }
 }
 
-#[cfg(feature = "safety-multithread")]
+#[cfg(feature = "safety")]
 pub fn set_focus(f: fn()) {
-    *CURRENT_FOCUS
-        .get_or_init(|| Mutex::new(None))
-        .lock()
-        .unwrap() = Some(f);
+    CURRENT_FOCUS.with(|cell| *cell.borrow_mut() = Some(f));
 }
 
-#[cfg(not(feature = "safety-multithread"))]
+#[cfg(not(feature = "safety"))]
 pub fn get_focus_id() -> u128 {
     unsafe { CURRENT_FOCUS_ID.unwrap_or(0) }
 }
 
-#[cfg(feature = "safety-multithread")]
+#[cfg(feature = "safety")]
 pub fn get_focus_id() -> u128 {
-    CURRENT_FOCUS_ID
-        .get_or_init(|| Mutex::new(None))
-        .lock()
-        .unwrap()
-        .unwrap_or(0)
+    CURRENT_FOCUS_ID.with(|id| id.borrow().unwrap_or(0))
 }
 
-#[cfg(not(feature = "safety-multithread"))]
+#[cfg(not(feature = "safety"))]
 pub fn set_focus_id(id: u128) {
     unsafe {
         CURRENT_FOCUS_ID = Some(id);
     }
 }
 
-#[cfg(feature = "safety-multithread")]
+#[cfg(feature = "safety")]
 pub fn set_focus_id(id: u128) {
-    *CURRENT_FOCUS_ID
-        .get_or_init(|| Mutex::new(None))
-        .lock()
-        .unwrap() = Some(id);
+    CURRENT_FOCUS_ID.with(|i| *i.borrow_mut() = Some(id));
 }
 
 pub fn adapter_command(command: AdapterCommand) -> AdapterResult {

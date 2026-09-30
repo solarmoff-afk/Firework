@@ -617,23 +617,9 @@ impl CodegenVisitor<'_> {
                     }
                 };
 
-                // В обычном режиме просто вставка токенов в функцию
-                #[cfg(not(feature = "safety-multithread"))]
                 let tokens = quote! {
                     fn #build_name () {
                         #tokens
-                    }
-                };
-
-                // Чтобы не было дедлока в эффектах необходимо в безопасном
-                // режиме генерировать проверку на то что экземпляр не был
-                // инициализирован (None)
-                #[cfg(feature = "safety-multithread")]
-                let tokens = quote! {
-                    fn #build_name () {
-                        if #_instance_ident.get().is_none() {
-                            #tokens
-                        }
                     }
                 };
 

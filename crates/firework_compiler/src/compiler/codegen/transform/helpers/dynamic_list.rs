@@ -41,46 +41,44 @@ pub fn generate_lifecycle(
             }
         );
 
-        #[cfg(feature = "safety-multithread")]
+        #[cfg(feature = "safety")]
         {
             if is_component {
                 begin_tokens.extend(quote_spanned!(span=>
-                    {
-                        let _fwc_target = &mut *self;
-                        #begin_body
-                    }
+                {
+                    let _fwc_target = &mut *self;
+                    #begin_body
+                }
                 ));
-
                 end_tokens.extend(quote_spanned!(span=>
-                    {
-                        let _fwc_target = &mut *self;
-                        #end_body
-                    }
+                {
+                    let _fwc_target = &mut *self;
+                    #end_body
+                }
                 ));
             } else {
                 begin_tokens.extend(quote_spanned!(span=>
-                    {
-                        let mut _fwc_inst = #instance_ident_upper.get()
-                            .expect("Firework: Instance not initialized").lock().unwrap();
-
+                {
+                    #instance_ident_upper.with(|inst| {
+                        let mut _fwc_inst = inst.borrow_mut();
                         let _fwc_target = &mut *_fwc_inst;
                         #begin_body
-                    }
+                    });
+                }
                 ));
-
                 end_tokens.extend(quote_spanned!(span=>
-                    {
-                        let mut _fwc_inst = #instance_ident_upper.get()
-                            .expect("Firework: Instance not initialized").lock().unwrap();
-
+                {
+                    #instance_ident_upper.with(|inst| {
+                        let mut _fwc_inst = inst.borrow_mut();
                         let _fwc_target = &mut *_fwc_inst;
                         #end_body
-                    }
+                    });
+                }
                 ));
             }
         }
 
-        #[cfg(not(feature = "safety-multithread"))]
+        #[cfg(not(feature = "safety"))]
         {
             if is_component {
                 begin_tokens.extend(quote_spanned!(span=>

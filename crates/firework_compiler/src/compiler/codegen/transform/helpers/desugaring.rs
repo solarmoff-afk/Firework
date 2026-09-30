@@ -23,13 +23,12 @@ impl CodegenVisitor<'_> {
         let field_ident = format_ident!("{}", field_name);
         let build_name = format_ident!("_fwc_fn_build{}", struct_id);
 
-        let is_multithread = cfg!(feature = "safety-multithread");
-
+        let is_multithread = cfg!(feature = "safety");
         let access_code = if is_multithread {
             quote! {
-                let _fwc_mutex_guard = #struct_name.get()
-                    .unwrap().lock().unwrap();
-                let #field_ident = _fwc_mutex_guard.#field_access.as_ref().unwrap();
+                let #field_ident = #struct_name.with(|inst| {
+                    inst.borrow().#field_access.as_ref().unwrap().clone()
+                });
             }
         } else {
             quote! {
@@ -39,7 +38,7 @@ impl CodegenVisitor<'_> {
             }
         };
 
-        #[cfg(not(feature = "safety-multithread"))]
+        #[cfg(not(feature = "safety"))]
         let result = parse_quote_spanned!(span=>
             pub fn #function_name() -> &'static #field_type {
                 #build_name();
@@ -48,12 +47,12 @@ impl CodegenVisitor<'_> {
             }
         );
 
-        #[cfg(feature = "safety-multithread")]
+        #[cfg(feature = "safety")]
         let result = parse_quote_spanned!(span=>
             pub fn #function_name() -> #field_type {
                 #build_name();
                 #access_code
-                #field_ident.clone()
+                #field_ident
             }
         );
 
@@ -78,19 +77,18 @@ impl CodegenVisitor<'_> {
         let field_ident = format_ident!("{}", field_name);
 
         // Запущен ли компилятор в режиме безопасной многопоточности
-        let is_multithread = cfg!(feature = "safety-multithread");
-
+        let is_multithread = cfg!(feature = "safety");
         let access_code = if is_multithread {
             quote! {
-                let mut _fwc_mutex_guard = #struct_name.get()
-                    .unwrap().lock().unwrap();
-                let #field_ident = _fwc_mutex_guard.#field_access.as_mut().unwrap();
+                #struct_name.with(|inst| {
+                    *inst.borrow_mut().#field_access.as_mut().unwrap() = #new_value;
+                });
             }
         } else {
             quote! {
                 let mut #field_ident = unsafe {
                     (*&raw mut #struct_name)
-                        .#field_access.as_mut().unwrap()
+                    .#field_access.as_mut().unwrap()
                 };
             }
         };
@@ -107,17 +105,27 @@ impl CodegenVisitor<'_> {
             });
         }
 
-        parse_quote_spanned!(span=>
+        #[cfg(not(feature = "safety"))]
+        return parse_quote_spanned!(span=>
             pub fn #function_name(#new_value: #field_type) {
                 #build_name();
-
                 {
                     #access_code
                     *#field_ident = #new_value;
                 }
-
                 #(#func_effects_statements)*
             }
-        )
+        );
+
+        #[cfg(feature = "safety")]
+        return parse_quote_spanned!(span=>
+            pub fn #function_name(#new_value: #field_type) {
+                #build_name();
+                {
+                    #access_code
+                }
+                #(#func_effects_statements)*
+            }
+        );
     }
 }

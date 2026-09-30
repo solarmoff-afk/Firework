@@ -8,7 +8,7 @@ proc-macro = true
 
 [features]
 default = []
-safety-multithread = ["firework_compiler/safety-multithread"]
+safety = ["firework_compiler/safety"]
 debug_output = ["firework_compiler/debug_output"]
 trace = ["firework_compiler/trace"]
 async = ["firework_compiler/async"]

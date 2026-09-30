@@ -5,7 +5,7 @@ edition = "2024"
 
 [features]
 default = []
-safety-multithread = ["firework_ui/safety-multithread"]
+safety-multithread = ["firework_ui/safety"]
 detail = ["firework_ui/detail"]
 trace = ["firework_ui/trace"]
 

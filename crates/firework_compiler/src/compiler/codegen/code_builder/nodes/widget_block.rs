@@ -187,16 +187,13 @@ impl CodeBuilder {
                 quote! { true }
             };
 
-            // Безопасный режим с Mutex
-            #[cfg(feature = "safety-multithread")]
-            let match_value = quote! {
-                #instance_ident_upper.get()
-                    .expect("Instance not initialized").lock()
-                    .unwrap().#field_ident
+            #[cfg(feature = "safety")]
+            let _match_value = quote! {
+                #instance_ident_upper.with(|inst| inst.borrow_mut().#field_ident.as_mut())
             };
 
-            #[cfg(not(feature = "safety-multithread"))]
-            let match_value = quote! {
+            #[cfg(not(feature = "safety"))]
+            let _match_value = quote! {
                 unsafe {
                     (*::core::ptr::addr_of_mut!(#instance_ident_upper)).#field_ident.as_mut()
                 }
@@ -229,7 +226,7 @@ impl CodeBuilder {
                 // У виджетов в циклах обязан быть ключ, это проверяется анализатором
                 let key_token = key_expr.expect("Key field not found");
 
-                #[cfg(feature = "safety-multithread")]
+                #[cfg(feature = "safety")]
                 let (guard_prologue, list_ref_expr_inner) = if is_component {
                     (
                         quote!(),
@@ -240,10 +237,7 @@ impl CodeBuilder {
                 } else {
                     (
                         quote_spanned!(span=>
-                            let mut _fwc_inst = #instance_ident_upper.get()
-                                .expect("Instance not initialized")
-                                .lock()
-                                .unwrap();
+                            let mut _fwc_inst = #instance_ident_upper.with(|inst| inst.borrow_mut());
                         ),
                         quote_spanned!(span=>
                             _fwc_inst.#field_ident.as_mut().unwrap()
@@ -251,7 +245,7 @@ impl CodeBuilder {
                     )
                 };
 
-                #[cfg(not(feature = "safety-multithread"))]
+                #[cfg(not(feature = "safety"))]
                 let (guard_prologue, list_ref_expr_inner) = (
                     quote!(),
                     if is_component {
@@ -289,7 +283,7 @@ impl CodeBuilder {
                     }
                 ));
             } else {
-                #[cfg(feature = "safety-multithread")]
+                #[cfg(feature = "safety")]
                 {
                     let some_safe = quote_spanned!(span =>
                         Some(ref mut _fwc_wb_1) => {
@@ -297,7 +291,6 @@ impl CodeBuilder {
                                 let _fwc_component_instance: &mut _ = &mut *_fwc_wb_1;
                                 #distributor
                             }
-
                             // widget_update_bitmask всегда должен стоять выше widget_reactive
                             // это нужно чтобы при изменении состояния в on_click или другом
                             // ивенте который обрабатывается в widget_reactive наборе токенов
@@ -312,42 +305,33 @@ impl CodeBuilder {
                             #widget_reactive
                         },
                     );
-
                     if !is_component {
                         final_tokens.extend(quote_spanned!(span=>
-                            {
-                                let mut _fwc_inst = #instance_ident_upper.get()
-                                    .expect("Instance not initialized").lock().unwrap();
-
+                            #instance_ident_upper.with(|inst| {
+                                let mut _fwc_inst = inst.borrow_mut();
                                 match _fwc_inst.#field_ident.as_mut() {
                                     #some_safe
-
                                     None => {
                                         _fwc_inst.#field_ident = Some(#widget_init);
-
                                         {
                                             let _fwc_component_instance = _fwc_inst.#field_ident.as_mut().unwrap();
                                             #distributor
                                         }
-
                                         #widget_update_bitmask
                                     },
                                 };
-                            }
+                            });
                         ));
                     } else {
                         final_tokens.extend(quote_spanned!(span=>
                             match self.#field_ident.as_mut() {
                                 #some_safe
-
                                 None => {
                                     self.#field_ident = Some(#widget_init);
-
                                     {
                                         let _fwc_component_instance = self.#field_ident.as_mut().unwrap();
                                         #distributor
                                     }
-
                                     #widget_update_bitmask
                                 },
                             };
@@ -356,7 +340,7 @@ impl CodeBuilder {
                 }
 
                 // Обычный режим
-                #[cfg(not(feature = "safety-multithread"))]
+                #[cfg(not(feature = "safety"))]
                 {
                     let some_unsafe = quote_spanned!(span =>
                         Some(ref mut _fwc_wb_1) => {
@@ -372,7 +356,7 @@ impl CodeBuilder {
 
                     if !is_component {
                         final_tokens.extend(quote_spanned!(span=>
-                            match #match_value {
+                            match #_match_value {
                                 #some_unsafe
 
                                 None => {
@@ -417,13 +401,11 @@ impl CodeBuilder {
 
             // Финализация
             if description.is_maybe.is_some() {
-                #[cfg(feature = "safety-multithread")]
+                #[cfg(feature = "safety")]
                 if !is_component {
                     self.tokens.push(quote_spanned!(span=>
-                        {
-                            let mut _fwc_inst = #instance_ident_upper.get()
-                                .expect("Instance not initialized").lock().unwrap();
-
+                        #instance_ident_upper.with(|inst| {
+                            let mut _fwc_inst = inst.borrow_mut();
                             match _fwc_inst.#field_ident.as_mut() {
                                 Some(_fwc_wb_1) => {
                                     if #condition_statement {
@@ -432,14 +414,13 @@ impl CodeBuilder {
                                         _fwc_wb_1.visible(false);
                                     }
                                 },
-
                                 None => {},
                             };
-                        }
+                        });
                     ));
                 }
 
-                #[cfg(feature = "safety-multithread")]
+                #[cfg(feature = "safety")]
                 if is_component {
                     self.tokens.push(quote_spanned!(span=>
                         match self.#field_ident.as_mut() {
@@ -450,16 +431,15 @@ impl CodeBuilder {
                                     _fwc_wb_1.visible(false);
                                 }
                             },
-
                             None => {},
                         };
                     ));
                 }
 
-                #[cfg(not(feature = "safety-multithread"))]
+                #[cfg(not(feature = "safety"))]
                 if !is_component {
                     self.tokens.push(quote_spanned!(span=>
-                        match #match_value {
+                        match #_match_value {
                             Some(ref _fwc_wb_1) => {
                                 if #condition_statement {
                                     _fwc_wb_1.visible(true);
@@ -473,7 +453,7 @@ impl CodeBuilder {
                     ));
                 }
 
-                #[cfg(not(feature = "safety-multithread"))]
+                #[cfg(not(feature = "safety"))]
                 if is_component {
                     self.tokens.push(quote_spanned!(span=>
                         match self.#field_ident.as_mut() {

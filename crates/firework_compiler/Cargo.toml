@@ -5,7 +5,7 @@ edition = "2024"
 
 [features]
 default = []
-safety-multithread = []
+safety = []
 debug_output = []
 trace = ["tracing", "tracing-subscriber", "tracing-chrome"]
 async = []
