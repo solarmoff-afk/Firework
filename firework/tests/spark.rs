@@ -107,6 +107,7 @@ fn test_spark_rect() {
             AdapterCommand::SetPosition(0, (10, 10)),
             AdapterCommand::SetColor(0, (255, 255, 255, 255)),
             AdapterCommand::SetPosition(0, (20, 20)),
+            AdapterCommand::SetZ(0, 0),
         ]
     );
 }
@@ -127,6 +128,7 @@ fn test_spark_conditional_rect() {
 
             // Теперь его не видно (condition = 2)
             AdapterCommand::SetVisible(0, false),
+            AdapterCommand::SetZ(0, 0),
         ]
     );
 }
@@ -147,6 +149,7 @@ fn test_spark_derived_rect() {
             // Реактивное эхо, это нормально из-за батчинга, не является багом, скорее
             // это особенность реализации
             AdapterCommand::SetPosition(0, (20, 10)),
+            AdapterCommand::SetZ(0, 0),
         ]
     );
 }
@@ -186,6 +189,10 @@ fn test_spark_dynamic_rect() {
             AdapterCommand::SetHitGroup(0, 65535),
             AdapterCommand::SetPosition(0, (10, 10)),
             AdapterCommand::SetColor(0, (255, 255, 255, 255)),
+            AdapterCommand::SetZ(0, 0),
+            AdapterCommand::SetZ(0, 1),
+            AdapterCommand::SetZ(0, 2),
+            AdapterCommand::SetZ(0, 3),
         ]
     );
 }
@@ -221,6 +228,8 @@ fn test_spark_dynamic_decrement_rect() {
             // размонтирован через команду Remove(id)
             AdapterCommand::SetVisible(0, false),
             AdapterCommand::Remove(0),
+            AdapterCommand::SetZ(0, 0),
+            AdapterCommand::SetZ(0, 1),
         ]
     );
 }
@@ -262,6 +271,7 @@ fn test_spark_chained_effects() {
             AdapterCommand::SetPosition(0, (21, 0)),
             AdapterCommand::SetPosition(0, (21, 0)),
             AdapterCommand::SetPosition(0, (21, 0)),
+            AdapterCommand::SetZ(0, 0),
         ]
     );
 }
@@ -300,6 +310,7 @@ fn test_spark_struct_field() {
             AdapterCommand::SetPosition(0, (0, 0)),
             AdapterCommand::SetColor(0, (255, 255, 255, 255)),
             AdapterCommand::SetPosition(0, (100, 50)),
+            AdapterCommand::SetZ(0, 0),
         ]
     );
 }
@@ -334,6 +345,7 @@ fn test_spark_unused() {
             AdapterCommand::SetPosition(0, (0, 0)),
             AdapterCommand::SetColor(0, (255, 0, 0, 255)),
             AdapterCommand::SetVisible(0, true),
+            AdapterCommand::SetZ(0, 0),
         ]
     );
 }

@@ -62,6 +62,7 @@ fn test_combine_dynamic_filter() {
             AdapterCommand::SetVisible(0, false),
             AdapterCommand::Remove(0),
             AdapterCommand::SetVisible(0, true),
+            AdapterCommand::SetZ(0, 0),
         ]
     );
 }
@@ -189,6 +190,8 @@ fn test_combine_toggle_visibility() {
             AdapterCommand::SetColor(0, (200, 200, 200, 255)),
             AdapterCommand::SetVisible(0, false),
             AdapterCommand::SetVisible(0, false),
+            AdapterCommand::SetZ(0, 0),
+            AdapterCommand::SetZ(0, 2),
         ]
     );
 }
@@ -249,6 +252,8 @@ fn test_combine_sibling_loops() {
             AdapterCommand::SetColor(0, (0, 255, 0, 255)),
             AdapterCommand::SetVisible(0, false),
             AdapterCommand::Remove(0),
+            AdapterCommand::SetZ(0, 0),
+            AdapterCommand::SetZ(0, 2),
         ]
     );
 }
@@ -313,6 +318,9 @@ fn test_combine_advanced_reconciliation() {
             AdapterCommand::SetVisible(0, true),
             AdapterCommand::SetVisible(0, true),
             AdapterCommand::SetVisible(0, true),
+            AdapterCommand::SetZ(0, 0),
+            AdapterCommand::SetZ(0, 1),
+            AdapterCommand::SetZ(0, 2),
         ]
     );
 }
@@ -373,6 +381,9 @@ fn test_combine_mixed_static_dynamic() {
             AdapterCommand::SetColor(0, (0, 0, 255, 255)),
             AdapterCommand::SetVisible(0, false),
             AdapterCommand::Remove(0),
+            AdapterCommand::SetZ(0, 0),
+            AdapterCommand::SetZ(0, 2),
+            AdapterCommand::SetZ(0, 4),
         ]
     );
 }
@@ -439,6 +450,9 @@ fn test_combine_matrix_filter() {
             AdapterCommand::SetVisible(0, true),
             AdapterCommand::SetVisible(0, true),
             AdapterCommand::SetVisible(0, true),
+            AdapterCommand::SetZ(0, 0),
+            AdapterCommand::SetZ(0, 1),
+            AdapterCommand::SetZ(0, 2),
         ]
     );
 }
@@ -542,6 +556,9 @@ fn test_combine_else_if_routing() {
             AdapterCommand::SetVisible(0, false),
             AdapterCommand::SetVisible(0, false),
             AdapterCommand::SetVisible(0, true),
+            AdapterCommand::SetZ(0, 0),
+            AdapterCommand::SetZ(0, 2),
+            AdapterCommand::SetZ(0, 4),
         ]
     );
 }

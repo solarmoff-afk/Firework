@@ -87,8 +87,12 @@ impl<K: Eq + PartialEq, T: Widget> DynList<K, T> {
         }
     }
 
-    pub fn len(&self) -> usize {
-        self.current_items.len()
+    pub fn len(&self) -> i16 {
+        // TODO: Придумать что-то чтобы не было паники
+        self.current_items
+            .len()
+            .try_into()
+            .expect("List len >i32::MAX")
     }
 
     /// Устанавливает z координату в диапазоне. Нужно вызывать после end_pass
@@ -181,8 +185,9 @@ impl<K: Eq + PartialEq, T: Widget> DynList<K, T> {
         }
     }
 
-    pub fn len(&self) -> usize {
-        self.current_count
+    pub fn len(&self) -> i16 {
+        // Паники не будет, так как в no-alloc длина списка всегда 64
+        self.current_count.try_into().unwrap()
     }
 
     pub fn set_z_range(&self, z_start: i16) {

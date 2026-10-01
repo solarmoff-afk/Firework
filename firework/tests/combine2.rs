@@ -72,6 +72,8 @@ fn test_combine_control_flow() {
             AdapterCommand::Remove(0),
             AdapterCommand::SetVisible(0, false),
             AdapterCommand::Remove(0),
+            AdapterCommand::SetZ(0, 0),
+            AdapterCommand::SetZ(0, 1),
         ]
     );
 }

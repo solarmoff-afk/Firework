@@ -49,6 +49,7 @@ fn test_ui_rect() {
             AdapterCommand::SetHitGroup(0, 65535),
             AdapterCommand::SetPosition(0, (10, 10)),
             AdapterCommand::SetColor(0, (255, 255, 255, 255)),
+            AdapterCommand::SetZ(0, 0),
         ]
     );
 }
@@ -72,6 +73,7 @@ fn test_ui_text() {
             AdapterCommand::MeasureText(0),
             AdapterCommand::SetPosition(0, (10, 10)),
             AdapterCommand::SetColor(0, (255, 255, 255, 255)),
+            AdapterCommand::SetZ(0, 0),
         ]
     );
 }
@@ -97,6 +99,9 @@ fn test_ui_dynamic_rect() {
             AdapterCommand::SetHitGroup(0, 65535),
             AdapterCommand::SetPosition(0, (20, 10)),
             AdapterCommand::SetColor(0, (255, 255, 255, 255)),
+            AdapterCommand::SetZ(0, 0),
+            AdapterCommand::SetZ(0, 1),
+            AdapterCommand::SetZ(0, 2),
         ]
     );
 }
@@ -139,6 +144,7 @@ fn test_ui_complex_properties() {
             AdapterCommand::SetColor(0, (255, 0, 0, 255)),
             AdapterCommand::SetPosition(0, (50, 50)),
             AdapterCommand::SetColor(0, (0, 255, 0, 255)),
+            AdapterCommand::SetZ(0, 0),
         ]
     );
 }
@@ -164,6 +170,7 @@ fn test_ui_rect_sugar() {
             AdapterCommand::SetHitGroup(0, 65535),
             AdapterCommand::SetPosition(0, (10, 10)),
             AdapterCommand::SetColor(0, (255, 255, 255, 255)),
+            AdapterCommand::SetZ(0, 0),
         ]
     );
 }

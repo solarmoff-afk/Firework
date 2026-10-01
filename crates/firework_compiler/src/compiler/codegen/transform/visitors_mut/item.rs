@@ -438,7 +438,6 @@ impl CodegenVisitor<'_> {
                     _fwc_z += _fwc_element.len() + 1;
                 };
 
-                // TODO: Сделать подсчёт и компоновку по z
                 for i in widget {
                     let name = format_ident!("{}", i.0);
                     let is_microruntime = i.2;
@@ -478,8 +477,6 @@ impl CodegenVisitor<'_> {
                             });
                         });
                     }
-
-                    println!("{:?}", i);
                 }
 
                 final_stmts.extend(parse_batch(quote! {
