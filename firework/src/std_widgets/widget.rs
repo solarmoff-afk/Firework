@@ -19,3 +19,36 @@ pub trait Widget {
     /// Устаналивает VCanvas для проекции компонента
     fn set_vcanvas(&self, vcanvas_handle: usize);
 }
+
+/// Реализация Widget для &mut T, так как он нужен в safety режиме на этапе расчёта Z. &mut
+/// здесь нужен для того, чтобы не было ошибки из-за метода layout
+impl<T: Widget + ?Sized> Widget for &mut T {
+    fn position(&self, position: (i32, i32)) {
+        (**self).position(position);
+    }
+
+    fn visible(&self, state: bool) {
+        (**self).visible(state);
+    }
+
+    // Паники не будет, так как для расчёта z не нужен unmount
+    fn unmount(self) {
+        panic!("Cannot unmount a reference");
+    }
+
+    fn layout(&mut self, constraints: Constraints) -> Size {
+        (**self).layout(constraints)
+    }
+
+    fn get_z_size(&self) -> i16 {
+        (**self).get_z_size()
+    }
+
+    fn set_z(&self, z: i16) {
+        (**self).set_z(z);
+    }
+
+    fn set_vcanvas(&self, vcanvas_handle: usize) {
+        (**self).set_vcanvas(vcanvas_handle);
+    }
+}

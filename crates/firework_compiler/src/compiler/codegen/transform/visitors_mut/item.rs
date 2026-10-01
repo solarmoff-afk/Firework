@@ -455,6 +455,28 @@ impl CodegenVisitor<'_> {
                                 #z_compute_variant
                             }
                         });
+                    } else {
+                        #[cfg(not(feature = "safety"))]
+                        z_compute_tokens.extend(quote! {
+                            unsafe {
+                                if let Some(_fwc_element) = (*::core::ptr::addr_of!(#_instance_ident)).#name {
+                                    #z_compute_variant
+                                }
+                            }
+                        });
+
+                        #[cfg(feature = "safety")]
+                        z_compute_tokens.extend(quote! {
+                            #_instance_ident.with(|inst| {
+                                let mut _fwc_inst = inst.borrow_mut();
+
+                                // Ref mut так как реализация только для &mut Widget из-за
+                                // метода layout
+                                if let Some(ref mut _fwc_element) = _fwc_inst.#name {
+                                    #z_compute_variant
+                                }
+                            });
+                        });
                     }
 
                     println!("{:?}", i);
