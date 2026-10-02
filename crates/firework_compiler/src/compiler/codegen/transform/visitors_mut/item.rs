@@ -110,11 +110,15 @@ impl CodegenVisitor<'_> {
 
                         let component_declaration =
                             self.ir.component_structs.get(&struct_name.to_string());
-                        let get_z_size_tokens = if let Some(declaration) = component_declaration {
-                            self.gen_get_z_size_tokens(declaration)
-                        } else {
-                            quote! {}
-                        };
+                        let (get_z_size_tokens, set_z_tokens) =
+                            if let Some(declaration) = component_declaration {
+                                (
+                                    self.gen_get_z_size_tokens(declaration),
+                                    self.gen_set_s_tokens(declaration),
+                                )
+                            } else {
+                                (quote! {}, quote! {})
+                            };
 
                         // Реализация виджета
                         let widget_impl = parse_quote! {
@@ -152,7 +156,19 @@ impl CodegenVisitor<'_> {
 
                                 // TODO: Поставить указанный z
                                 fn set_z(&self, z: i16) {
-                                    println!("Set Z: {}", z);
+                                    let mut _fwc_z: i16 = z;
+                                    #set_z_tokens
+
+                                    // У подложки самый высокий z, так как она должна хватать
+                                    // on_click события в случае, если на компонент навешен
+                                    // on_clock ивент
+                                    if let Some(component_data) = &self._fwc__fwc_component {
+                                        firework_ui::adapter_command(
+                                            firework_ui::AdapterCommand::SetZ(
+                                                component_data.substrate, _fwc_z + 1
+                                            )
+                                        );
+                                    }
                                 }
 
                                 fn set_vcanvas(&self, vcanvas_handle: usize) {
@@ -691,6 +707,39 @@ impl CodegenVisitor<'_> {
         };
 
         let z_compute_dynlist_tokens = quote! {
+            _fwc_z += _fwc_element.len() + 1;
+        };
+
+        for i in &declaration.widgets.widgets {
+            let name = format_ident!("{}", i.0);
+            let is_microruntime = i.2;
+
+            let z_variant = if is_microruntime {
+                &z_compute_dynlist_tokens
+            } else {
+                &z_compute_widget_tokens
+            };
+
+            z_compute_tokens.extend(quote! {
+                if let Some(_fwc_element) = self.#name {
+                    #z_variant
+                }
+            });
+        }
+
+        z_compute_tokens
+    }
+
+    /// Метод для того, чтобы установить z индекс всем элементам компонента
+    fn gen_set_s_tokens(&self, declaration: &ComponentDeclaration) -> TokenStream {
+        let mut z_compute_tokens = quote! {};
+        let z_compute_widget_tokens = quote! {
+            firework_ui::std_widgets::widget::Widget::set_z(&_fwc_element, _fwc_z);
+            _fwc_z += firework_ui::std_widgets::widget::Widget::get_z_size(&_fwc_element) + 1;
+        };
+
+        let z_compute_dynlist_tokens = quote! {
+            _fwc_element.set_z_range(_fwc_z);
             _fwc_z += _fwc_element.len() + 1;
         };
 
