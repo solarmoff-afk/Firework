@@ -174,3 +174,33 @@ fn test_ui_rect_sugar() {
         ]
     );
 }
+
+// Проверка на то, что при использовании пропса z не будет SetZ(0, 0) во время финального
+// расчёта всех z позиций элементов
+
+#[ui]
+fn test_ui_rect_z_screen() {
+    let position = (10, 10);
+    rect! {
+        position,
+        color: (255, 255, 255),
+        z: 10,
+    }
+}
+
+#[test]
+fn test_ui_rect_z() {
+    let commands = TestHarness::run(test_ui_rect_z_screen);
+
+    assert_eq!(
+        commands,
+        vec![
+            AdapterCommand::RemoveAll,
+            AdapterCommand::NewRect { layout: 1 },
+            AdapterCommand::SetHitGroup(0, 65535),
+            AdapterCommand::SetPosition(0, (10, 10)),
+            AdapterCommand::SetColor(0, (255, 255, 255, 255)),
+            AdapterCommand::SetZ(0, 10),
+        ]
+    );
+}
