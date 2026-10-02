@@ -43,16 +43,16 @@ fn test_screen() {
 */
 
 component! {
-    pub struct Button {
+    pub struct Button<T> {
         pub example_prop: Prop<bool>,
-        pub hello: i32,
+        pub hello: T,
     }
 
-    impl Button {
+    impl<T: Default> Button<T> {
         pub fn new() -> Self {
             Self {
                 example_prop: None,
-                hello: 0,
+                hello: T::default(),
             }
         }
 
@@ -90,6 +90,7 @@ fn test_screen() {
 
     component! {
         target: Button,
+        T: i32,
         position: (290, 10),
         size: 100,
     }

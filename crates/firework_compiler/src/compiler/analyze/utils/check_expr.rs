@@ -38,6 +38,27 @@ impl Analyzer {
 
         result
     }
+
+    /// Проверяет строку на то, что она является дженерик-пропом. То есть одна заглавная
+    /// латинская буква. Например, T, U, A и так далее
+    pub fn is_generic(&self, string: &str) -> bool {
+        string.len() == 1 && string.as_bytes()[0].is_ascii_uppercase()
+    }
+
+    pub fn is_name_permitted_prop(&self, string: &str) -> bool {
+        string != "target"
+            && string != "position"
+            && string != "size"
+            && string != "visible"
+            && string != "z"
+            && string != "set_z"
+            && string != "layout"
+            && string != "get_z_size"
+            && string != "unmount"
+            && string != "set_vcanvas"
+            && string != "width"
+            && string != "height"
+    }
 }
 
 /// Результат анализа выражения

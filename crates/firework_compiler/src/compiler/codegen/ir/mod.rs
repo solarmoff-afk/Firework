@@ -11,6 +11,7 @@ pub mod widget;
 
 use proc_macro2::Span;
 use std::collections::HashMap;
+use syn::Generics;
 
 pub use actions::FireworkAction;
 pub use reactive_block::FireworkReactiveBlock;
@@ -97,6 +98,9 @@ pub struct ComponentDeclaration {
     pub fields: Vec<(String, String)>,
     pub context_arg_name: String,
     pub widgets: WidgetsStorage,
+
+    // Карта для дженериков компонентов
+    pub tcomponents: Generics,
 }
 
 #[derive(Debug, Clone, Default)]

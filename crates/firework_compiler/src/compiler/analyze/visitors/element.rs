@@ -1,6 +1,7 @@
 // Часть проекта Firework с открытым исходным кодом.
 // Лицензия EPL 2.0, подробнее в файле LICENSE. Copyright (c) 2026 Firework
 
+use quote::format_ident;
 use syn::spanned::Spanned;
 
 pub use super::super::*;
@@ -62,6 +63,10 @@ impl<'ast> Analyzer {
             let mut has_z = false;
             let mut has_skin: Option<String> = None;
 
+            // Сюда добавляются все дженерик пропы, чтобы потом вставить их в структуру экрана или
+            // компонента
+            let mut generics: Vec<Ident> = Vec::new();
+
             for prop in &args.properties {
                 let prop_name = prop.name.to_string();
                 if prop_name == "key" {
@@ -76,9 +81,10 @@ impl<'ast> Analyzer {
                     has_z = true;
                 }
 
+                let field_string = prop.value.to_token_stream().to_string();
                 let mut this_field = FireworkWidgetField {
                     sparks: Vec::new(),
-                    string: prop.value.to_token_stream().to_string(),
+                    string: field_string.clone(),
                     token_stream: prop.value.to_token_stream(),
 
                     // Изначально это не замыкание
@@ -99,7 +105,12 @@ impl<'ast> Analyzer {
                     this_field.is_fn = true;
                 }
 
-                fields_map.push((prop_name, this_field));
+                let is_generic = self.is_generic(&prop_name);
+                if !is_generic {
+                    fields_map.push((prop_name, this_field));
+                } else {
+                    generics.push(format_ident!("{}", field_string));
+                }
 
                 if let Some(attr) = prop.get_attribute("key_type")
                     && let Some(args) = &attr.args
@@ -229,8 +240,16 @@ impl<'ast> Analyzer {
                         let expr = &prop.value;
                         skin_field = quote::quote!(#expr).to_string();
                     }
+                }
 
-                    // TODO: Добавить generic компоненты с T: ...
+                // Генерация дженерика для скина в случае декларации T-компонента
+                if !generics.is_empty() {
+                    let raw_skin_field = format_ident!("{}", skin_field);
+                    let generic = quote::quote! {
+                        #raw_skin_field<#(#generics),*>
+                    };
+
+                    skin_field = generic.to_string();
                 }
             }
 

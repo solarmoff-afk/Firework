@@ -287,6 +287,24 @@ error[FE030]: closure must be marked as `move`
    = note: for more information, see: [WORK IN PROGRESS]
 ";
 
+pub const COMPONENT_GENERIC_NAME_CONFLICT_ERROR: &str = "\
+error[FE031]: single uppercase letter identifiers are reserved for generic parameters
+   = note: names like `T`, `K`, or `V` are used to declare generics in `component! { target: Component, T: Trait }`
+   = help: use a descriptive name for fields and props, e.g., `data`, `value`, or `state`
+   = help: if you intended to declare a generic parameter, ensure it is in the correct section of the macro
+   = note: for more information, see: [WORK IN PROGRESS]
+";
+
+pub const COMPONENT_RESERVED_NAME_ERROR: &str = "\
+error[FE032]: `{}` is a reserved name in Firework components
+   = note: this name is used internally for layout, rendering, or lifecycle management
+   = note: reserved names include: target, position, size, visible, z, set_z, layout, 
+           get_z_size, unmount, set_vcanvas, width, height
+   = help: choose a different name that does not conflict with system properties
+   = help: example: use `my_position` instead of `position`, or `is_visible` instead of `visible`
+   = note: for more information, see: [WORK IN PROGRESS]
+";
+
 pub fn compile_error_spanned<T: quote::ToTokens>(tokens: T, msg: &str) -> Error {
     Error::new_spanned(tokens, msg)
 }

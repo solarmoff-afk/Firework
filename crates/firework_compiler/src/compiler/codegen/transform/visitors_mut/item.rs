@@ -43,11 +43,13 @@ impl CodegenVisitor<'_> {
 
                         self.generate_component_setters(&mut item_struct, &mut new_items);
                         self.codegen_item_struct(&mut item_struct);
-                        new_items.push(Item::Struct(item_struct));
+                        new_items.push(Item::Struct(item_struct.clone()));
+
+                        let generics = &item_struct.generics;
 
                         // Методы компонента
                         let component_funcs = parse_quote! {
-                            impl #struct_name {
+                            impl #generics #struct_name #generics {
                                 // &mut self нельзя так как трейт Widget требует position с
                                 // &self, а __set_position используется в position, а он
                                 // используется в position для реализации трейта Widget
@@ -126,7 +128,7 @@ impl CodegenVisitor<'_> {
 
                         // Реализация виджета
                         let widget_impl = parse_quote! {
-                            impl firework_ui::std_widgets::widget::Widget for #struct_name {
+                            impl #generics firework_ui::std_widgets::widget::Widget for #struct_name #generics {
                                 fn position(&self, position: (i32, i32)) {
                                     self.__set_position(position);
                                 }
@@ -564,7 +566,7 @@ impl CodegenVisitor<'_> {
             let field_type: Type = syn::parse2(quote_spanned! { span=>
                 core::option::Option<#field_type_tokens>
             })
-            .expect("IE: Failed to parse field type");
+            .expect(format!("IE: Failed to parse field type: \"{}\"", field_type_tokens).as_str());
 
             // Кодогенерация поля
             let field = Field {

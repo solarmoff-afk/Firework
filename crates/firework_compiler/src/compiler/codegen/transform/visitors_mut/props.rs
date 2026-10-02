@@ -1,6 +1,7 @@
 // Часть проекта Firework с открытым исходным кодом.
 // Лицензия EPL 2.0, подробнее в файле LICENSE. Copyright (c) 2026 Firework
 
+use quote::ToTokens;
 use quote::quote;
 
 use super::super::*;
@@ -12,7 +13,7 @@ impl CodegenVisitor<'_> {
     /// поля с типом firework_ui::Prop<T> или Prop<T> после чего создаёт публичный метод
     /// сеттер с именем __{имя пропса}
     pub(crate) fn generate_component_setters(
-        &self,
+        &mut self,
         item_struct: &mut ItemStruct,
         new_items: &mut Vec<Item>,
     ) {
@@ -30,11 +31,19 @@ impl CodegenVisitor<'_> {
                     continue;
                 }
 
+                let generics = if let Some(component) =
+                    self.ir.component_structs.get_mut(&struct_name.to_string())
+                {
+                    component.tcomponents.to_token_stream()
+                } else {
+                    quote! {}
+                };
+
                 let setter_name = format_ident!("__{}", field_name);
 
                 // Сеттер реализует BuilderPattern (цепочку вызовов)
                 let setter = parse_quote! {
-                    impl #struct_name {
+                    impl #generics #struct_name #generics {
                         pub fn #setter_name(&mut self, value: #field_type) -> &mut Self {
                             self.#field_name = value;
                             self

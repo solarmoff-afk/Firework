@@ -258,6 +258,14 @@ impl<'ast> Visit<'ast> for Analyzer {
         }
 
         let struct_name = _i.ident.to_string();
+        let component = self
+            .context
+            .ir
+            .component_structs
+            .entry(struct_name.clone())
+            .or_default();
+
+        component.tcomponents = _i.generics.clone();
 
         match &_i.fields {
             Fields::Named(fields_named) => {
@@ -269,6 +277,23 @@ impl<'ast> Visit<'ast> for Analyzer {
 
                         // Проверка на то, что поле структуры обёрнуто в Prop<T>
                         if !is_prop(&field_type) {
+                            continue;
+                        }
+
+                        if self.is_generic(&field_name) {
+                            self.context.errors.push(compile_error_spanned(
+                                ident,
+                                COMPONENT_GENERIC_NAME_CONFLICT_ERROR,
+                            ));
+
+                            continue;
+                        }
+
+                        if !self.is_name_permitted_prop(&field_name) {
+                            self.context
+                                .errors
+                                .push(compile_error_spanned(ident, COMPONENT_RESERVED_NAME_ERROR));
+
                             continue;
                         }
 
