@@ -61,11 +61,19 @@ impl Analyzer {
         field_name: String,
         widget_type: ScreenWidgetType,
         is_microruntime: bool,
+        has_z_prop: bool,
     ) {
         if let Some(_function_name) = &self.function_name {
             match self.context.now_component.0 {
-                Some(_) => self.add_widget_to_component(field_name, widget_type, is_microruntime),
-                None => self.add_widget_to_screen(field_name, widget_type, is_microruntime),
+                Some(_) => self.add_widget_to_component(
+                    field_name,
+                    widget_type,
+                    is_microruntime,
+                    has_z_prop,
+                ),
+                None => {
+                    self.add_widget_to_screen(field_name, widget_type, is_microruntime, has_z_prop)
+                }
             }
         }
     }
@@ -75,6 +83,7 @@ impl Analyzer {
         field_name: String,
         widget_type: ScreenWidgetType,
         is_microruntime: bool,
+        has_z_prop: bool,
     ) {
         self.context
             .ir
@@ -86,7 +95,12 @@ impl Analyzer {
             .or_default()
             .widgets
             .widgets
-            .push((format!("_fwc_{}", field_name), widget_type, is_microruntime));
+            .push((
+                format!("_fwc_{}", field_name),
+                widget_type,
+                is_microruntime,
+                has_z_prop,
+            ));
     }
 
     fn add_widget_to_component(
@@ -94,6 +108,7 @@ impl Analyzer {
         field_name: String,
         widget_type: ScreenWidgetType,
         is_microruntime: bool,
+        has_z_prop: bool,
     ) {
         // SAFETY: Этот метож вызывается только из add_field_to_struct и только если
         // now_component это Some
@@ -104,6 +119,11 @@ impl Analyzer {
             .or_default()
             .widgets
             .widgets
-            .push((format!("_fwc_{}", field_name), widget_type, is_microruntime));
+            .push((
+                format!("_fwc_{}", field_name),
+                widget_type,
+                is_microruntime,
+                has_z_prop,
+            ));
     }
 }

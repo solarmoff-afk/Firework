@@ -95,6 +95,11 @@ impl CodegenVisitor<'_> {
                                     self
                                 }
 
+                                pub fn z(self, z: i16) -> Self {
+                                    <Self as firework_ui::std_widgets::widget::Widget>::set_z(&self, z);
+                                    self
+                                }
+
                                 pub fn size<S: firework_ui::IntoSise>(mut self, size: S) -> Self {
                                     self.__set_size(size.into_size());
                                     self
@@ -467,6 +472,12 @@ impl CodegenVisitor<'_> {
                 for i in widget {
                     let name = format_ident!("{}", i.0);
                     let is_microruntime = i.2;
+
+                    if
+                    /* has_z */
+                    i.3 {
+                        continue;
+                    }
 
                     let z_compute_variant = if is_microruntime {
                         &z_compute_dynlist_tokens

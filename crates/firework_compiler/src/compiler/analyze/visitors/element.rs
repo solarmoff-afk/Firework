@@ -59,6 +59,7 @@ impl<'ast> Analyzer {
 
             let mut key_type = "u64".to_string();
             let mut has_key = false;
+            let mut has_z = false;
             let mut has_skin: Option<String> = None;
 
             for prop in &args.properties {
@@ -69,6 +70,10 @@ impl<'ast> Analyzer {
 
                 if prop_name == "skin" {
                     has_skin = Some(prop.value.to_token_stream().to_string());
+                }
+
+                if prop_name == "z" {
+                    has_z = true;
                 }
 
                 let mut this_field = FireworkWidgetField {
@@ -242,7 +247,7 @@ impl<'ast> Analyzer {
             self.add_field_to_struct(widget_field_name.clone(), skin_field.to_string());
 
             // Отдельное добавление виджета для кодоегенрации расчёта z иерархии
-            self.add_widget_to_struct(widget_field_name, widget_type, has_microruntime);
+            self.add_widget_to_struct(widget_field_name, widget_type, has_microruntime, has_z);
 
             let widget_block = FireworkAction::WidgetBlock(descriptor);
             self.context.statement.action = widget_block;

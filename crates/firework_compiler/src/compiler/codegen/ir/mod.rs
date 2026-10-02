@@ -111,6 +111,7 @@ pub struct WidgetsStorage {
         /* Имя поля */ String,
         /* Тип виджета */ ScreenWidgetType,
         /* В цикле ли он */ bool,
+        /* Есть ли забитый z */ bool,
     )>,
 }
 
