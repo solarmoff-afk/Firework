@@ -10,6 +10,7 @@ pub use super::super::*;
 
 use crate::CompileType;
 use crate::compiler::codegen::generator::static_gen;
+use crate::compiler::codegen::ir::ComponentDeclaration;
 use crate::compiler::codegen::transform::visitors_mut::self_visitor::SelfFieldAdder;
 
 impl CodegenVisitor<'_> {
@@ -107,6 +108,14 @@ impl CodegenVisitor<'_> {
                             }
                         };
 
+                        let component_declaration =
+                            self.ir.component_structs.get(&struct_name.to_string());
+                        let get_z_size_tokens = if let Some(declaration) = component_declaration {
+                            self.gen_get_z_size_tokens(declaration)
+                        } else {
+                            quote! {}
+                        };
+
                         // Реализация виджета
                         let widget_impl = parse_quote! {
                             impl firework_ui::std_widgets::widget::Widget for #struct_name {
@@ -133,9 +142,12 @@ impl CodegenVisitor<'_> {
                                     }
                                 }
 
-                                // TODO: Подсчитывать z размер компонента
                                 fn get_z_size(&self) -> i16 {
-                                    1
+                                    // По умолчанию 1 из-за подложки которая занимает 1 z
+                                    let mut _fwc_z: i16 = 1;
+                                    #get_z_size_tokens
+
+                                    _fwc_z
                                 }
 
                                 // TODO: Поставить указанный z
@@ -667,5 +679,38 @@ impl CodegenVisitor<'_> {
                 }
             }
         }
+    }
+
+    /// Метод для генерации токенов get_z_size у компонента для подсчёта размера всех виджетов
+    /// компонента. Требует существования счётчика _fwc_z в области видимости, куда
+    /// вставляется результат выполнения метода. Принимает
+    fn gen_get_z_size_tokens(&self, declaration: &ComponentDeclaration) -> TokenStream {
+        let mut z_compute_tokens = quote! {};
+        let z_compute_widget_tokens = quote! {
+            _fwc_z += firework_ui::std_widgets::widget::Widget::get_z_size(&_fwc_element) + 1;
+        };
+
+        let z_compute_dynlist_tokens = quote! {
+            _fwc_z += _fwc_element.len() + 1;
+        };
+
+        for i in &declaration.widgets.widgets {
+            let name = format_ident!("{}", i.0);
+            let is_microruntime = i.2;
+
+            let z_variant = if is_microruntime {
+                &z_compute_dynlist_tokens
+            } else {
+                &z_compute_widget_tokens
+            };
+
+            z_compute_tokens.extend(quote! {
+                if let Some(_fwc_element) = self.#name {
+                    #z_variant
+                }
+            });
+        }
+
+        z_compute_tokens
     }
 }
