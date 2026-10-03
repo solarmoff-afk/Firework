@@ -47,7 +47,7 @@ impl ComponentData {
         };
 
         if let Some(sub) = substrate {
-            adapter_command(AdapterCommand::SetVisible(sub, false));
+            adapter_command(AdapterCommand::SetColor(sub, (255, 255, 255, 0)));
         }
 
         Self {

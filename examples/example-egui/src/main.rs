@@ -93,6 +93,9 @@ fn test_screen() {
         T: i32,
         position: (290, 10),
         size: 100,
+        on_click: || {
+            println!("Component click");
+        }
     }
 
     text! {

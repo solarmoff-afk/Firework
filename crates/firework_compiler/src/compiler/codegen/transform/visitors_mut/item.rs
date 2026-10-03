@@ -111,6 +111,29 @@ impl CodegenVisitor<'_> {
                                     <Self as firework_ui::std_widgets::widget::Widget>::set_vcanvas(&self, handle);
                                     self
                                 }
+
+                                pub fn __id(&self) -> usize {
+                                    if let Some(_fwc_component) = &self._fwc__fwc_component {
+                                        _fwc_component.substrate
+                                    } else {
+                                        0
+                                    }
+                                }
+
+                                // Метод, который вызывается в случае, если у component! {}
+                                // декларации есть ивент
+                                pub fn __set_event(self) -> Self {
+                                    if let Some(_fwc_component) = &self._fwc__fwc_component {
+                                        firework_ui::adapter_command(
+                                            firework_ui::AdapterCommand::SetHitGroup(
+                                                _fwc_component.substrate,
+                                                firework_ui::TOUCH_HIT_GROUP,
+                                            )
+                                        );
+                                    }
+
+                                    self
+                                }
                             }
                         };
 

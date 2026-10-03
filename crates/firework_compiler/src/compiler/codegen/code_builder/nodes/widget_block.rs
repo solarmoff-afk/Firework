@@ -46,6 +46,7 @@ impl CodeBuilder {
             };
 
             // При навигации нужно сгенерировать конструкцию виджета на основе скина
+            let is_component_widget = description.widget_type == "component";
             let mut widget_init = match description.widget_type.as_str() {
                 "component" => quote_spanned! { span=> #skin_path::new() },
                 _ => quote_spanned! { span=>
@@ -58,6 +59,7 @@ impl CodeBuilder {
             // Выражение ключа, ключ нужен в динамических списках для оптимизиации
             // обхода в микрорантайме
             let mut key_expr: Option<TokenStream> = None;
+            let mut widget_has_event = false;
 
             // Обход всех полей
             for (name, field) in &description.fields {
@@ -81,6 +83,8 @@ impl CodeBuilder {
                 }
 
                 if field.is_fn && is_event(name) {
+                    widget_has_event = true;
+
                     // issue #4
                     {
                         let mut closure_expr: Expr = match syn::parse2(field_value.clone()) {
@@ -159,6 +163,18 @@ impl CodeBuilder {
                     // это в рамках Builder pattern
                     .__set_vcanvas(self._fwc__fwc_component.as_ref().expect("IE:14").substrate)
                 });
+            }
+
+            if widget_has_event {
+                // Если это компонент у которое есть event в декларации (верхняя
+                // проверка на is_event), то происходит вызов __set_event метода
+                // который есть только у компонентов и добавляет hit группу подложке
+                // компонента
+                if is_component_widget {
+                    widget_init.extend(quote! {
+                        .__set_event()
+                    });
+                }
             }
 
             // Токен стрим для хранения обновления нужного бита в бит маске (активации
