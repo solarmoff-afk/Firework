@@ -149,9 +149,24 @@ impl CodeBuilder {
                         ));
                     }
 
+                    // Пометить _fwc_z_dirty чтобы пересчитать z координаты виджетов можно
+                    // только при изменении поля с именем z или если это component. Поле
+                    // z само меняет z координату, из-за чего нужно подогнать все виджеты
+                    // экрана или компонента, а также если это изменение поля декларации
+                    // компонента, то нужно также пересчитать z, так как мы не знаем, что
+                    // находится в компоненте и есть ли там что-то, меняющее z порядок
+                    // - TODO: Теоритечски можно сделать более быстрее и получать от
+                    // компонента его z dirty флаг, это нужно посмотреть как альтернативу
+                    let mark_z_dirty = if name == "z" || is_component_widget {
+                        quote! { _fwc_z_dirty = true; }
+                    } else {
+                        quote! {}
+                    };
+
                     widget_reactive.extend(quote! {
                         if #( #condition )||* {
                             _fwc_wb_1.#method_ident(#field_value);
+                            #mark_z_dirty
                         }
                     });
                 }
@@ -238,6 +253,10 @@ impl CodeBuilder {
                 let key_token = key_expr.expect("Key field not found");
 
                 let inner_tokens = quote_spanned!(span=>
+                    // При любом изменении списка необходимо пересчитать z, так как это меняет
+                    // z всех других элементов экрана или компонента
+                    _fwc_z_dirty = true;
+
                     let mut _fwc_wb_1 = match _fwc_list_ref.entry(#key_token) {
                         firework_ui::ListEntry::Occupied(existing) => existing,
                         firework_ui::ListEntry::Vacant(vacant) => vacant.insert(#widget_init),

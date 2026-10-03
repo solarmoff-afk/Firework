@@ -411,11 +411,16 @@ impl CodegenVisitor<'_> {
                 // этот код в релизной сборке как мёртвый
                 final_stmts.extend(parse_batch(quote! {
                     let mut _fwc_z: i16 = 0;
+                    let mut _fwc_z_dirty = false;
                     #init_event_statement
                     #init_code
                     let mut _fwc_guard: u8 = 0;
                     #(#bitmask_statements)*
                     #(#widget_bitmask_statement)*
+
+                    if firework_ui::tiny_matches!(_fwc_event, firework_ui::LifeCycle::Build) || firework_ui::tiny_matches!(_fwc_event, firework_ui::LifeCycle::Navigate) {
+                        _fwc_z_dirty = true;
+                    }
                 }));
 
                 if !has_return {
@@ -546,7 +551,9 @@ impl CodegenVisitor<'_> {
                     #(#post_tokens)*
                     #widgets_gen_snapshot
 
-                    #z_compute_tokens
+                    if _fwc_z_dirty {
+                        #z_compute_tokens
+                    }
                 }));
 
                 block.stmts = final_stmts;
