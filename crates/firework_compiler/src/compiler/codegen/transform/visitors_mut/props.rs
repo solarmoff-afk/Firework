@@ -31,6 +31,10 @@ impl CodegenVisitor<'_> {
                     continue;
                 }
 
+                let inner_type = self
+                    .get_type_from_prop(field_type)
+                    .unwrap_or_else(|| field_type.clone());
+
                 let generics = if let Some(component) =
                     self.ir.component_structs.get_mut(&struct_name.to_string())
                 {
@@ -39,13 +43,19 @@ impl CodegenVisitor<'_> {
                     quote! {}
                 };
 
-                let setter_name = format_ident!("__{}", field_name);
+                let setter_name = format_ident!("{}", field_name);
+                let setter_reactive_name = format_ident!("__fwc_set_{}", setter_name);
 
                 // Сеттер реализует BuilderPattern (цепочку вызовов)
                 let setter = parse_quote! {
                     impl #generics #struct_name #generics {
-                        pub fn #setter_name(&mut self, value: #field_type) -> &mut Self {
-                            self.#field_name = value;
+                        pub fn #setter_name(mut self, value: #inner_type) -> Self {
+                            self.#field_name = Some(value);
+                            self
+                        }
+
+                        pub fn #setter_reactive_name(&mut self, value: #inner_type) -> &mut Self {
+                            self.#field_name = Some(value);
                             self
                         }
                     }
@@ -54,5 +64,23 @@ impl CodegenVisitor<'_> {
                 new_items.push(setter);
             }
         }
+    }
+
+    /// Разворачивает Prop<T> в T, например, Prop<bool> в Bool. Используется чтобы
+    /// сгенерировать функцию установки пропа
+    fn get_type_from_prop(&self, field_type: &Type) -> Option<Type> {
+        if let Type::Path(TypePath { path, .. }) = field_type {
+            for segment in &path.segments {
+                if segment.ident == "Prop" {
+                    if let PathArguments::AngleBracketed(args) = &segment.arguments {
+                        if let Some(GenericArgument::Type(inner_ty)) = args.args.first() {
+                            return Some(inner_ty.clone());
+                        }
+                    }
+                }
+            }
+        }
+
+        None
     }
 }

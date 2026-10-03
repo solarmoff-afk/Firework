@@ -44,14 +44,14 @@ fn test_screen() {
 
 component! {
     pub struct Button<T> {
-        pub example_prop: Prop<bool>,
+        pub color: Prop<(u8, u8, u8)>,
         pub hello: T,
     }
 
     impl<T: Default> Button<T> {
         pub fn new() -> Self {
             Self {
-                example_prop: None,
+                color: None,
                 hello: T::default(),
             }
         }
@@ -60,7 +60,7 @@ component! {
             rect! {
                 position: (0, 0),
                 size: 100,
-                color: (0, 0, 255),
+                color: self.color.unwrap_or((255, 255, 255)),
             }
         }
     }
@@ -69,6 +69,7 @@ component! {
 #[ui]
 fn test_screen() {
     let mut x = spark!(10);
+    let mut r = spark!(0u8);
 
     rect! {
         position: (10, 10),
@@ -93,6 +94,7 @@ fn test_screen() {
         T: i32,
         position: (290, 10),
         size: 100,
+        color: (r, 0, 255),
         on_click: || {
             println!("Component click");
         }

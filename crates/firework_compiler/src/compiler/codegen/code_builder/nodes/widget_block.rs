@@ -163,9 +163,15 @@ impl CodeBuilder {
                         quote! {}
                     };
 
+                    let method_name = if is_component_widget {
+                        format_ident!("__fwc_set_{}", method_ident)
+                    } else {
+                        method_ident
+                    };
+
                     widget_reactive.extend(quote! {
                         if #( #condition )||* {
-                            _fwc_wb_1.#method_ident(#field_value);
+                            _fwc_wb_1.#method_name(#field_value);
                             #mark_z_dirty
                         }
                     });
