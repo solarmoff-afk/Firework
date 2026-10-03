@@ -57,6 +57,8 @@ component! {
         }
 
         pub fn flash(&mut self, _context: BuildContext) {
+            self.hello = T::default();
+
             rect! {
                 position: (0, 0),
                 size: 100,

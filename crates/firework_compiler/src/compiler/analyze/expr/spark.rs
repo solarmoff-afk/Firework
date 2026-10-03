@@ -256,7 +256,15 @@ pub fn get_root_variable_name(expr: &Expr) -> Option<String> {
         // spark1.field.subfield то рекурсия выполнится для базы subfield,
         // дальше функция найдёт field и поймёт что это тоже поле и на 2 вызов
         // рекурсии найдёт корень (path), в этом примере это spark1
-        Expr::Field(field_expr) => get_root_variable_name(&field_expr.base),
+        Expr::Field(field_expr) => {
+            if let Expr::Path(path_expr) = &*field_expr.base {
+                if path_expr.to_token_stream().to_string() == "self" {
+                    return Some(field_expr.to_token_stream().to_string().replace(" ", ""));
+                }
+            }
+
+            get_root_variable_name(&field_expr.base)
+        }
 
         // Индексация (например в векторах или массивах) spark1[10]
         Expr::Index(index_expr) => get_root_variable_name(&index_expr.expr),

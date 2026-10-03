@@ -42,6 +42,8 @@ impl<'ast> Analyzer {
     /// обновлением состояния и требует обновления UI
     pub(crate) fn analyze_expr_assign(&mut self, i: &'ast ExprAssign) {
         if let Some(root_name) = get_root_variable_name(&i.left) {
+            println!("{}", root_name);
+
             let mut errors: Vec<Error> = Vec::new();
             self.add_update_spark(
                 root_name,
@@ -76,6 +78,8 @@ impl<'ast> Analyzer {
         );
 
         if is_mutation && let Some(root_name) = get_root_variable_name(&i.left) {
+            println!("{}", root_name);
+
             let mut errors: Vec<Error> = Vec::new();
             self.add_update_spark(
                 root_name,
@@ -96,6 +100,8 @@ impl<'ast> Analyzer {
             && let Some(variable) = self.lifetime_manager.scope.variables.get(&root_name)
             && variable.is_spark
         {
+            println!("{}", root_name);
+
             let method_name = i.method.to_string();
 
             if !variable.is_mut {
