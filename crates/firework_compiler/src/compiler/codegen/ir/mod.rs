@@ -106,6 +106,12 @@ pub struct ComponentDeclaration {
     pub tcomponents: Generics,
 
     pub props: Vec<ComponentProp>,
+
+    // Таблица которая хранит бит пропа для битовой маски. При использовании пропа как спарк
+    // мы пытаеся взять айди из этой таблицы, если его нет для пропа, то берётся счётчик
+    // спарков и сюда добавляется значение в формате
+    //  - PropName: spark_count
+    pub component_prop_id: HashMap<String, usize>,
 }
 
 impl ComponentDeclaration {

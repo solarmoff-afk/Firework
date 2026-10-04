@@ -42,8 +42,6 @@ impl<'ast> Analyzer {
     /// обновлением состояния и требует обновления UI
     pub(crate) fn analyze_expr_assign(&mut self, i: &'ast ExprAssign) {
         if let Some(root_name) = get_root_variable_name(&i.left) {
-            println!("{}", root_name);
-
             let mut errors: Vec<Error> = Vec::new();
             self.add_update_spark(
                 root_name,
@@ -78,8 +76,6 @@ impl<'ast> Analyzer {
         );
 
         if is_mutation && let Some(root_name) = get_root_variable_name(&i.left) {
-            println!("{}", root_name);
-
             let mut errors: Vec<Error> = Vec::new();
             self.add_update_spark(
                 root_name,
@@ -100,8 +96,6 @@ impl<'ast> Analyzer {
             && let Some(variable) = self.lifetime_manager.scope.variables.get(&root_name)
             && variable.is_spark
         {
-            println!("{}", root_name);
-
             let method_name = i.method.to_string();
 
             if !variable.is_mut {
@@ -192,15 +186,26 @@ impl<'ast> Analyzer {
         {
             Some(variable.clone())
         } else if let Some(component_name) = &self.context.now_component.0
-            && let Some(component) = self.context.ir.component_structs.get(component_name)
+            && let Some(component) = self.context.ir.component_structs.get_mut(component_name)
             && let Some(prop) = component.find_prop(root_name.clone())
         {
+            let id = if let Some(prop_id) = component.component_prop_id.get(&prop.name) {
+                prop_id
+            } else {
+                self.context.spark_counter += 1;
+                component
+                    .component_prop_id
+                    .insert(prop.name, self.context.spark_counter);
+
+                &self.context.spark_counter
+            };
+
             // Переводим Prop в spark переменную
             Some(Variable {
                 variable_type: prop._type.clone(),
                 is_spark: true,
                 is_mut: true,
-                spark_id: prop.id,
+                spark_id: *id,
                 is_spark_ref: None,
                 in_closure: false,
             })

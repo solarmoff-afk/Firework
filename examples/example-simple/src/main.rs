@@ -15,6 +15,8 @@ component! {
         }
 
         pub fn flash(&mut self, _context: BuildContext) {
+            let mut test = spark!(10);
+
             self.color = Some((1, 1, 1));
 
             if self.color == 5 {
@@ -22,10 +24,12 @@ component! {
             }
 
             rect! {
-                position: (0, 0),
+                position: (test, 0),
                 size: 100,
                 color: self.color.unwrap_or((255, 255, 255)),
             }
+
+            test = 5;
         }
     }
 }

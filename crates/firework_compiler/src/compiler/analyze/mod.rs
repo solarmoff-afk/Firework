@@ -315,7 +315,7 @@ impl<'ast> Visit<'ast> for Analyzer {
                         component.props.push(ComponentProp {
                             name: format!("self.{}", field_name),
                             _type: field_type,
-                            id: /* TODO: Исправить */ 0,
+                            id: /* Потому-что мы берём id для таких пропсов из таблицы */ 0,
                         });
                     }
                 }

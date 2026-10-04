@@ -9,7 +9,9 @@ impl Analyzer {
     /// Метод обёртка над SparkFinder чтобы быстро найти наличие спарка в выражении
     /// используется в коде чтобы проверить явлется ли блок реактивным и получить вектор
     /// спарков который содержит кортеж (имя, айди)
-    pub fn get_sparks(&self, expr: &Expr) -> ExprAnalyzeResult {
+    /// - mut (в &mut self) нужен из-за таблицы айди пропсов, кдуа необходимо записывать
+    ///   актуальный айди, если записи для этого пропса ещё нет
+    pub fn get_sparks(&mut self, expr: &Expr) -> ExprAnalyzeResult {
         let mut found = Vec::new();
 
         let mut finder = SparkFinderWithId {
@@ -23,7 +25,7 @@ impl Analyzer {
         result.sparks = found;
 
         if let Some(component_name) = &self.context.now_component.0
-            && let Some(component) = self.context.ir.component_structs.get(component_name)
+            && let Some(component) = self.context.ir.component_structs.get_mut(component_name)
         {
             let mut props = Vec::new();
             for prop in &component.props {
@@ -38,8 +40,25 @@ impl Analyzer {
             };
             finder.visit_expr(expr);
 
-            result.sparks.extend(found.clone());
-            result.props.extend(found);
+            // Теперь нужно заполнить айдишники через таблицу
+            let mut new_found = Vec::new();
+            for spark in &found {
+                let id = if let Some(prop_id) = component.component_prop_id.get(&spark.0) {
+                    prop_id
+                } else {
+                    self.context.spark_counter += 1;
+                    component
+                        .component_prop_id
+                        .insert(spark.0.clone(), self.context.spark_counter);
+
+                    &self.context.spark_counter
+                };
+
+                new_found.push((spark.0.clone(), *id));
+            }
+
+            result.sparks.extend(new_found.clone());
+            result.props.extend(new_found);
         }
 
         result

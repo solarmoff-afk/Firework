@@ -20,8 +20,6 @@ pub struct PropsFinder<'a> {
 
 impl<'ast> Visit<'ast> for PropsFinder<'_> {
     fn visit_expr_field(&mut self, i: &'ast ExprField) {
-        println!("Start");
-
         // Так как пропчы это поля структуры любое выражение без self. уже не может быть
         // пропсом компонента
         if let Expr::Path(path_expr) = &*i.base
@@ -30,7 +28,7 @@ impl<'ast> Visit<'ast> for PropsFinder<'_> {
             let field_name = format!("self.{}", i.member.to_token_stream().to_string());
 
             if let Some((_, _, id)) = self.props.iter().find(|(name, _, _)| name == &field_name) {
-                let full_path = format!("self.{}", field_name);
+                let full_path = format!("{}", field_name);
                 if !self
                     .found
                     .iter()
@@ -51,7 +49,7 @@ impl<'ast> Visit<'ast> for PropsFinder<'_> {
             let method_name = i.method.to_string();
 
             if let Some((_, _, id)) = self.props.iter().find(|(name, _, _)| name == &method_name) {
-                let full_path = format!("self.{}", method_name);
+                let full_path = format!("{}", method_name);
                 if !self
                     .found
                     .iter()
