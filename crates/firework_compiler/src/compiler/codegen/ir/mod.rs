@@ -78,19 +78,22 @@ pub struct FireworkIR {
 
     // Хэшмап для хранения id экрана -> информация которую собрал анализатор
     pub screen_data: HashMap<u128, ScreenData>,
-
     pub shared: SharedData,
 
-    pub component_props: HashMap<
-        String,
-        Vec<(
-            /* Имя */ String,
-            /* Тип */ String,
-            /* Айди */ usize,
-        )>,
-    >,
-
     span: Span,
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct ComponentProp {
+    pub name: String,
+    pub _type: String,
+    pub id: usize,
+}
+
+impl ComponentProp {
+    pub fn raw(&self) -> (String, String, usize) {
+        (self.name.clone(), self._type.clone(), self.id)
+    }
 }
 
 #[derive(Debug, Clone, Default)]
@@ -101,6 +104,20 @@ pub struct ComponentDeclaration {
 
     // Карта для дженериков компонентов
     pub tcomponents: Generics,
+
+    pub props: Vec<ComponentProp>,
+}
+
+impl ComponentDeclaration {
+    pub fn find_prop(&self, name: String) -> Option<ComponentProp> {
+        for prop in &self.props {
+            if prop.name == name {
+                return Some(prop.clone());
+            }
+        }
+
+        None
+    }
 }
 
 #[derive(Debug, Clone, Default)]
@@ -173,7 +190,6 @@ impl FireworkIR {
             screens: Vec::new(),
             screen_data: HashMap::new(),
             shared: SharedData::new(),
-            component_props: HashMap::new(),
             span: Span::call_site(),
         }
     }

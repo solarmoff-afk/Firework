@@ -37,7 +37,8 @@ use crate::CompileType;
 use crate::compiler::CompileFlags;
 use crate::compiler::codegen::ir::SpanKey;
 use crate::compiler::codegen::ir::{
-    FireworkAction, FireworkIR, FireworkReactiveBlock, FireworkStatement, FireworkWidgetField,
+    ComponentProp, FireworkAction, FireworkIR, FireworkReactiveBlock, FireworkStatement,
+    FireworkWidgetField,
 };
 use crate::compiler::common::is_prop;
 use crate::compiler::error::*;
@@ -258,14 +259,17 @@ impl<'ast> Visit<'ast> for Analyzer {
         }
 
         let struct_name = _i.ident.to_string();
-        let component = self
-            .context
-            .ir
-            .component_structs
-            .entry(struct_name.clone())
-            .or_default();
 
-        component.tcomponents = _i.generics.clone();
+        {
+            let component = self
+                .context
+                .ir
+                .component_structs
+                .entry(struct_name.clone())
+                .or_default();
+
+            component.tcomponents = _i.generics.clone();
+        }
 
         match &_i.fields {
             Fields::Named(fields_named) => {
@@ -297,19 +301,22 @@ impl<'ast> Visit<'ast> for Analyzer {
                             continue;
                         }
 
-                        let props_vec = self
+                        let component = self
                             .context
                             .ir
-                            .component_props
+                            .component_structs
                             .entry(struct_name.clone())
                             .or_default();
-                        let len = props_vec.len();
 
                         // В качестве айди каждого пропса используется размер вектора пропсов
                         // компонента до добавления нового пропса. Это позволяет без нового
                         // счётчика генерировать айди для пропсов которое можно использовать
                         // для битов в битовой маске
-                        props_vec.push((field_name, field_type, len));
+                        component.props.push(ComponentProp {
+                            name: format!("self.{}", field_name),
+                            _type: field_type,
+                            id: /* TODO: Исправить */ 0,
+                        });
                     }
                 }
             }

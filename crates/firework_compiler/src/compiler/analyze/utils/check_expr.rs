@@ -23,12 +23,17 @@ impl Analyzer {
         result.sparks = found;
 
         if let Some(component_name) = &self.context.now_component.0
-            && let Some(props) = self.context.ir.component_props.get(component_name)
+            && let Some(component) = self.context.ir.component_structs.get(component_name)
         {
+            let mut props = Vec::new();
+            for prop in &component.props {
+                props.push(prop.raw());
+            }
+
             let mut found = Vec::new();
 
             let mut finder = PropsFinder {
-                props,
+                props: &props,
                 found: &mut found,
             };
             finder.visit_expr(expr);

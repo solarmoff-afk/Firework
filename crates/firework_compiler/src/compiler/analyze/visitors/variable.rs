@@ -187,9 +187,28 @@ impl<'ast> Analyzer {
     where
         F: FnMut(),
     {
-        if let Some(variable) = self.lifetime_manager.scope.variables.get(&root_name)
+        let variable = if let Some(variable) = self.lifetime_manager.scope.variables.get(&root_name)
             && variable.is_spark
         {
+            Some(variable.clone())
+        } else if let Some(component_name) = &self.context.now_component.0
+            && let Some(component) = self.context.ir.component_structs.get(component_name)
+            && let Some(prop) = component.find_prop(root_name.clone())
+        {
+            // Переводим Prop в spark переменную
+            Some(Variable {
+                variable_type: prop._type.clone(),
+                is_spark: true,
+                is_mut: true,
+                spark_id: prop.id,
+                is_spark_ref: None,
+                in_closure: false,
+            })
+        } else {
+            None
+        };
+
+        if let Some(variable) = variable {
             if !variable.is_mut {
                 mut_error();
             }
