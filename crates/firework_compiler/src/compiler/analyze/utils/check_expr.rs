@@ -38,6 +38,7 @@ impl Analyzer {
             };
             finder.visit_expr(expr);
 
+            result.sparks.extend(found.clone());
             result.props.extend(found);
         }
 

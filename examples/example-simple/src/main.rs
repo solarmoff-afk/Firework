@@ -1,4 +1,4 @@
-use firework_ui::{BuildContext, Prop, component, ui};
+use firework_ui::{BuildContext, Prop, component};
 
 component! {
     pub struct Button<T> {
@@ -16,6 +16,10 @@ component! {
 
         pub fn flash(&mut self, _context: BuildContext) {
             self.color = Some((1, 1, 1));
+
+            if self.color == 5 {
+                println!("Hello");
+            }
 
             rect! {
                 position: (0, 0),
