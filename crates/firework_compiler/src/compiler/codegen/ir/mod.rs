@@ -88,6 +88,9 @@ pub struct ComponentProp {
     pub name: String,
     pub _type: String,
     pub id: usize,
+
+    // Бит в битовой маске пропсов компонента
+    pub bit: usize,
 }
 
 impl ComponentProp {
@@ -106,6 +109,7 @@ pub struct ComponentDeclaration {
     pub tcomponents: Generics,
 
     pub props: Vec<ComponentProp>,
+    pub props_counter: usize,
 
     // Таблица которая хранит бит пропа для битовой маски. При использовании пропа как спарк
     // мы пытаеся взять айди из этой таблицы, если его нет для пропа, то берётся счётчик

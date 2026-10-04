@@ -732,6 +732,7 @@ impl CodegenVisitor<'_> {
                     && method.sig.ident == "new"
                 {
                     let mut visitor = SelfFieldAdder::new(fields_data.clone());
+                    visitor.props_count = fields.props_counter;
                     visitor.visit_block_mut(&mut method.block);
                 }
             }

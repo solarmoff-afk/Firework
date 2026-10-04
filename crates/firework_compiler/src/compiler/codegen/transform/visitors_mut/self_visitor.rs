@@ -14,11 +14,15 @@ use super::super::*;
 
 pub struct SelfFieldAdder {
     pub fields: Vec<(String, String)>,
+    pub props_count: usize,
 }
 
 impl SelfFieldAdder {
     pub fn new(fields: Vec<(String, String)>) -> Self {
-        Self { fields }
+        Self {
+            fields,
+            props_count: 0,
+        }
     }
 }
 
@@ -50,6 +54,17 @@ impl VisitMut for SelfFieldAdder {
             expr_struct.fields.push(parse_quote! {
                 _fwc__fwc_component: Some(firework_ui::ComponentData::new())
             });
+
+            if self.props_count != 0 {
+                for i in 0..get_spark_mask(self.props_count) {
+                    let name = format_ident!("_fwc_component_bitmask_{}", i);
+
+                    let field_value: FieldValue = parse_quote! {
+                        #name: 0
+                    };
+                    expr_struct.fields.push(field_value);
+                }
+            }
         }
 
         visit_mut::visit_expr_struct_mut(self, expr_struct);

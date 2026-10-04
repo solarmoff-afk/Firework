@@ -19,7 +19,7 @@ component! {
 
             self.color = Some((1, 1, 1));
 
-            if self.color == 5 {
+            if self.color.is_some() {
                 println!("Hello");
             }
 

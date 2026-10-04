@@ -308,6 +308,8 @@ impl<'ast> Visit<'ast> for Analyzer {
                             .entry(struct_name.clone())
                             .or_default();
 
+                        component.props_counter += 1;
+
                         // В качестве айди каждого пропса используется размер вектора пропсов
                         // компонента до добавления нового пропса. Это позволяет без нового
                         // счётчика генерировать айди для пропсов которое можно использовать
@@ -316,6 +318,7 @@ impl<'ast> Visit<'ast> for Analyzer {
                             name: format!("self.{}", field_name),
                             _type: field_type,
                             id: /* Потому-что мы берём id для таких пропсов из таблицы */ 0,
+                            bit: component.props_counter,
                         });
                     }
                 }

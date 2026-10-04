@@ -41,6 +41,18 @@ impl CodegenVisitor<'_> {
 
                 fields_named.named.push(new_field);
             }
+
+            if declaration.props_counter != 0 {
+                for i in 0..get_spark_mask(declaration.props_counter) {
+                    let name = format_ident!("_fwc_component_bitmask_{}", i);
+
+                    let new_field: syn::Field = parse_quote! {
+                        pub #name: u8
+                    };
+
+                    fields_named.named.push(new_field);
+                }
+            }
         }
     }
 }
