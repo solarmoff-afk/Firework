@@ -186,6 +186,26 @@ impl CodeBuilder {
                 });
             }
 
+            let post_widget = if is_component_widget {
+                // Здесь мы добавляем в widget_reactive создание _fwc_wb_2 чтобы обойти
+                // бороу чекер, так как он не даст нам сделать это в post_widget, так как
+                // до post_widget мы заимствуем _fwc_wb_1
+                widget_reactive.extend(quote! { let _fwc_wb_2 = _fwc_wb_1.__is_dirty(); });
+
+                quote! {
+                    if _fwc_wb_2 {
+                        let _fwc_context = firework_ui::BuildContext {
+                            depth: 0, // TODO: Сделать реальную глубину
+                            cycle: firework_ui::LifeCycle::Reactive,
+                        };
+
+                        _fwc_component_instance.flash(_fwc_context);
+                    }
+                }
+            } else {
+                quote! {}
+            };
+
             if widget_has_event {
                 // Если это компонент у которое есть event в декларации (верхняя
                 // проверка на is_event), то происходит вызов __set_event метода
@@ -327,6 +347,7 @@ impl CodeBuilder {
                                 let _fwc_component_instance: &mut _ = &mut *_fwc_wb_1;
                                 #distributor
                             }
+
                             // widget_update_bitmask всегда должен стоять выше widget_reactive
                             // это нужно чтобы при изменении состояния в on_click или другом
                             // ивенте который обрабатывается в widget_reactive наборе токенов
@@ -339,6 +360,12 @@ impl CodeBuilder {
                             // не будет вляить на ивенты из widget_reactive
                             #widget_update_bitmask
                             #widget_reactive
+
+                            // Для случаев, когда ссылка нужна для флэша
+                            {
+                                let _fwc_component_instance: &mut _ = &mut *_fwc_wb_1;
+                                #post_widget
+                            }
                         },
                     );
                     if !is_component {
@@ -387,6 +414,11 @@ impl CodeBuilder {
 
                             #widget_update_bitmask
                             #widget_reactive
+
+                            {
+                                let _fwc_component_instance = &mut *_fwc_wb_1;
+                                #post_widget
+                            }
                         },
                     );
 

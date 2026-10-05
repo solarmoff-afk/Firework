@@ -4,7 +4,8 @@ use adapter::egui_adapter;
 use firework_ui::{BuildContext, Prop, component, ui};
 
 /*
-#[ui]
+
+   [ui]
 fn test_screen() {
     let mut rect_state = spark!(true);
 
@@ -57,8 +58,6 @@ component! {
         }
 
         pub fn flash(&mut self, _context: BuildContext) {
-            self.hello = T::default();
-
             rect! {
                 position: (0, 0),
                 size: 100,
@@ -71,7 +70,7 @@ component! {
 #[ui]
 fn test_screen() {
     let mut x = spark!(10);
-    let mut r = spark!(0u8);
+    let mut red = spark!(0u8);
 
     rect! {
         position: (10, 10),
@@ -96,8 +95,9 @@ fn test_screen() {
         T: i32,
         position: (290, 10),
         size: 100,
-        color: (r, 0, 255),
+        color: (red, 0, 255),
         on_click: || {
+            red += 25;
             println!("Component click");
         }
     }
