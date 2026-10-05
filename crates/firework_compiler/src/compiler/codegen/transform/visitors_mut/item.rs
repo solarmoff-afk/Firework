@@ -556,7 +556,12 @@ impl CodegenVisitor<'_> {
                     }
                 }));
 
-                if is_component && let Some(component) = self.ir.component_structs.get(&component_name.unwrap_or("".to_string())) {
+                if is_component
+                    && let Some(component) = self
+                        .ir
+                        .component_structs
+                        .get(&component_name.unwrap_or("".to_string()))
+                {
                     if component.props_counter != 0 {
                         for i in 0..get_spark_mask(component.props_counter) {
                             let name = format_ident!("_fwc_component_bitmask_{}", i);
@@ -566,7 +571,6 @@ impl CodegenVisitor<'_> {
                             }));
                         }
                     }
-
                 }
 
                 block.stmts = final_stmts;

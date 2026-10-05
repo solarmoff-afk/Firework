@@ -99,10 +99,10 @@ mod tests {
 
     fn create_test_props() -> Vec<(String, String, usize)> {
         vec![
-            ("counter".to_string(), "i32".to_string(), 1),
-            ("name".to_string(), "String".to_string(), 2),
-            ("items".to_string(), "Vec<i32>".to_string(), 3),
-            ("is_active".to_string(), "bool".to_string(), 4),
+            ("self.counter".to_string(), "i32".to_string(), 1),
+            ("self.name".to_string(), "String".to_string(), 2),
+            ("self.items".to_string(), "Vec<i32>".to_string(), 3),
+            ("self.is_active".to_string(), "bool".to_string(), 4),
         ]
     }
 
