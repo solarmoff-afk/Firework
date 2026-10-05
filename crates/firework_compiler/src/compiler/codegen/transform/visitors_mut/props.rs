@@ -46,6 +46,23 @@ impl CodegenVisitor<'_> {
                 let setter_name = format_ident!("{}", field_name);
                 let setter_reactive_name = format_ident!("__fwc_set_{}", setter_name);
 
+                // Обновление бита в маске
+                let set_bit = if let Some(declaration) =
+                    self.ir.component_structs.get(&struct_name.to_string())
+                    && let Some(prop) =
+                        declaration.find_prop(format!("self.{}", field_name.to_string()))
+                {
+                    let bitmask = get_spark_mask(prop.bit) - 1;
+                    let bitmask_name = format_ident!("_fwc_component_bitmask_{}", bitmask);
+                    let bit: u8 = normalize_bit_index(prop.bit);
+
+                    quote! {
+                        self.#bitmask_name |= 1 << #bit;
+                    }
+                } else {
+                    quote! {}
+                };
+
                 // Сеттер реализует BuilderPattern (цепочку вызовов)
                 let setter = parse_quote! {
                     impl #generics #struct_name #generics {
@@ -56,6 +73,7 @@ impl CodegenVisitor<'_> {
 
                         pub fn #setter_reactive_name(&mut self, value: #inner_type) -> &mut Self {
                             self.#field_name = Some(value);
+                            #set_bit
                             self
                         }
                     }
