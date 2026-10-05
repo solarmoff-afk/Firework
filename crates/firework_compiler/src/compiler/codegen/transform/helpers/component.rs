@@ -85,4 +85,29 @@ impl CodegenVisitor<'_> {
 
         z_compute_tokens
     }
+
+    pub fn gen_is_dirty_check(&self, declaration: &ComponentDeclaration) -> TokenStream {
+        if declaration.props_counter == 0 {
+            return quote! { false };
+        }
+
+        let num_masks = (declaration.props_counter + 63) / 64;
+
+        let mut conditions = Vec::new();
+        for i in 0..num_masks {
+            let mask_name = format_ident!("_fwc_component_bitmask_{}", i);
+            conditions.push(quote! { self.#mask_name != 0 });
+        }
+
+        let mut result = quote! {};
+        for (i, cond) in conditions.into_iter().enumerate() {
+            if i == 0 {
+                result = cond;
+            } else {
+                result = quote! { #result || #cond };
+            }
+        }
+
+        result
+    }
 }

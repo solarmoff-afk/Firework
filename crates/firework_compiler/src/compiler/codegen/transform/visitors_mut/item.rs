@@ -47,6 +47,19 @@ impl CodegenVisitor<'_> {
 
                         let generics = &item_struct.generics;
 
+                        let component_declaration =
+                            self.ir.component_structs.get(&struct_name.to_string());
+                        let (get_z_size_tokens, set_z_tokens, is_dirty_check) =
+                            if let Some(declaration) = component_declaration {
+                                (
+                                    self.gen_get_z_size_tokens(declaration),
+                                    self.gen_set_s_tokens(declaration),
+                                    self.gen_is_dirty_check(declaration),
+                                )
+                            } else {
+                                (quote! {}, quote! {}, quote! {})
+                            };
+
                         // Методы компонента
                         let component_funcs = parse_quote! {
                             impl #generics #struct_name #generics {
@@ -134,20 +147,12 @@ impl CodegenVisitor<'_> {
 
                                     self
                                 }
+
+                                pub fn __is_dirty(&mut self) -> bool {
+                                    #is_dirty_check
+                                }
                             }
                         };
-
-                        let component_declaration =
-                            self.ir.component_structs.get(&struct_name.to_string());
-                        let (get_z_size_tokens, set_z_tokens) =
-                            if let Some(declaration) = component_declaration {
-                                (
-                                    self.gen_get_z_size_tokens(declaration),
-                                    self.gen_set_s_tokens(declaration),
-                                )
-                            } else {
-                                (quote! {}, quote! {})
-                            };
 
                         // Реализация виджета
                         let widget_impl = parse_quote! {
