@@ -406,6 +406,42 @@ impl CodegenVisitor<'_> {
                     quote! { let mut _fwc_event = firework_ui::LifeCycle::Navigate; }
                 };
 
+                // Для компонентов собираем код, который подтягивает изменения из глобальной
+                // битмаски пропсов в локальную битмаску спарков
+                let global_to_local = if let Some(ref name) = component_name
+                    && let Some(declaration) = self.ir.component_structs.get(name)
+                {
+                    let mut code = quote! {};
+
+                    for prop in &declaration.props {
+                        // Локальная маска на уровне флеша
+                        let local_bit =
+                            if let Some(local) = declaration.component_prop_id.get(&prop.name) {
+                                local
+                            } else {
+                                &0
+                            };
+                        let local_bitmask = get_spark_mask(*local_bit);
+                        let local_bitmask_name = format_ident!("_fwc_bitmask{}", local_bitmask);
+                        let local_id: u8 = normalize_bit_index(*local_bit);
+
+                        // Глобальная маска на уровне компонента
+                        let global_bitmask = get_spark_mask(prop.bit) - 1;
+                        let global_bitmask_name =
+                            format_ident!("_fwc_component_bitmask_{}", global_bitmask);
+                        let global_bit: u8 = normalize_bit_index(prop.bit);
+
+                        code.extend(quote! {
+                            let _fwc_global_bit = (self.#global_bitmask_name >> #global_bit) & 1;
+                            #local_bitmask_name.set(#local_bitmask_name.get() | (_fwc_global_bit << #local_id));
+                        });
+                    }
+
+                    code
+                } else {
+                    quote! {}
+                };
+
                 // Мёртвый код для shared режима, но так как он весь завёрнут в _{name}
                 // (с _) то предупреждений не будет, а компилятор раста просто вырежет
                 // этот код в релизной сборке как мёртвый
@@ -421,6 +457,8 @@ impl CodegenVisitor<'_> {
                     if firework_ui::tiny_matches!(_fwc_event, firework_ui::LifeCycle::Build) || firework_ui::tiny_matches!(_fwc_event, firework_ui::LifeCycle::Navigate) {
                         _fwc_z_dirty = true;
                     }
+
+                    #global_to_local
                 }));
 
                 if !has_return {
