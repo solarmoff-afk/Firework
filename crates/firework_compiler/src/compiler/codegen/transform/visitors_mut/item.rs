@@ -432,7 +432,7 @@ impl CodegenVisitor<'_> {
                         let global_bit: u8 = normalize_bit_index(prop.bit);
 
                         code.extend(quote! {
-                            let _fwc_global_bit = (self.#global_bitmask_name >> #global_bit) & 1;
+                            let _fwc_global_bit = ((self.#global_bitmask_name >> #global_bit) & 1) as u64;
                             #local_bitmask_name.set(#local_bitmask_name.get() | (_fwc_global_bit << #local_id));
                         });
                     }
