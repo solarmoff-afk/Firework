@@ -470,7 +470,7 @@ impl CodegenVisitor<'_> {
 
                 let default = Vec::new();
                 let widget = if is_component
-                    && let Some(name) = component_name
+                    && let Some(name) = component_name.clone()
                     && let Some(component) = self.ir.component_structs.get(&name)
                 {
                     &component.widgets.widgets
@@ -555,6 +555,19 @@ impl CodegenVisitor<'_> {
                         #z_compute_tokens
                     }
                 }));
+
+                if is_component && let Some(component) = self.ir.component_structs.get(&component_name.unwrap_or("".to_string())) {
+                    if component.props_counter != 0 {
+                        for i in 0..get_spark_mask(component.props_counter) {
+                            let name = format_ident!("_fwc_component_bitmask_{}", i);
+
+                            final_stmts.extend(parse_batch(quote! {
+                                self.#name = 0;
+                            }));
+                        }
+                    }
+
+                }
 
                 block.stmts = final_stmts;
             }
