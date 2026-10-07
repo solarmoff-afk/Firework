@@ -49,17 +49,23 @@ impl CodegenVisitor<'_> {
 
                         let component_declaration =
                             self.ir.component_structs.get(&struct_name.to_string());
-                        let (get_z_size_tokens, set_z_tokens, is_dirty_check, visible_tokens) =
-                            if let Some(declaration) = component_declaration {
-                                (
-                                    self.gen_get_z_size_tokens(declaration),
-                                    self.gen_set_s_tokens(declaration),
-                                    self.gen_is_dirty_check(declaration),
-                                    self.gen_visible_tokens(declaration),
-                                )
-                            } else {
-                                (quote! {}, quote! {}, quote! {}, quote! {})
-                            };
+                        let (
+                            get_z_size_tokens,
+                            set_z_tokens,
+                            is_dirty_check,
+                            visible_tokens,
+                            unmount_tokens,
+                        ) = if let Some(declaration) = component_declaration {
+                            (
+                                self.gen_get_z_size_tokens(declaration),
+                                self.gen_set_s_tokens(declaration),
+                                self.gen_is_dirty_check(declaration),
+                                self.gen_visible_tokens(declaration),
+                                self.gen_unmount_tokens(declaration),
+                            )
+                        } else {
+                            (quote! {}, quote! {}, quote! {}, quote! {}, quote! {})
+                        };
 
                         // Методы компонента
                         let component_funcs = parse_quote! {
@@ -167,7 +173,7 @@ impl CodegenVisitor<'_> {
                                 }
 
                                 fn unmount(self) {
-                                    println!("Unmount");
+                                    #unmount_tokens
                                 }
 
                                 fn layout(
