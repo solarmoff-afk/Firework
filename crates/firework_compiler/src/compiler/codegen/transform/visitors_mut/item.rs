@@ -49,15 +49,16 @@ impl CodegenVisitor<'_> {
 
                         let component_declaration =
                             self.ir.component_structs.get(&struct_name.to_string());
-                        let (get_z_size_tokens, set_z_tokens, is_dirty_check) =
+                        let (get_z_size_tokens, set_z_tokens, is_dirty_check, visible_tokens) =
                             if let Some(declaration) = component_declaration {
                                 (
                                     self.gen_get_z_size_tokens(declaration),
                                     self.gen_set_s_tokens(declaration),
                                     self.gen_is_dirty_check(declaration),
+                                    self.gen_visible_tokens(declaration),
                                 )
                             } else {
-                                (quote! {}, quote! {}, quote! {})
+                                (quote! {}, quote! {}, quote! {}, quote! {})
                             };
 
                         // Методы компонента
@@ -161,8 +162,8 @@ impl CodegenVisitor<'_> {
                                     self.__set_position(position);
                                 }
 
-                                fn visible(&self, state: bool) {
-                                    println!("Visible: {}", state);
+                                fn visible(&self, visible: bool) {
+                                    #visible_tokens
                                 }
 
                                 fn unmount(self) {

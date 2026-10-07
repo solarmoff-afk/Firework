@@ -110,4 +110,20 @@ impl CodegenVisitor<'_> {
 
         result
     }
+
+    pub fn gen_visible_tokens(&self, declaration: &ComponentDeclaration) -> TokenStream {
+        let mut visible_tokens = quote! {};
+
+        for i in &declaration.widgets.widgets {
+            let name = format_ident!("{}", i.0);
+
+            visible_tokens.extend(quote! {
+                if let Some(_fwc_element) = self.#name {
+                    _fwc_element.visible(visible);
+                }
+            });
+        }
+
+        visible_tokens
+    }
 }
