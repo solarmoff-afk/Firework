@@ -25,12 +25,6 @@ impl CodegenVisitor<'_> {
             let name = format_ident!("{}", i.0);
             let is_microruntime = i.2;
 
-            if
-            /* has_z */
-            i.3 {
-                continue;
-            }
-
             let z_variant = if is_microruntime {
                 &z_compute_dynlist_tokens
             } else {
@@ -63,6 +57,12 @@ impl CodegenVisitor<'_> {
         for i in &declaration.widgets.widgets {
             let name = format_ident!("{}", i.0);
             let is_microruntime = i.2;
+
+            if
+            /* has_z */
+            i.3 {
+                continue;
+            }
 
             let z_variant = if is_microruntime {
                 &z_compute_dynlist_tokens
