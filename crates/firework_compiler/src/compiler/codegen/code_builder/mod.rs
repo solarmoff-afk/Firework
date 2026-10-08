@@ -53,8 +53,7 @@ impl CodeBuilder {
         mut processed_body: TokenStream,
         visitor: &mut CodegenVisitor,
     ) -> TokenStream {
-        // Спан нужен для того чтобы вставить код в нужное место для правильных ошибок
-        // rustc
+        // Спан нужен для того чтобы вставить код в нужное место для правильных ошибок rustc
         let span = stmt.span();
 
         let mut final_tokens = TokenStream::new();
@@ -126,22 +125,45 @@ impl CodeBuilder {
         for statement in statements {
             if let FireworkAction::DropSpark { .. } = statement.action {
                 let struct_name = format!("ApplicationUiBlockStruct{}", statement.screen_index);
-
                 self.node_drop_spark(span, struct_name, &mut drop_tokens, statement);
             }
         }
 
+        // Проверка: является ли текущий стейтемент выражением управления потоком,
+        // для которого дропы должны произойти ДО выполнения стейтемента.
+        // В syn v2 Stmt::Expr включает в себя выражения как с `;` (получая Option<Token![;]>), так и без нее.
+        let is_control_flow = match stmt {
+            syn::Stmt::Expr(expr, _) => {
+                matches!(
+                    expr,
+                    syn::Expr::Return(_) | syn::Expr::Break(_) | syn::Expr::Continue(_)
+                )
+            }
+            _ => false,
+        };
+
         // Финальная сборка
-        if is_body_handled && !processed_body.is_empty() {
-            final_tokens.extend(processed_body);
+        if is_control_flow {
+            // Для return, break и continue токены возврата владения добавляются ПЕРЕД прыжком
+            final_tokens.extend(drop_tokens);
+            if is_body_handled && !processed_body.is_empty() {
+                final_tokens.extend(processed_body);
+            } else {
+                final_tokens.extend(quote_spanned!(span=> #processed_body ));
+            }
         } else {
-            final_tokens.extend(quote_spanned!(span=>
-                #processed_body
-            ));
+            // Обычное поведение для всех остальных стейтементов
+            if is_body_handled && !processed_body.is_empty() {
+                final_tokens.extend(processed_body);
+            } else {
+                final_tokens.extend(quote_spanned!(span=>
+                    #processed_body
+                ));
+            }
+            // DropSpark всегда идёт вне контекстных условий после выражения
+            final_tokens.extend(drop_tokens);
         }
 
-        // DropSpark всегда идёт вне контекстных условий
-        final_tokens.extend(drop_tokens);
         final_tokens
     }
 
@@ -191,7 +213,6 @@ impl CodeBuilder {
                 let mask_idx = get_spark_mask(*widget);
                 let bit_idx = normalize_bit_index(*widget);
 
-                // Комбинирование здесь используется для оптимизиации, 940 мкс -> 783 мкс
                 mask_groups.entry(mask_idx).or_default().push(bit_idx);
             }
 
