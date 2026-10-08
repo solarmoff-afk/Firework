@@ -195,7 +195,7 @@ impl CodeBuilder {
                 quote! {
                     if _fwc_wb_2 {
                         let _fwc_context = firework_ui::BuildContext {
-                            depth: 0, // TODO: Сделать реальную глубину
+                            depth: _fwc_depth,
                             cycle: firework_ui::LifeCycle::Reactive,
                         };
 
@@ -204,7 +204,7 @@ impl CodeBuilder {
 
                     if firework_ui::tiny_matches!(_fwc_event, firework_ui::LifeCycle::Event) {
                         let _fwc_context = firework_ui::BuildContext {
-                            depth: 0, // TODO: Сделать реальную глубину
+                            depth: _fwc_depth,
                             cycle: _fwc_event,
                         };
 
@@ -270,7 +270,7 @@ impl CodeBuilder {
                             firework_ui::LifeCycle::Build | firework_ui::LifeCycle::Navigate
                         ) {
                             let _fwc_context = firework_ui::BuildContext {
-                                depth: 0, // TODO: Сделать реальную глубину
+                                depth: _fwc_depth,
                                 cycle: _fwc_event,
                             };
 

@@ -428,15 +428,21 @@ impl CodegenVisitor<'_> {
                 let mut final_stmts = Vec::new();
 
                 // Для компонента мы берём не Navigate, а фазу цикла из контекста родителя
-                let init_event_statement = if is_component {
+                let (init_event_statement, init_depth) = if is_component {
                     // SAFETY: Так как для компонента обязательно должен существовать метод
                     // flash и аргумент контекста, тут всегда будет Some
                     let context_arg_name =
                         format_ident!("{}", self.last_context_arg_name.as_ref().expect("IE:13"));
 
-                    quote! { let mut _fwc_event = #context_arg_name.cycle; }
+                    (
+                        quote! { let mut _fwc_event = #context_arg_name.cycle; },
+                        quote! { let _fwc_depth = #context_arg_name.depth + 1; },
+                    )
                 } else {
-                    quote! { let mut _fwc_event = firework_ui::LifeCycle::Navigate; }
+                    (
+                        quote! { let mut _fwc_event = firework_ui::LifeCycle::Navigate; },
+                        quote! { let _fwc_depth = 0; },
+                    )
                 };
 
                 // Для компонентов собираем код, который подтягивает изменения из глобальной
@@ -491,6 +497,7 @@ impl CodegenVisitor<'_> {
                         _fwc_z_dirty = true;
                     }
 
+                    #init_depth
                     #global_to_local
                 }));
 
