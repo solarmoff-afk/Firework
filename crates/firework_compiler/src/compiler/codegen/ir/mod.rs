@@ -116,6 +116,8 @@ pub struct ComponentDeclaration {
     // спарков и сюда добавляется значение в формате
     //  - PropName: spark_count
     pub component_prop_id: HashMap<String, usize>,
+
+    pub events: ComponentEvents,
 }
 
 impl ComponentDeclaration {
@@ -128,6 +130,11 @@ impl ComponentDeclaration {
 
         None
     }
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct ComponentEvents {
+    pub on_click: bool,
 }
 
 #[derive(Debug, Clone, Default)]

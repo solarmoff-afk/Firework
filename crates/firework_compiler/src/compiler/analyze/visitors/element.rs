@@ -69,16 +69,22 @@ impl<'ast> Analyzer {
 
             for prop in &args.properties {
                 let prop_name = prop.name.to_string();
-                if prop_name == "key" {
-                    has_key = true;
-                }
 
-                if prop_name == "skin" {
-                    has_skin = Some(prop.value.to_token_stream().to_string());
-                }
+                match prop_name.as_str() {
+                    "key" => has_key = true,
+                    "skin" => has_skin = Some(prop.value.to_token_stream().to_string()),
+                    "z" => has_z = true,
 
-                if prop_name == "z" {
-                    has_z = true;
+                    "on_click" => {
+                        if let Some(component_name) = &self.context.now_component.0
+                            && let Some(component) =
+                                self.context.ir.component_structs.get_mut(component_name)
+                        {
+                            component.events.on_click = true;
+                        }
+                    }
+
+                    _ => {}
                 }
 
                 let field_string = prop.value.to_token_stream().to_string();
