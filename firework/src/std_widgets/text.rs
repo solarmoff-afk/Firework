@@ -1,6 +1,7 @@
 // Часть проекта Firework с открытым исходным кодом.
 // Лицензия EPL 2.0, подробнее в файле LICENSE. Copyright (c) 2026 Firework
 
+use crate::BuildContext;
 use crate::adapter_command;
 use crate::layout::{Constraints, Size};
 use crate::std_widgets::widget::Widget;
@@ -133,4 +134,6 @@ impl Widget for DefaultTextSkin {
     fn set_vcanvas(&self, vcanvas_handle: usize) {
         adapter_command(AdapterCommand::SharedVCanvas(self.handle, vcanvas_handle));
     }
+
+    fn __event(&mut self, _context: BuildContext) {}
 }

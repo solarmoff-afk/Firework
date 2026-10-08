@@ -7,6 +7,7 @@ pub mod widget;
 use firework_adapter::{AdapterCommand, AdapterResult};
 use widget::Widget;
 
+use crate::BuildContext;
 use crate::layout::{Constraints, Size};
 use crate::{IntoSise, adapter_command};
 
@@ -148,4 +149,6 @@ impl Widget for DefaultRectSkin {
     fn set_vcanvas(&self, vcanvas_handle: usize) {
         adapter_command(AdapterCommand::SharedVCanvas(self.handle, vcanvas_handle));
     }
+
+    fn __event(&mut self, _context: BuildContext) {}
 }

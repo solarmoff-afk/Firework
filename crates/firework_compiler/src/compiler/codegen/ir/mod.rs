@@ -107,6 +107,7 @@ pub struct ComponentDeclaration {
 
     // Карта для дженериков компонентов
     pub tcomponents: Generics,
+    pub struct_generics: Generics,
 
     pub props: Vec<ComponentProp>,
     pub props_counter: usize,

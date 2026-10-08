@@ -136,4 +136,40 @@ impl CodegenVisitor<'_> {
 
         visible_tokens
     }
+
+    pub fn gen_event_tokens(&self, declaration: &ComponentDeclaration) -> TokenStream {
+        let flash_tokens = quote! {
+            self.flash(context);
+        };
+
+        let on_click_tokens = if declaration.events.on_click {
+            flash_tokens
+        } else {
+            quote! {}
+        };
+
+        let mut visible_tokens = quote! {
+            if firework_ui::tiny_matches!(context.cycle, firework_ui::LifeCycle::Event) {
+                if let firework_ui::CurrentEvent::Touch {
+                    hit_object_id: Some(id),
+                    phase,
+                    ..
+                } = firework_ui::take_current_event() {
+                    #on_click_tokens
+                }
+            }
+        };
+
+        for i in &declaration.widgets.widgets {
+            let name = format_ident!("{}", i.0);
+
+            visible_tokens.extend(quote! {
+                if let Some(ref mut _fwc_element) = self.#name {
+                    _fwc_element.__event(context);
+                }
+            });
+        }
+
+        visible_tokens
+    }
 }

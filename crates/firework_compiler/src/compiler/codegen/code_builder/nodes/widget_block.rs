@@ -201,6 +201,15 @@ impl CodeBuilder {
 
                         _fwc_component_instance.flash(_fwc_context);
                     }
+
+                    if firework_ui::tiny_matches!(_fwc_event, firework_ui::LifeCycle::Event) {
+                        let _fwc_context = firework_ui::BuildContext {
+                            depth: 0, // TODO: Сделать реальную глубину
+                            cycle: _fwc_event,
+                        };
+
+                        _fwc_component_instance.__fwc_event(_fwc_context);
+                    }
                 }
             } else {
                 quote! {}

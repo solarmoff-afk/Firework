@@ -3,6 +3,7 @@
 
 use core::mem;
 
+use crate::BuildContext;
 use crate::std_widgets::widget::Widget;
 
 /// Результат поиска элемента в списке
@@ -110,6 +111,12 @@ impl<K: Eq + PartialEq, T: Widget> DynList<K, T> {
             z = z.saturating_add(1);
         }
     }
+
+    pub fn __event(&mut self, context: BuildContext) {
+        for (_, item) in &mut self.current_items {
+            item.__event(context);
+        }
+    }
 }
 
 #[cfg(feature = "no-alloc")]
@@ -181,6 +188,14 @@ impl<K: Eq + PartialEq, T: Widget> DynList<K, T> {
         for i in 0..self.current_count {
             if let Some((_, item)) = &self.current_items[i] {
                 item.visible(state);
+            }
+        }
+    }
+
+    pub fn __event(&mut self, context: BuildContext) {
+        for i in 0..self.current_count {
+            if let Some((_, item)) = &mut self.current_items[i] {
+                item.__event(context);
             }
         }
     }

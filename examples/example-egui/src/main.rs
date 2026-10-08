@@ -62,6 +62,7 @@ component! {
                 position: (0, 0),
                 size: 100,
                 color: self.color.unwrap_or((255, 255, 255)),
+                on_click: || { println!("Hello") },
             }
         }
     }

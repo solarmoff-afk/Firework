@@ -268,7 +268,7 @@ impl<'ast> Visit<'ast> for Analyzer {
                 .entry(struct_name.clone())
                 .or_default();
 
-            component.tcomponents = _i.generics.clone();
+            component.struct_generics = _i.generics.clone();
         }
 
         match &_i.fields {
@@ -357,6 +357,17 @@ impl<'ast> Visit<'ast> for Analyzer {
             {
                 self.context.now_component.1 = self.validate_flash_signature(method);
                 self.analyze_item_fn(method);
+
+                if let Some(struct_name) = &self.context.now_component.0 {
+                    if let Some(component_ir) = self
+                        .context
+                        .ir
+                        .component_structs
+                        .get_mut(struct_name.as_str())
+                    {
+                        component_ir.tcomponents = _i.generics.clone();
+                    }
+                }
             }
         }
 

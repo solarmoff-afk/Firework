@@ -1,6 +1,7 @@
 // Часть проекта Firework с открытым исходным кодом.
 // Лицензия EPL 2.0, подробнее в файле LICENSE. Copyright (c) 2026 Firework
 
+use crate::BuildContext;
 use crate::layout::{Constraints, Size};
 
 /// Трейт который должны реализовать все скины для поддержки видимости в списках. Он
@@ -18,6 +19,9 @@ pub trait Widget {
 
     /// Устаналивает VCanvas для проекции компонента
     fn set_vcanvas(&self, vcanvas_handle: usize);
+
+    /// Для стандартных виджетов заглушка, для компонентов передача
+    fn __event(&mut self, context: BuildContext);
 }
 
 /// Реализация Widget для &mut T, так как он нужен в safety режиме на этапе расчёта Z. &mut
@@ -50,5 +54,9 @@ impl<T: Widget + ?Sized> Widget for &mut T {
 
     fn set_vcanvas(&self, vcanvas_handle: usize) {
         (**self).set_vcanvas(vcanvas_handle);
+    }
+
+    fn __event(&mut self, context: BuildContext) {
+        (**self).__event(context);
     }
 }

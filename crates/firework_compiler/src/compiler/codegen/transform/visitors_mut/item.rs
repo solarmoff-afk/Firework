@@ -45,8 +45,6 @@ impl CodegenVisitor<'_> {
                         self.codegen_item_struct(&mut item_struct);
                         new_items.push(Item::Struct(item_struct.clone()));
 
-                        let generics = &item_struct.generics;
-
                         let component_declaration =
                             self.ir.component_structs.get(&struct_name.to_string());
                         let (
@@ -55,6 +53,9 @@ impl CodegenVisitor<'_> {
                             is_dirty_check,
                             visible_tokens,
                             unmount_tokens,
+                            event_tokens,
+                            generics,
+                            type_generics,
                         ) = if let Some(declaration) = component_declaration {
                             (
                                 self.gen_get_z_size_tokens(declaration),
@@ -62,14 +63,26 @@ impl CodegenVisitor<'_> {
                                 self.gen_is_dirty_check(declaration),
                                 self.gen_visible_tokens(declaration),
                                 self.gen_unmount_tokens(declaration),
+                                self.gen_event_tokens(declaration),
+                                declaration.tcomponents.clone(),
+                                declaration.struct_generics.clone(),
                             )
                         } else {
-                            (quote! {}, quote! {}, quote! {}, quote! {}, quote! {})
+                            (
+                                quote! {},
+                                quote! {},
+                                quote! {},
+                                quote! {},
+                                quote! {},
+                                quote! {},
+                                Generics::default(),
+                                Generics::default(),
+                            )
                         };
 
                         // Методы компонента
                         let component_funcs = parse_quote! {
-                            impl #generics #struct_name #generics {
+                            impl #generics #struct_name #type_generics {
                                 // &mut self нельзя так как трейт Widget требует position с
                                 // &self, а __set_position используется в position, а он
                                 // используется в position для реализации трейта Widget
@@ -158,12 +171,16 @@ impl CodegenVisitor<'_> {
                                 pub fn __is_dirty(&mut self) -> bool {
                                     #is_dirty_check
                                 }
+
+                                pub fn __fwc_event(&mut self, context: firework_ui::BuildContext) {
+                                    <Self as firework_ui::std_widgets::widget::Widget>::__event(self, context);
+                                }
                             }
                         };
 
                         // Реализация виджета
                         let widget_impl = parse_quote! {
-                            impl #generics firework_ui::std_widgets::widget::Widget for #struct_name #generics {
+                            impl #generics firework_ui::std_widgets::widget::Widget for #struct_name #type_generics {
                                 fn position(&self, position: (i32, i32)) {
                                     self.__set_position(position);
                                 }
@@ -219,6 +236,10 @@ impl CodegenVisitor<'_> {
                                             )
                                         );
                                     }
+                                }
+
+                                fn __event(&mut self, context: firework_ui::BuildContext) {
+                                    #event_tokens
                                 }
                             }
                         };

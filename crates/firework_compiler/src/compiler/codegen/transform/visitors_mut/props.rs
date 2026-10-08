@@ -35,12 +35,15 @@ impl CodegenVisitor<'_> {
                     .get_type_from_prop(field_type)
                     .unwrap_or_else(|| field_type.clone());
 
-                let generics = if let Some(component) =
+                let (generics, type_generics) = if let Some(component) =
                     self.ir.component_structs.get_mut(&struct_name.to_string())
                 {
-                    component.tcomponents.to_token_stream()
+                    (
+                        component.tcomponents.to_token_stream(),
+                        component.struct_generics.to_token_stream(),
+                    )
                 } else {
-                    quote! {}
+                    (quote! {}, quote! {})
                 };
 
                 let setter_name = format_ident!("{}", field_name);
@@ -65,7 +68,7 @@ impl CodegenVisitor<'_> {
 
                 // Сеттер реализует BuilderPattern (цепочку вызовов)
                 let setter = parse_quote! {
-                    impl #generics #struct_name #generics {
+                    impl #generics #struct_name #type_generics {
                         pub fn #setter_name(mut self, value: #inner_type) -> Self {
                             self.#field_name = Some(value);
                             self
