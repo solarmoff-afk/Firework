@@ -87,9 +87,6 @@ impl Analyzer {
                     }
                 }
 
-                temp_fields_to_struct
-                    .push((format!("spark_{}", self.context.spark_counter), spark_type));
-
                 let id = self.context.spark_counter;
                 var_data.spark_id = id;
                 self.linter
@@ -114,16 +111,25 @@ impl Analyzer {
                         None
                     };
 
+                let spark_type = if async_fn.is_some() {
+                    format!("firework_ui::Async<{}>", spark_type)
+                } else {
+                    spark_type
+                };
+
                 self.context.statement.action = FireworkAction::InitialSpark {
                     name: name.clone(),
                     id,
-                    spark_type: var_data.clone().variable_type,
+                    spark_type: spark_type.clone(),
                     expr_body: _spark_content.clone(),
                     expr_body_tokens: spark_tokens.clone(),
                     is_mut: var_data.is_mut,
                     async_fn,
                 };
                 self.context.ir.push(self.context.statement.clone());
+
+                temp_fields_to_struct
+                    .push((format!("spark_{}", self.context.spark_counter), spark_type));
 
                 // FE004, нельзя затенить спарк
                 if let Some(value) = self.lifetime_manager.scope.variables.get(&name)
