@@ -66,6 +66,7 @@ impl<'ast> Analyzer {
 
             // Поле target у таймера
             let mut timer_target = false;
+            let mut timer_target_expr = None;
 
             // Поле output у таймера
             let mut timer_output = false;
@@ -95,7 +96,11 @@ impl<'ast> Analyzer {
                     }
 
                     // Для таймера
-                    "target" => timer_target = true,
+                    "target" => {
+                        timer_target = true;
+                        timer_target_expr = Some(prop.value.clone());
+                    }
+
                     "output" => timer_output = true,
                     "on_timeout" => timer_on_timeout = true,
 
@@ -195,7 +200,19 @@ impl<'ast> Analyzer {
                     event: timer_on_timeout,
                 });
 
-                skin_field = format!("{}<()>", skin_field);
+                skin_field = if let Some(ident) = timer_target_expr
+                    && let Some(simple) = simple_ident(&ident)
+                    && let Some(spark_type) = self.lifetime_manager.find_spark_type(&simple)
+                {
+                    format!("{}<{}>", skin_field, spark_type)
+                } else {
+                    self.context.errors.push(compile_error_spanned(
+                        i.tokens.clone(),
+                        TIMER_TARGET_SIMPLE_NAME_ERROR,
+                    ));
+
+                    format!("{}<()>", skin_field)
+                }
             }
 
             // Если это цикл (for, while или loop) необходимо обработать его специально, ибо
@@ -465,5 +482,22 @@ impl<'ast> Analyzer {
         }
 
         false
+    }
+}
+
+pub fn simple_ident(expr: &Expr) -> Option<String> {
+    match expr {
+        Expr::Path(path) => {
+            if path.qself.is_none() && path.path.segments.len() == 1 {
+                let seg = &path.path.segments[0];
+                if seg.arguments.is_none() {
+                    return Some(seg.ident.to_string());
+                }
+            }
+
+            None
+        }
+
+        _ => None,
     }
 }

@@ -173,6 +173,20 @@ impl LifetimeManager {
 
         statements
     }
+
+    /// Ищет спарк по имени в текущей области видимости и возвращает его тип
+    /// Возвращает Some(variable_type) если переменная найдена, является спарком
+    /// и имеет конкретный тип. Если переменная не найдена и не является спарком,
+    /// либо тип не указан (NO_TYPE), то возвращает None
+    pub fn find_spark_type(&self, name: &str) -> Option<String> {
+        const NO_TYPE: &str = "NO_TYPE";
+
+        self.scope
+            .variables
+            .get(name)
+            .filter(|var| var.is_spark && var.variable_type != NO_TYPE)
+            .map(|var| var.variable_type.clone())
+    }
 }
 
 impl Analyzer {

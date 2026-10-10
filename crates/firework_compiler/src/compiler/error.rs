@@ -335,6 +335,17 @@ error[FE035]: timer! {} has `output` but no `target`
    = note: for more information, see: [WORK IN PROGRESS]
 ";
 
+/// target таймера должен быть простым именем спарка, без сложных выражений
+pub const TIMER_TARGET_SIMPLE_NAME_ERROR: &str = "\
+error[FE036]: `target` in timer! {} must be a simple spark name
+   = note: `target` only accepts a single identifier referring to a spark variable
+   = note: complex expressions like field access, method calls, or arithmetic are not allowed
+   = help: assign the expression to a spark first, then pass its name as `target`
+   = help: example: `timer! { delay: 1000, target: my_spark, output: 1 }`
+   = help: instead of: `timer! { delay: 1000, target: name1 + name2 * func(name3), output: 1 }`
+   = note: for more information, see: [WORK IN PROGRESS]
+";
+
 pub fn compile_error_spanned<T: quote::ToTokens>(tokens: T, msg: &str) -> Error {
     Error::new_spanned(tokens, msg)
 }
