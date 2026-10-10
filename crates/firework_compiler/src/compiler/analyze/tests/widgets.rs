@@ -4,6 +4,7 @@
 use super::*;
 
 use crate::compiler::codegen::ir::FireworkAction::*;
+use crate::compiler::codegen::ir::SpecialWidget;
 use crate::compiler::codegen::ir::WidgetDescription;
 
 #[test]
@@ -31,6 +32,7 @@ fn test_analyze_basic_widget() {
             has_microruntime: false,
             skin: "firework_ui::skins::DefaultRectSkin".to_string(),
             is_maybe: None,
+            special: SpecialWidget::None,
         }),
         Terminator,
     ];
@@ -87,6 +89,7 @@ fn test_analyze_widget_with_sparks() {
             has_microruntime: false,
             skin: "firework_ui::skins::DefaultRectSkin".to_string(),
             is_maybe: None,
+            special: SpecialWidget::None,
         }),
         DropSpark {
             name: "y".to_string(),
@@ -174,6 +177,7 @@ fn test_analyze_layout_widget() {
             has_microruntime: false,
             skin: "".to_string(),
             is_maybe: None,
+            special: SpecialWidget::None,
         }),
         Terminator,
     ];
