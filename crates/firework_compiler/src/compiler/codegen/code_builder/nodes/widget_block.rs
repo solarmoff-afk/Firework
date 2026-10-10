@@ -77,6 +77,11 @@ impl CodeBuilder {
                     continue;
                 }
 
+                // Если это таймер, то target не учитывается
+                if description.widget_type == "timer" && name == "target" {
+                    continue;
+                }
+
                 // Поле с именем skin нужно пропустить, так как оно явлется задающим
                 if need_skip_props(name) {
                     continue;

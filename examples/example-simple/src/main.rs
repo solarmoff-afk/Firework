@@ -2,13 +2,17 @@ use firework_ui::ui;
 
 #[ui]
 fn test_screen() {
-    let mut my_state = spark!(0);
+    let mut red = spark!(0u8);
 
-    effect!(my_state, {
-        println!("Component mount");
+    timer! {
+        target: red,
+        output: 255,
+        delay: 1500,
+    }
+
+    effect!(red, {
+        println!("Red: {}", red);
     });
-
-    my_state += 1;
 }
 
 fn main() {

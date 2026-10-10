@@ -97,6 +97,7 @@ pub fn map_skin(widget_name: &str) -> Option<String> {
     match widget_name {
         "rect" => Some("firework_ui::DefaultRectSkin".to_string()),
         "text" => Some("firework_ui::DefaultTextSkin".to_string()),
+        "timer" => Some("firework_ui::Timer".to_string()),
 
         // Не имеет скина так как явлется функциональным виджетом
         _ => None,

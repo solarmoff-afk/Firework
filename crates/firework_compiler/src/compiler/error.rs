@@ -305,6 +305,36 @@ error[FE032]: `{}` is a reserved name in Firework components
    = note: for more information, see: [WORK IN PROGRESS]
 ";
 
+/// Таймер нельзя создавать внутри замыкания с использованием on_timeout, так как это
+/// ломает жизненный цикл таймера и привязку к родительскому скоупу
+pub const TIMER_ON_TIMEOUT_IN_CLOSURE_ERROR: &str = "\
+error[FE033]: `on_timeout` cannot be used in timer! {} created inside a closure
+   = note: timers created in closures with `on_timeout` capture the closure's environment,
+           which may be dropped before the timer fires
+   = help: move the timer! {} outside the closure and bind it to a variable
+   = help: or remove `on_timeout` and handle the timeout via a separate effect
+   = note: example: `let timer = timer! { delay: 1000 }; || { /* ... */ }`
+   = note: for more information, see: [WORK IN PROGRESS]
+";
+
+/// Таймер имеет target, но не имеет output. Некуда записывать результат
+pub const TIMER_TARGET_WITHOUT_OUTPUT_ERROR: &str = "\
+error[FE034]: timer! {} has `target` but no `output`
+   = note: `target` specifies where to write the timer's result, but `output` is missing
+   = help: add an `output` field to specify what value to write
+   = help: example: `timer! { delay: 1000, target: my_spark, output: 0 }`
+   = note: for more information, see: [WORK IN PROGRESS]
+";
+
+/// Таймер имеет output, но не имеет targetю Некуда его записать
+pub const TIMER_OUTPUT_WITHOUT_TARGET_ERROR: &str = "\
+error[FE035]: timer! {} has `output` but no `target`
+   = note: `output` specifies the value to write, but `target` is missing
+   = help: add a `target` field to specify where to write the value
+   = help: example: `timer! { delay: 1000, target: my_spark, output: 0 }`
+   = note: for more information, see: [WORK IN PROGRESS]
+";
+
 pub fn compile_error_spanned<T: quote::ToTokens>(tokens: T, msg: &str) -> Error {
     Error::new_spanned(tokens, msg)
 }

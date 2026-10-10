@@ -55,4 +55,25 @@ pub struct WidgetDescription {
     /// Рендерится ли виджет условно (Some) и если да то какой у него индекс в битовыъ масок
     /// на основе maybe_widgets_counter
     pub is_maybe: Option<usize>,
+
+    pub special: SpecialWidget,
+}
+
+#[derive(Debug, Clone)]
+pub enum SpecialWidget {
+    None,
+    Timer(TimerWidget),
+}
+
+/// Таймер это функциональный виджет, который выполняет какое-то действие спустя указанное
+/// количество времени. Таймер имеет два режима работы
+///  - Через какое-то время записывает значение в спарк
+///  - Через какое-то время выполняет on_timeout замыкание (работает только если сам таймер
+///    не в замыкании)
+///
+/// Оба режима можно использовать вместе
+#[derive(Debug, Clone)]
+pub struct TimerWidget {
+    pub write: bool,
+    pub event: bool,
 }

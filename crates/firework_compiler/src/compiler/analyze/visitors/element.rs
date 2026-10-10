@@ -6,7 +6,8 @@ use syn::spanned::Spanned;
 
 pub use super::super::*;
 
-use crate::compiler::codegen::ir::{ScreenWidgetType, WidgetDescription};
+use crate::compiler::codegen::ir::TimerWidget;
+use crate::compiler::codegen::ir::{ScreenWidgetType, SpecialWidget, WidgetDescription};
 use crate::compiler::common::widget_kind::is_functional_widget;
 
 impl<'ast> Analyzer {
@@ -63,6 +64,15 @@ impl<'ast> Analyzer {
             let mut has_z = false;
             let mut has_skin: Option<String> = None;
 
+            // Поле target у таймера
+            let mut timer_target = false;
+
+            // Поле output у таймера
+            let mut timer_output = false;
+
+            // Событие on_timeout у таймера
+            let mut timer_on_timeout = false;
+
             // Сюда добавляются все дженерик пропы, чтобы потом вставить их в структуру экрана или
             // компонента
             let mut generics: Vec<Ident> = Vec::new();
@@ -83,6 +93,11 @@ impl<'ast> Analyzer {
                             component.events.on_click = true;
                         }
                     }
+
+                    // Для таймера
+                    "target" => timer_target = true,
+                    "output" => timer_output = true,
+                    "on_timeout" => timer_on_timeout = true,
 
                     _ => {}
                 }
@@ -174,6 +189,40 @@ impl<'ast> Analyzer {
             // структуры WidgetStorage
             let mut widget_type = ScreenWidgetType::Base;
 
+            // Для специальных виджетов
+            let mut special = SpecialWidget::None;
+            if name == "timer" {
+                // Если мы в замыкании и есть on_timeout ивент, то нужно выкинуть ошибку
+                if self.lifetime_manager.in_closure.is_some() && timer_on_timeout {
+                    self.context.errors.push(compile_error_spanned(
+                        i.tokens.clone(),
+                        TIMER_ON_TIMEOUT_IN_CLOSURE_ERROR,
+                    ));
+                    return;
+                }
+
+                // Если у таймера есть target, но нет output, либо наоборот, есть output, но
+                // нет target. Ошибки FE034 и FE035
+                if timer_target && !timer_output {
+                    self.context.errors.push(compile_error_spanned(
+                        i.tokens.clone(),
+                        TIMER_TARGET_WITHOUT_OUTPUT_ERROR,
+                    ));
+                    return;
+                } else if timer_output && !timer_target {
+                    self.context.errors.push(compile_error_spanned(
+                        i.tokens.clone(),
+                        TIMER_OUTPUT_WITHOUT_TARGET_ERROR,
+                    ));
+                    return;
+                }
+
+                special = SpecialWidget::Timer(TimerWidget {
+                    write: timer_target && timer_output,
+                    event: timer_on_timeout,
+                });
+            }
+
             self.context.statement.string = i.to_token_stream().to_string();
             let descriptor = WidgetDescription {
                 // Тип виджета это то, что указывается в макросе при его декларации как имя
@@ -215,6 +264,8 @@ impl<'ast> Analyzer {
                 } else {
                     None
                 },
+
+                special,
             };
 
             if name == "layout"

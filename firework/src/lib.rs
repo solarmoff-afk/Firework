@@ -17,8 +17,10 @@ pub use firework_macro::{component, effect, shared, ui};
 pub use null_adapter::null_adapter;
 pub use runtime::dyn_list::{DynList, ListEntry};
 pub use runtime_errors::RENDER_ADAPTER_MISSING_ERROR;
+
 pub use std_widgets::DefaultRectSkin;
 pub use std_widgets::text::DefaultTextSkin;
+pub use std_widgets::timer::Timer;
 
 use core::cell::Cell;
 

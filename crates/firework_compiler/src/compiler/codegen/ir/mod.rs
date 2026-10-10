@@ -18,7 +18,7 @@ pub use reactive_block::FireworkReactiveBlock;
 pub use shared::FireworkSharedState;
 pub use shared::SharedData;
 pub use snapshot::{Snapshot, SpanKey};
-pub use widget::{FireworkWidgetField, WidgetDescription};
+pub use widget::{FireworkWidgetField, SpecialWidget, TimerWidget, WidgetDescription};
 
 /// Раст команда (statement) записанная анализатором
 #[derive(Debug, Clone)]
