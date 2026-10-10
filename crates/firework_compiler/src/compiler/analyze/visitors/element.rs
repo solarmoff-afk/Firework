@@ -162,33 +162,6 @@ impl<'ast> Analyzer {
             // то значит это функиональный виджет
             let mut skin_field = _skin_struct.clone().unwrap_or("".to_string());
 
-            // Если это цикл (for, while или loop) необходимо обработать его специально, ибо
-            // все виджеты внутри являются частью динамических списков
-            if self.is_loop {
-                has_microruntime = true;
-                self.context.microruntime_widgets.has_widgets = true;
-
-                skin_field = format!("firework_ui::DynList<{}, {}>", key_type, skin_field);
-                self.context
-                    .ir
-                    .screen_data
-                    .entry(self.context.statement.screen_index)
-                    .or_default()
-                    .dynamic_widgets
-                    .push(self.context.widget_counter);
-
-                if !has_key {
-                    self.context.errors.push(compile_error_spanned(
-                        i.tokens.clone(),
-                        WIDGET_KEY_REQUIRED_ERROR,
-                    ));
-                }
-            }
-
-            // Для того, чтобы добавить виджет в IR к экрану, нужны параметры для создания
-            // структуры WidgetStorage
-            let mut widget_type = ScreenWidgetType::Base;
-
             // Для специальных виджетов
             let mut special = SpecialWidget::None;
             if name == "timer" {
@@ -221,7 +194,36 @@ impl<'ast> Analyzer {
                     write: timer_target && timer_output,
                     event: timer_on_timeout,
                 });
+
+                skin_field = format!("{}<()>", skin_field);
             }
+
+            // Если это цикл (for, while или loop) необходимо обработать его специально, ибо
+            // все виджеты внутри являются частью динамических списков
+            if self.is_loop {
+                has_microruntime = true;
+                self.context.microruntime_widgets.has_widgets = true;
+
+                skin_field = format!("firework_ui::DynList<{}, {}>", key_type, skin_field);
+                self.context
+                    .ir
+                    .screen_data
+                    .entry(self.context.statement.screen_index)
+                    .or_default()
+                    .dynamic_widgets
+                    .push(self.context.widget_counter);
+
+                if !has_key {
+                    self.context.errors.push(compile_error_spanned(
+                        i.tokens.clone(),
+                        WIDGET_KEY_REQUIRED_ERROR,
+                    ));
+                }
+            }
+
+            // Для того, чтобы добавить виджет в IR к экрану, нужны параметры для создания
+            // структуры WidgetStorage
+            let mut widget_type = ScreenWidgetType::Base;
 
             self.context.statement.string = i.to_token_stream().to_string();
             let descriptor = WidgetDescription {

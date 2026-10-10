@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-firework_ui = { workspace = true, features = ["safety"] }
+firework_ui = { workspace = true, features = [] }
 firework_devtools = { workspace = true }
 eframe = "0.28"
 egui = "0.28"

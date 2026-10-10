@@ -6,7 +6,7 @@ fn test_screen() {
 
     timer! {
         target: red,
-        output: 255,
+        output: (),
         delay: 1500,
     }
 

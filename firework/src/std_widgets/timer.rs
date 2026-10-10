@@ -6,21 +6,25 @@ use super::widget::Widget;
 use crate::BuildContext;
 use crate::layout::{Constraints, Size};
 
-#[derive(Debug, Clone, Copy)]
-pub struct Timer {
-    pub time: i32,
-    pub delay: i32,
-    pub visible: bool,
-    pub is_active: bool,
+use core::cell::Cell;
+
+#[derive(Debug)]
+pub struct Timer<T> {
+    pub time: Cell<i32>,
+    pub delay: Cell<i32>,
+    visible: Cell<bool>,
+    pub is_active: Cell<bool>,
+    pub output_value: Option<T>,
 }
 
-impl Timer {
+impl<T> Timer<T> {
     pub fn new(_layout: u16) -> Option<Self> {
         Some(Self {
-            time: 0,
-            delay: 0,
-            visible: false,
-            is_active: false,
+            time: Cell::new(0),
+            delay: Cell::new(0),
+            visible: Cell::new(false),
+            is_active: Cell::new(false),
+            output_value: None,
         })
     }
 
@@ -30,9 +34,14 @@ impl Timer {
     }
 
     /// Устанавливает видимость прямоугольника
-    pub fn visible(mut self, visible: bool) -> Self {
-        self.visible = visible;
+    pub fn visible(self, visible: bool) -> Self {
+        self.visible.set(visible);
         self
+    }
+
+    /// Возвращает текущую видимость
+    pub fn __visible(&self) -> bool {
+        self.visible.get()
     }
 
     pub fn __id(&self) -> usize {
@@ -43,25 +52,30 @@ impl Timer {
         self
     }
 
-    pub fn delay(mut self, delay: i32) -> Self {
-        self.time = 0;
-        self.delay = delay;
-        self.visible = true;
-        self.is_active = true;
+    pub fn delay(self, delay: i32) -> Self {
+        self.time.set(0);
+        self.delay.set(delay);
+        self.visible.set(true);
+        self.is_active.set(true);
+        self
+    }
+
+    pub fn output(mut self, value: T) -> Self {
+        self.output_value = Some(value);
         self
     }
 }
 
-impl Widget for Timer {
+impl<T> Widget for Timer<T> {
     fn position(&self, _position: (i32, i32)) {}
 
     fn visible(&self, state: bool) {
-        Timer::visible(*self, state);
+        self.visible.set(state);
     }
 
     fn unmount(self) {
-        self.visible(false);
-        // self.is_active = false;
+        self.visible.set(false);
+        // self.is_active.set(false);
     }
 
     fn layout(&mut self, _constraints: Constraints) -> Size {
@@ -75,9 +89,7 @@ impl Widget for Timer {
         0
     }
 
-    fn set_z(&self, z: i16) {
-        self.z(z);
-    }
+    fn set_z(&self, _z: i16) {}
 
     fn set_vcanvas(&self, _vcanvas_handle: usize) {}
 

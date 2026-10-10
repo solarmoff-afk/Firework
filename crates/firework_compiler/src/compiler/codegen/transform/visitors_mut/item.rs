@@ -603,7 +603,8 @@ impl CodegenVisitor<'_> {
                         #[cfg(not(feature = "safety"))]
                         z_compute_tokens.extend(quote! {
                             unsafe {
-                                if let Some(_fwc_element) = (*::core::ptr::addr_of!(#_instance_ident)).#name {
+                                let _fwc_slot = &mut (*::core::ptr::addr_of_mut!(#_instance_ident)).#name;
+                                if let Some(_fwc_element) = _fwc_slot.as_mut() {
                                     #z_compute_variant
                                 }
                             }
