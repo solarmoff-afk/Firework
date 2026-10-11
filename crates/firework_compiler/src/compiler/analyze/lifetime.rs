@@ -260,6 +260,7 @@ mod tests {
             depth: 0,
             screen_index: 0,
             span: Span::call_site(),
+            in_helper: false,
         };
 
         let result = lifetime_manager.update_scope(old_scope, false, &base_stmt);
@@ -334,6 +335,7 @@ mod tests {
             depth: 0,
             screen_index: 0,
             span: Span::call_site(),
+            in_helper: false,
         };
 
         let result = lifetime_manager.update_scope(old_scope, false, &base_stmt);
@@ -383,6 +385,7 @@ mod tests {
             depth: 0,
             screen_index: 0,
             span: Span::call_site(),
+            in_helper: false,
         };
 
         let result = lifetime_manager.update_scope(old_scope, false, &base_stmt);
@@ -434,6 +437,7 @@ mod tests {
             depth: 0,
             screen_index: 0,
             span: Span::call_site(),
+            in_helper: false,
         };
 
         let result = lifetime_manager.update_scope(old_scope, false, &base_stmt);
@@ -490,6 +494,7 @@ mod tests {
             depth: 0,
             screen_index: 0,
             span: Span::call_site(),
+            in_helper: false,
         };
 
         let result = lifetime_manager.update_scope(old_scope, false, &base_stmt);
@@ -537,6 +542,7 @@ mod tests {
             depth: 0,
             screen_index: 0,
             span: Span::call_site(),
+            in_helper: false,
         };
 
         let result = lifetime_manager.update_scope(new_scope, true, &base_stmt);
@@ -595,6 +601,7 @@ mod tests {
             depth: 0,
             screen_index: 0,
             span: Span::call_site(),
+            in_helper: false,
         };
 
         let result = lifetime_manager.update_scope(old_scope, false, &base_stmt);
