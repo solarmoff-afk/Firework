@@ -4,6 +4,7 @@
 #![allow(dead_code)]
 
 pub mod actions;
+pub mod format;
 pub mod reactive_block;
 pub mod shared;
 pub mod snapshot;

@@ -19,6 +19,9 @@ use proc_macro2::TokenStream;
 use syn::File;
 use syn::visit_mut::VisitMut;
 
+use crate::compiler::codegen::ir::format::HelperFormatter;
+use crate::compiler::common::logger::Logger;
+
 #[cfg(feature = "debug_output")]
 use syn::parse_str;
 
@@ -77,6 +80,11 @@ pub fn run_firework_compiler(
     if let Some(mut ir) = output.2
         && output.1.is_none()
     {
+        // Вывод того, что собрал хелпер
+        let logger = Logger::new();
+        let formatter = HelperFormatter::new(&ir, &logger);
+        formatter.print_helper_info();
+
         {
             #[cfg(feature = "trace")]
             let _span = info_span!("codegen::lower").entered();
