@@ -172,4 +172,20 @@ impl CodegenVisitor<'_> {
 
         visible_tokens
     }
+
+    pub fn gen_tick_tokens(&self, declaration: &ComponentDeclaration) -> TokenStream {
+        let mut tick_tokens = quote! {};
+
+        for i in &declaration.widgets.widgets {
+            let name = format_ident!("{}", i.0);
+
+            tick_tokens.extend(quote! {
+                if let Some(ref mut _fwc_element) = self.#name {
+                    _fwc_element.__tick(context);
+                }
+            });
+        }
+
+        tick_tokens
+    }
 }

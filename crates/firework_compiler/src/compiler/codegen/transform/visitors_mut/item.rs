@@ -54,6 +54,7 @@ impl CodegenVisitor<'_> {
                             visible_tokens,
                             unmount_tokens,
                             event_tokens,
+                            tick_tokens,
                             generics,
                             type_generics,
                         ) = if let Some(declaration) = component_declaration {
@@ -64,11 +65,13 @@ impl CodegenVisitor<'_> {
                                 self.gen_visible_tokens(declaration),
                                 self.gen_unmount_tokens(declaration),
                                 self.gen_event_tokens(declaration),
+                                self.gen_tick_tokens(declaration),
                                 declaration.tcomponents.clone(),
                                 declaration.struct_generics.clone(),
                             )
                         } else {
                             (
+                                quote! {},
                                 quote! {},
                                 quote! {},
                                 quote! {},
@@ -175,6 +178,10 @@ impl CodegenVisitor<'_> {
                                 pub fn __fwc_event(&mut self, context: firework_ui::BuildContext) {
                                     <Self as firework_ui::std_widgets::widget::Widget>::__event(self, context);
                                 }
+
+                                pub fn __fwc_tick(&mut self, context: firework_ui::BuildContext) {
+                                    <Self as firework_ui::std_widgets::widget::Widget>::__tick(self, context);
+                                }
                             }
                         };
 
@@ -240,6 +247,10 @@ impl CodegenVisitor<'_> {
 
                                 fn __event(&mut self, context: firework_ui::BuildContext) {
                                     #event_tokens
+                                }
+
+                                fn __tick(&mut self, context: firework_ui::BuildContext) {
+                                    #tick_tokens
                                 }
                             }
                         };

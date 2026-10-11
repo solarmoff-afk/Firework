@@ -94,4 +94,5 @@ impl<T> Widget for Timer<T> {
     fn set_vcanvas(&self, _vcanvas_handle: usize) {}
 
     fn __event(&mut self, _context: BuildContext) {}
+    fn __tick(&mut self, _context: BuildContext) {}
 }

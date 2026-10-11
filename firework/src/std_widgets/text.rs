@@ -136,4 +136,5 @@ impl Widget for DefaultTextSkin {
     }
 
     fn __event(&mut self, _context: BuildContext) {}
+    fn __tick(&mut self, _context: BuildContext) {}
 }
