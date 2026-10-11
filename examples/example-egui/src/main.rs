@@ -1,47 +1,7 @@
 mod adapter;
 
 use adapter::egui_adapter;
-use firework_ui::{BuildContext, Prop, component, ui};
-
-/*
-
-   [ui]
-fn test_screen() {
-    let mut rect_state = spark!(true);
-
-    if rect_state {
-        text! {
-            text: "Hello world",
-            position: (10, 10),
-            color: (0, 255, 0),
-        }
-    }
-
-    // rect_state = false;
-}
-*/
-
-/*
-#[ui]
-fn test_screen() {
-    let mut rect_state = spark!(true);
-
-    if rect_state {
-        rect! {
-            position: (10, 10),
-            width: 100,
-            height: 100,
-            color: (0, 255, 0),
-            on_click: || {
-                println!("Hello 4");
-                rect_state = false;
-            },
-        }
-    }
-
-    // rect_state = false;
-}
-*/
+use firework_ui::{BuildContext, Prop, component, raw, ui};
 
 component! {
     pub struct Button<T> {
@@ -98,7 +58,10 @@ fn test_screen() {
         size: 100,
         color: (red, 0, 255),
         on_click: || {
-            red += 25;
+            if raw!(red < 255 - 25) {
+                red += 25;
+            }
+
             println!("Component click");
         }
     }
@@ -113,49 +76,6 @@ fn test_screen() {
         }
     }
 }
-
-/*
-#[ui]
-fn test_screen() {
-    let mut x = spark!(3);
-
-    for i in 0..x {
-        for j in 0..3 {
-            rect! {
-                position: (150 * i, 150 * j),
-                size: (100, 100),
-                color: (0, 255, 0),
-
-                #[key_type((i32, i32))]
-                key: (i, j),
-
-                /*
-                on_click: || {
-                    println!("Hello world");
-                }
-                */
-            }
-        }
-    }
-
-    x += 1;
-}
-*/
-
-/*
-#[ui]
-fn test_screen() {
-    /*
-    let mut state: i32 = spark!(0, async move |mut bridge| {
-        bridge.sleep_s(2);
-        *bridge = 1;
-        bridge.sleep_s(2);
-    });
-    */
-
-    println!("Hello world");
-}
-*/
 
 fn main() {
     firework_ui::run_with_adapter(egui_adapter, test_screen);

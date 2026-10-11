@@ -24,6 +24,13 @@ pub use std_widgets::timer::Timer;
 
 use core::cell::Cell;
 
+#[macro_export]
+macro_rules! raw {
+    ($($tt:tt)*) => {
+        $($tt)*
+    };
+}
+
 pub const TOUCH_HIT_GROUP: u16 = u16::MAX;
 
 /// Type for component props
