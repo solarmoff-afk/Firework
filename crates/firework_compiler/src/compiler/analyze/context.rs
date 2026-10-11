@@ -105,6 +105,8 @@ impl AnalyzeContext {
                 // Указаывает на место макроса по умолчанию, в визиторе будет изменён на
                 // span конкретного стейтемента
                 span: Span::call_site(),
+
+                in_helper: false,
             },
 
             ir: FireworkIR::new(),

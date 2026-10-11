@@ -51,18 +51,20 @@ fn test_screen() {
         },
     }
 
-    component! {
-        target: Button,
-        T: i32,
-        position: (290, 10),
-        size: 100,
-        color: (red, 0, 255),
-        on_click: || {
-            if raw!(red < 255 - 25) {
-                red += 25;
-            }
+    helper! {
+        component! {
+            target: Button,
+            T: i32,
+            position: (290, 10),
+            size: 100,
+            color: (red, 0, 255),
+            on_click: || {
+                if raw!(red < 255 - 25) {
+                    red += 25;
+                }
 
-            println!("Component click");
+                println!("Component click");
+            }
         }
     }
 

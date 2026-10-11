@@ -432,13 +432,17 @@ impl<'ast> Analyzer {
             // Добавление перед парсингом вложенных команд
             self.context.layouts_count += 1;
 
+            let old_in_halper = self.context.ir.in_helper;
+            self.context.ir.in_helper = true;
+
             for statement in block.stmts {
                 // Парсинг всех команд внутри
                 self.visit_stmt(&statement);
             }
 
-            self.context.layouts_count -= 1;
+            self.context.ir.in_helper = old_in_halper;
 
+            self.context.layouts_count -= 1;
             self.lifetime_manager.scope.depth -= 1;
             self.context.statement.depth -= 1;
             self.context.statement.action = FireworkAction::DefaultCode;

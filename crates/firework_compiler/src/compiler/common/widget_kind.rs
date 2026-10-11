@@ -26,7 +26,11 @@ pub fn is_widget(name: &str) -> bool {
 ///    // Код
 /// };
 pub fn is_layout(name: &str) -> bool {
-    name == "vertical" || name == "horizontal" || name == "stack" || name == "absoulute"
+    name == "vertical"
+        || name == "horizontal"
+        || name == "stack"
+        || name == "absoulute"
+        || name == "helper"
 }
 
 /// Является ли это функциональным виджетом

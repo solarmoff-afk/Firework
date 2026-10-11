@@ -49,6 +49,9 @@ pub struct FireworkStatement {
     pub screen_index: u128,
 
     pub span: Span,
+
+    // Входит ли этот стейтемент в helper! {}
+    pub in_helper: bool,
 }
 
 #[derive(Debug, Clone)]
@@ -79,6 +82,10 @@ pub struct FireworkIR {
     // Хэшмап для хранения id экрана -> информация которую собрал анализатор
     pub screen_data: HashMap<u128, ScreenData>,
     pub shared: SharedData,
+
+    // Находимся ли мы в helper! {} инструменте разработчика. Не в AnalyzeContext так как
+    // эти данные нужны при push, чтобы изменить в Statement
+    pub in_helper: bool,
 
     span: Span,
 }
@@ -209,22 +216,26 @@ impl FireworkIR {
             screen_data: HashMap::new(),
             shared: SharedData::new(),
             span: Span::call_site(),
+            in_helper: false,
         }
     }
 
     /// Добавляет виртуальный стейтемент в IR, использует текущий спан который устанавливается
     /// через метод set_span как ключ в снапшоте чтобы записать туда виртуальный стейтемент
-    pub fn push(&mut self, stmt: FireworkStatement) {
+    pub fn push(&mut self, mut stmt: FireworkStatement) {
+        stmt.in_helper = self.in_helper;
         self.push_from_key(stmt.clone(), SpanKey::from_span(stmt.span));
     }
 
     /// Этот метод вставляет стейтемент в начало ячейки снапшота под текущим спаном. Не
     /// работает для плоского дебаг списка, только для снапшота
-    pub fn push_front(&mut self, stmt: FireworkStatement) {
+    pub fn push_front(&mut self, mut stmt: FireworkStatement) {
+        stmt.in_helper = self.in_helper;
         self.push_front_from_key(stmt.clone(), SpanKey::from_span(stmt.span));
     }
 
-    pub fn push_from_key(&mut self, stmt: FireworkStatement, span_key: SpanKey) {
+    pub fn push_from_key(&mut self, mut stmt: FireworkStatement, span_key: SpanKey) {
+        stmt.in_helper = self.in_helper;
         self.last_span = Some(span_key.clone());
 
         // Теперь просто вставляем, без Vec
@@ -241,7 +252,8 @@ impl FireworkIR {
         }
     }
 
-    pub fn push_front_from_key(&mut self, stmt: FireworkStatement, span_key: SpanKey) {
+    pub fn push_front_from_key(&mut self, mut stmt: FireworkStatement, span_key: SpanKey) {
+        stmt.in_helper = self.in_helper;
         self.last_span = Some(span_key.clone());
 
         self.snapshot
