@@ -179,8 +179,8 @@ impl CodegenVisitor<'_> {
                                     <Self as firework_ui::std_widgets::widget::Widget>::__event(self, context);
                                 }
 
-                                pub fn __fwc_tick(&mut self, context: firework_ui::BuildContext) {
-                                    <Self as firework_ui::std_widgets::widget::Widget>::__tick(self, context);
+                                pub fn __fwc_tick(&mut self, context: firework_ui::BuildContext, delta: u32) {
+                                    <Self as firework_ui::std_widgets::widget::Widget>::__tick(self, context, delta);
                                 }
                             }
                         };
@@ -245,11 +245,11 @@ impl CodegenVisitor<'_> {
                                     }
                                 }
 
-                                fn __event(&mut self, context: firework_ui::BuildContext) {
+                                fn __event(&mut self, _context: firework_ui::BuildContext) {
                                     #event_tokens
                                 }
 
-                                fn __tick(&mut self, context: firework_ui::BuildContext) {
+                                fn __tick(&mut self, _context: firework_ui::BuildContext, _delta: u32) {
                                     #tick_tokens
                                 }
                             }
@@ -326,10 +326,48 @@ impl CodegenVisitor<'_> {
         // Генерация tick функции для экранов. Она нужна для асинхронности и в будущем
         // анимаций. Вызывается каждый кадр
         if matches!(self.flags.compile_type, CompileType::Screen) {
+            let struct_name = format!("ApplicationUiBlockStruct{}", self.ui_id.unwrap_or(0));
+            let instance_ident = format_ident!("{}_INSTANCE", struct_name.to_uppercase());
+
+            let mut widget_ticks = quote! {
+                let _context = firework_ui::BuildContext {
+                    depth: 0,
+                    cycle: firework_ui::LifeCycle::Event,
+                };
+            };
+
+            if let Some(screen) = self.ir.screen_structs.get(&struct_name) {
+                for i in &screen.widgets.widgets {
+                    let name = format_ident!("{}", i.0);
+
+                    widget_ticks.extend(quote! {
+                        if let Some(ref mut _fwc_element) = _fwc_inst.#name {
+                            firework_ui::std_widgets::widget::Widget::__tick(_fwc_element, _context, _delta);
+                        }
+                    });
+                }
+            }
+
+            #[cfg(feature = "safety")]
+            let tick_tokens = quote! {
+                #instance_ident.with(|inst| {
+                    let mut _fwc_inst = inst.borrow_mut();
+                    #widget_ticks
+                });
+            };
+
+            #[cfg(not(feature = "safety"))]
+            let tick_tokens = quote! {
+                unsafe {
+                    let _fwc_inst = &mut *::core::ptr::addr_of_mut!(#instance_ident);
+                    #widget_ticks
+                }
+            };
+
             let tick_name = format_ident!("_fwc_tick_{}", self.ui_id.unwrap_or(0));
             new_items.push(parse_quote! {
-                fn #tick_name() {
-                    // println!("Hello world");
+                fn #tick_name(_delta: u32) {
+                   #tick_tokens
                 }
             });
         }

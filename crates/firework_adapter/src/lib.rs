@@ -171,7 +171,7 @@ pub enum AdapterEvent {
 
     /// > ENG: Must be called every frame.
     /// > RU: Должен вызываться каждый кадр
-    Tick,
+    Tick(u32),
 
     /// > ENG: Request to close the application
     /// > RU: Запрос на закрытие приложения

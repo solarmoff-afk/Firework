@@ -117,6 +117,12 @@ impl<K: Eq + PartialEq, T: Widget> DynList<K, T> {
             item.__event(context);
         }
     }
+
+    pub fn __tick(&mut self, context: BuildContext, delta: u32) {
+        for (_, item) in &mut self.current_items {
+            item.__tick(context, delta);
+        }
+    }
 }
 
 #[cfg(feature = "no-alloc")]
@@ -200,6 +206,14 @@ impl<K: Eq + PartialEq, T: Widget> DynList<K, T> {
         }
     }
 
+    pub fn __tick(&mut self, context: BuildContext, delta: u32) {
+        for i in 0..self.current_count {
+            if let Some((_, item)) = &mut self.current_items[i] {
+                item.__tick(context, delta);
+            }
+        }
+    }
+
     pub fn len(&self) -> i16 {
         // Паники не будет, так как в no-alloc длина списка всегда 64
         self.current_count.try_into().unwrap()
@@ -214,5 +228,66 @@ impl<K: Eq + PartialEq, T: Widget> DynList<K, T> {
                 current_z = current_z.saturating_add(1);
             }
         }
+    }
+}
+
+impl<K: Eq + PartialEq, T: Widget> Widget for DynList<K, T> {
+    fn position(&self, _position: (i32, i32)) {}
+
+    fn visible(&self, visible: bool) {
+        self.visible(visible);
+    }
+
+    fn unmount(mut self) {
+        self.end_pass();
+
+        #[cfg(not(feature = "no-alloc"))]
+        for (_, item) in self.current_items {
+            item.unmount();
+        }
+
+        #[cfg(feature = "no-alloc")]
+        for i in 0..self.current_count {
+            if let Some((_, item)) = self.current_items[i].take() {
+                item.unmount();
+            }
+        }
+    }
+
+    fn layout(&mut self, _constraints: crate::layout::Constraints) -> crate::layout::Size {
+        crate::layout::Size {
+            width: 0,
+            height: 0,
+        }
+    }
+
+    fn get_z_size(&self) -> i16 {
+        self.len()
+    }
+
+    fn set_z(&self, z: i16) {
+        self.set_z_range(z);
+    }
+
+    fn set_vcanvas(&self, vcanvas_handle: usize) {
+        #[cfg(not(feature = "no-alloc"))]
+        for (_, item) in &self.current_items {
+            item.set_vcanvas(vcanvas_handle);
+        }
+
+        #[cfg(feature = "no-alloc")]
+        for i in 0..self.current_count {
+            if let Some((_, item)) = &self.current_items[i] {
+                item.set_vcanvas(vcanvas_handle);
+            }
+        }
+    }
+
+    fn __event(&mut self, context: BuildContext) {
+        self.__event(context);
+    }
+
+    fn __tick(&mut self, context: BuildContext, delta: u32) {
+        self.__tick(context, delta);
     }
 }

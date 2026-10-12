@@ -170,32 +170,32 @@ pub enum LifeCycle {
 
 // Текущий тик (вызывается каждый кадр)
 #[cfg(not(feature = "safety"))]
-static mut CURRENT_TICK: Option<fn()> = None;
+static mut CURRENT_TICK: Option<fn(u32)> = None;
 
 #[cfg(feature = "safety")]
 std::thread_local! {
-    static CURRENT_TICK: RefCell<Option<fn()>> = const { RefCell::new(None) };
+    static CURRENT_TICK: RefCell<Option<fn(u32)>> = const { RefCell::new(None) };
 }
 
 #[cfg(not(feature = "safety"))]
-pub fn get_tick_fn() -> fn() {
-    unsafe { CURRENT_TICK.unwrap_or(|| {}) }
+pub fn get_tick_fn() -> fn(u32) {
+    unsafe { CURRENT_TICK.unwrap_or(|_| {}) }
 }
 
 #[cfg(feature = "safety")]
-pub fn get_tick_fn() -> fn() {
-    CURRENT_TICK.with(|t| t.borrow().unwrap_or(|| {}))
+pub fn get_tick_fn() -> fn(u32) {
+    CURRENT_TICK.with(|t| t.borrow().unwrap_or(|_| {}))
 }
 
 #[cfg(not(feature = "safety"))]
-pub fn set_tick_fn(f: fn()) {
+pub fn set_tick_fn(f: fn(u32)) {
     unsafe {
         CURRENT_TICK = Some(f);
     }
 }
 
 #[cfg(feature = "safety")]
-pub fn set_tick_fn(f: fn()) {
+pub fn set_tick_fn(f: fn(u32)) {
     CURRENT_TICK.with(|t| *t.borrow_mut() = Some(f));
 }
 
@@ -320,9 +320,9 @@ pub fn after_first_flash() {
                 handle_touch_event(x, y, phase, TOUCH_HIT_GROUP);
             }
 
-            AdapterEvent::Tick => {
+            AdapterEvent::Tick(delta) => {
                 adapter_command(AdapterCommand::Render);
-                get_tick_fn()();
+                get_tick_fn()(delta);
             }
 
             _ => {}

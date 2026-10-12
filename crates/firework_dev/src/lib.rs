@@ -64,7 +64,8 @@ fn spawn_reader_thread(stream: TcpStream, listener: Option<fn(AdapterEvent)>) {
                 } else if let Some(cb) = listener {
                     // Аинхронное событие
                     if msg.contains("\"evt\":\"Tick\"") {
-                        cb(AdapterEvent::Tick);
+                        // TODO: Настоящий DT
+                        cb(AdapterEvent::Tick(16));
                     } else if msg.contains("\"evt\":\"Touch\"") {
                         // Примитивный парсинг чтобы не тянуть зависимости, Dev ориентирован только
                         // на скорость компиляции

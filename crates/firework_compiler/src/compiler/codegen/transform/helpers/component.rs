@@ -139,7 +139,7 @@ impl CodegenVisitor<'_> {
 
     pub fn gen_event_tokens(&self, declaration: &ComponentDeclaration) -> TokenStream {
         let flash_tokens = quote! {
-            self.flash(context);
+            self.flash(_context);
         };
 
         let on_click_tokens = if declaration.events.on_click {
@@ -149,7 +149,7 @@ impl CodegenVisitor<'_> {
         };
 
         let mut visible_tokens = quote! {
-            if firework_ui::tiny_matches!(context.cycle, firework_ui::LifeCycle::Event) {
+            if firework_ui::tiny_matches!(_context.cycle, firework_ui::LifeCycle::Event) {
                 if let firework_ui::CurrentEvent::Touch {
                     hit_object_id: Some(id),
                     phase,
@@ -165,7 +165,7 @@ impl CodegenVisitor<'_> {
 
             visible_tokens.extend(quote! {
                 if let Some(ref mut _fwc_element) = self.#name {
-                    _fwc_element.__event(context);
+                    _fwc_element.__event(_context);
                 }
             });
         }
@@ -181,7 +181,7 @@ impl CodegenVisitor<'_> {
 
             tick_tokens.extend(quote! {
                 if let Some(ref mut _fwc_element) = self.#name {
-                    _fwc_element.__tick(context);
+                    _fwc_element.__tick(_context, _delta);
                 }
             });
         }

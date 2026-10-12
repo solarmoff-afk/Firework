@@ -93,7 +93,7 @@ fn my_adapter(command: AdapterCommand) -> AdapterResult {
                     },
 
                     Event::MainEventsCleared => {
-                        listener(AdapterEvent::Tick);
+                        listener(AdapterEvent::Tick(16));
                         window.request_redraw();
                     }
 

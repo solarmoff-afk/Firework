@@ -484,7 +484,11 @@ impl eframe::App for FireworkEguiApp {
         };
 
         if let Some(listener) = listener {
-            listener(AdapterEvent::Tick);
+            let dt_seconds = ctx.input(|i| i.stable_dt);
+            let dt_ms = (dt_seconds * 1000.0).round() as u32;
+            let safe_dt_ms = dt_ms.min(250);
+
+            listener(AdapterEvent::Tick(safe_dt_ms));
 
             if ctx.input(|i| i.viewport().close_requested()) {
                 listener(AdapterEvent::CloseRequest);
