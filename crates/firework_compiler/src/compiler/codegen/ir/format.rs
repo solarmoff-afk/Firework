@@ -1,8 +1,6 @@
 // Часть проекта Firework с открытым исходным кодом.
 // Лицензия EPL 2.0, подробнее в файле LICENSE. Copyright (c) 2026 Firework
 
-#![allow(unused)]
-
 use crate::compiler::codegen::ir::{
     FireworkAction, FireworkIR, FireworkReactiveBlock, FireworkStatement,
 };
@@ -33,17 +31,7 @@ impl<'a> HelperFormatter<'a> {
                     self.logger.custom_log(
                         loc!("HELPER", "ПОМОЩНИК"),
                         LoggerColor::Magenta,
-                        loc!("--- Code Analysis ---", "--- Разбор кода ---"),
-                    );
-
-                    // Объясняем концепцию FlashPass в самом начале
-                    self.logger.custom_log(
-                        loc!("FLASH PASS", "FLASH PASS"),
-                        LoggerColor::Cyan,
-                        loc!(
-                            "A quick note on how Firework works. Your code doesn't just run once top-to-bottom.\nIt runs multiple times in different 'phases' (Build for the first run, Event for clicks, Reactive for data updates).\nThe compiler's job is to chop this code up and decide which parts run in which phase.",
-                            "Пару слов о том, как это работает. Ваш код не просто выполняется один раз сверху вниз.\nОн прокручивается фреймворком несколько раз в разных 'фазах' (Build — первый запуск, Event — клики, Reactive — обновление данных).\nЗадача компилятора — нарезать этот код и указать, что и в какой фазе должно работать."
-                        ),
+                        loc!("--- Code Inspector ---", "--- Инспектор кода ---"),
                     );
                     println!();
                 }
@@ -58,7 +46,7 @@ impl<'a> HelperFormatter<'a> {
             self.logger.custom_log(
                 loc!("HELPER", "ПОМОЩНИК"),
                 LoggerColor::Magenta,
-                loc!("--- End of analysis ---", "--- Разбор завершен ---"),
+                loc!("--- End of inspection ---", "--- Инспекция завершена ---"),
             );
             println!();
         }
@@ -67,8 +55,6 @@ impl<'a> HelperFormatter<'a> {
     fn explain_statement(&self, stmt: &FireworkStatement) {
         let code_line = stmt.string.trim().replace('\n', " ");
 
-        // Для обычного кода (DefaultCode) мы не выводим объяснений.
-        // Просто печатаем саму строку, если она не пустая, и идем дальше.
         if let FireworkAction::DefaultCode = &stmt.action {
             if !code_line.is_empty() && code_line != "{" && code_line != "}" {
                 self.logger.custom_log(
@@ -80,7 +66,6 @@ impl<'a> HelperFormatter<'a> {
             return;
         }
 
-        // Печатаем код для всех остальных (магических) стейтементов
         if !code_line.is_empty() {
             self.logger.custom_log(
                 loc!("CODE", "КОД "),
@@ -98,10 +83,17 @@ impl<'a> HelperFormatter<'a> {
             } => {
                 let msg = format!(
                     "{}\n  {} `{}`\n  {} `{}`",
-                    loc!(
-                        "Created a Spark (reactive variable). Under the hood, the compiler allocates static memory for it. If it's `mut`, changing it will trigger UI updates.",
-                        "Тут создаётся спарк. По сути, это обычная переменная, но компилятор выделяет под неё место в статике и следит за ней. Если она `mut`, её изменение вызовет перерисовку."
-                    ),
+                    if *is_mut {
+                        loc!(
+                            "Detected reactive variable (Mutable).",
+                            "Обнаружена реактивная переменная (Изменяемая)."
+                        )
+                    } else {
+                        loc!(
+                            "Detected reactive variable (Immutable).",
+                            "Обнаружена реактивная переменная (Неизменяемая)."
+                        )
+                    },
                     loc!("Name:", "Имя:"),
                     name,
                     loc!("Type:", "Тип:"),
@@ -114,11 +106,11 @@ impl<'a> HelperFormatter<'a> {
             FireworkAction::UpdateSpark(name, _, _, _) => {
                 let msg = format!(
                     "{} `{}`. {}",
-                    loc!("Updating", "Изменяем"),
+                    loc!("Mutation detected on", "Обнаружена мутация переменной"),
                     name,
                     loc!(
-                        "The compiler will inject a trigger here. When the code hits this line, Firework flags the change and schedules a Reactive phase to update the UI.",
-                        "Компилятор вставит сюда невидимый триггер. Как только значение обновится, поднимется флажок, и Firework запустит реактивную фазу, чтобы перерисовать виджеты."
+                        "This will trigger an update of all UI elements that depend on it.",
+                        "Это вызовет перерисовку всех элементов интерфейса, которые от нее зависят."
                     )
                 );
                 self.logger
@@ -128,7 +120,7 @@ impl<'a> HelperFormatter<'a> {
             FireworkAction::WidgetBlock(desc) => {
                 let msg = format!(
                     "{} `{}`.",
-                    loc!("Widget declaration:", "Декларация виджета:"),
+                    loc!("Widget detected:", "Обнаружен виджет:"),
                     desc.widget_type
                 );
                 self.logger
@@ -141,8 +133,8 @@ impl<'a> HelperFormatter<'a> {
                                 "`{}`: {}",
                                 prop_name,
                                 loc!(
-                                    "Event handler. This closure is extracted and will only run during the Event phase (e.g. on click).",
-                                    "Обработчик события. Этот код 'вырезается' и будет работать только в фазе Event (например, при клике)."
+                                    "Event handler. Will run on user interaction.",
+                                    "Событие. Сработает при взаимодействии."
                                 )
                             );
                             self.logger
@@ -153,10 +145,7 @@ impl<'a> HelperFormatter<'a> {
                             let reactive_msg = format!(
                                 "`{}`: {} [{}]",
                                 prop_name,
-                                loc!(
-                                    "Reactive prop. It's wired to these sparks and updates when they change:",
-                                    "Реактивный пропс. Он привязан к этим спаркам и обновится при их изменении:"
-                                ),
+                                loc!("Reactive prop. Tied to:", "Реактивный пропс. Привязан к:"),
                                 deps.join(", ")
                             );
                             self.logger
@@ -166,8 +155,8 @@ impl<'a> HelperFormatter<'a> {
                                 "`{}`: {}",
                                 prop_name,
                                 loc!(
-                                    "Static prop. Evaluated once during Build or Navigate.",
-                                    "Статичный пропс. Читается один раз при построении UI."
+                                    "Static prop. Will not update dynamically.",
+                                    "Статичный пропс. Не будет обновляться динамически."
                                 )
                             );
                             self.logger
@@ -183,17 +172,17 @@ impl<'a> HelperFormatter<'a> {
                     FireworkReactiveBlock::ReactiveFor => "for",
                     FireworkReactiveBlock::ReactiveWhile => "while",
                     FireworkReactiveBlock::ReactiveMatch => "match",
-                    FireworkReactiveBlock::Effect => "effect! {}",
+                    FireworkReactiveBlock::Effect => "effect!",
                 };
 
                 if sparks.is_empty() {
                     let msg = format!(
                         "{} `{}`. {}",
-                        loc!("Static block", "Статичный блок"),
+                        loc!("Static condition:", "Статичное условие:"),
                         kind,
                         loc!(
-                            "No sparks in the condition, so it runs once. Use `#[raw]` if you want to bypass compiler tracking completely.",
-                            "Спарков в условии нет, отработает один раз. Если трекинг компилятором здесь вообще не нужен, используйте атрибут `#[raw]`."
+                            "No reactive dependencies found. Will only run once.",
+                            "Реактивные зависимости не найдены. Выполнится только один раз."
                         )
                     );
                     self.logger
@@ -201,10 +190,10 @@ impl<'a> HelperFormatter<'a> {
                 } else {
                     let deps: Vec<String> = sparks.sparks.iter().map(|(s, _)| s.clone()).collect();
                     let msg = format!(
-                        "{} `{}`.\n{} [{}]",
-                        loc!("Reactive block", "Реактивный блок"),
+                        "{} `{}`. {} [{}]",
+                        loc!("Reactive condition:", "Реактивное условие:"),
                         kind,
-                        loc!("It's tracking these dependencies:", "Зависит от:"),
+                        loc!("Triggers on changes to:", "Перезапустится при изменении:"),
                         deps.join(", ")
                     );
                     self.logger.custom_log(
@@ -218,45 +207,37 @@ impl<'a> HelperFormatter<'a> {
             FireworkAction::ReactiveBlockIgnore(_, sparks, _) => {
                 let deps: Vec<String> = sparks.sparks.iter().map(|(s, _)| s.clone()).collect();
                 let msg = format!(
-                    "{}\n{}",
+                    "{} {} [{}]",
                     loc!(
-                        "Merged reactive block (Issue #2 workaround).",
-                        "Слияние реактивных блоков (Решение Issue #2)."
+                        "Merged condition. UI detected inside a nested block.",
+                        "Склеенное условие. Обнаружен вложенный UI."
                     ),
                     loc!(
-                        "This block contains UI but is nested inside another reactive block. To prevent glitchy partial updates, the compiler 'merged' them. The parent block will now track these dependencies too:",
-                        "Этот условный блок вложен в другой, и внутри него есть UI. Чтобы интерфейс не глючил от частичных обновлений, компилятор применил 'слияние'. Он передал зависимости родительскому блоку:"
-                    )
+                        "Dependencies moved to the parent block:",
+                        "Зависимости переданы родительскому блоку:"
+                    ),
+                    deps.join(", ")
                 );
-                self.logger.custom_log(
-                    loc!("MERGED", "СЛИЯНИЕ"),
-                    LoggerColor::Yellow,
-                    &format!("{} [{}]", msg, deps.join(", ")),
-                );
+                self.logger
+                    .custom_log(loc!("MERGE", "СЛИЯНИЕ"), LoggerColor::Yellow, &msg);
             }
 
             FireworkAction::DynamicLoopBegin(_, _) => {
                 let msg = loc!(
-                    "Dynamic list starts here. The compiler enables the MicroRuntime for efficient diffing. Ensure your widgets inside have a unique `key:` prop.",
-                    "Начало динамического списка. Компилятор включает микро-рантайм для эффективной перерисовки элементов. Обязательно добавьте пропс `key:` виджетам внутри."
+                    "Dynamic list detected. Widgets inside must have a unique `key` prop.",
+                    "Обнаружен динамический список. Виджеты внутри должны иметь уникальный пропс `key`."
                 );
                 self.logger
-                    .custom_log(loc!("DYN LIST", "ДИН. СПИСОК"), LoggerColor::Blue, msg);
+                    .custom_log(loc!("LIST", "СПИСОК"), LoggerColor::Blue, msg);
             }
 
-            FireworkAction::SparkRef {
-                name, root, is_mut, ..
-            } => {
-                let mode = if *is_mut { "&mut" } else { "&" };
+            FireworkAction::SparkRef { name, root, .. } => {
                 let msg = format!(
-                    "{} `{}` -> `{}` ({}).",
-                    loc!(
-                        "Grabbing a reference to shared state:",
-                        "Берем ссылку на глобальный стейт (shared):"
-                    ),
+                    "{} `{}` {} `{}`.",
+                    loc!("Linked shared state", "Привязано общее состояние"),
                     root,
-                    name,
-                    mode
+                    loc!("to local variable", "к локальной переменной"),
+                    name
                 );
                 self.logger
                     .custom_log(loc!("SHARED", "ОБЩИЕ ДАННЫЕ"), LoggerColor::Cyan, &msg);
@@ -265,15 +246,15 @@ impl<'a> HelperFormatter<'a> {
             FireworkAction::DropSpark { name, .. } => {
                 let msg = format!(
                     "{} `{}`. {}",
-                    loc!("Dropping spark", "Конец жизни спарка"),
+                    loc!("Variable", "Переменная"),
                     name,
                     loc!(
-                        "The variable goes out of scope. The compiler safely returns its ownership back to static memory.",
-                        "Переменная выходит из области видимости. Компилятор аккуратно возвращает владение данными обратно в статическую память."
+                        "left scope. Reactivity tracking ended.",
+                        "вышла из области видимости. Отслеживание завершено."
                     )
                 );
                 self.logger
-                    .custom_log(loc!("LIFETIME", "ПАМЯТЬ"), LoggerColor::White, &msg);
+                    .custom_log(loc!("SCOPE", "ОБЛАСТЬ"), LoggerColor::White, &msg);
             }
 
             _ => {}
