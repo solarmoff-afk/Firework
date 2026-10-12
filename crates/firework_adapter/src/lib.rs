@@ -149,6 +149,9 @@ pub enum AdapterCommand<'a> {
 
     /// Устаналивает существующий объект как виртуальный канвас
     SharedVCanvas(usize, usize),
+
+    /// Возвращает AdapterResult::ShaderLang
+    GetShaderLanguage,
 }
 
 /// Перечисления для реализации абстракции над событием EventLoop. В своей реализации
@@ -202,4 +205,15 @@ pub enum AdapterResult {
     Fail,
     Handle(usize),
     Size(/* Ширина */ u32, u32),
+    ShaderLang(ShaderLanguage),
+}
+
+#[derive(Debug, Clone, Copy)]
+pub enum ShaderLanguage {
+    // Нет api, всё идёт через embedded или просто через процессорный рендеринг
+    Software,
+
+    Glsl,
+
+    Wgsl,
 }

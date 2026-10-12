@@ -1,7 +1,7 @@
 // [AI GEN ADAPTER EXAMPLE FOR TEST]
 
 use eframe::egui;
-use firework_ui::{AdapterClickPhase, AdapterCommand, AdapterEvent, AdapterResult};
+use firework_ui::{AdapterClickPhase, AdapterCommand, AdapterEvent, AdapterResult, ShaderLanguage};
 use std::sync::Mutex;
 
 const MAX_OBJECTS: usize = 4096;
@@ -83,6 +83,7 @@ struct AdapterState {
     listener: Option<fn(AdapterEvent)>,
     dirty: bool,
     ctx: Option<egui::Context>,
+    shader_lang: ShaderLanguage,
 }
 
 static ADAPTER_STATE: Mutex<AdapterState> = Mutex::new(AdapterState {
@@ -90,6 +91,7 @@ static ADAPTER_STATE: Mutex<AdapterState> = Mutex::new(AdapterState {
     listener: None,
     dirty: false,
     ctx: None,
+    shader_lang: ShaderLanguage::Software,
 });
 
 fn resolve_vcanvas(objects: &[RenderObject], obj: &RenderObject) -> (i32, i32, i32, i32) {
@@ -175,7 +177,20 @@ pub fn egui_adapter(cmd: AdapterCommand<'_>) -> AdapterResult {
             let _ = eframe::run_native(
                 title,
                 options,
-                Box::new(|_cc| Ok(Box::new(FireworkEguiApp))),
+                Box::new(|cc| {
+                    let shader_lang = if cc.gl.is_some() {
+                        ShaderLanguage::Glsl
+                    } else {
+                        ShaderLanguage::Wgsl
+                    };
+
+                    {
+                        let mut state = ADAPTER_STATE.lock().unwrap();
+                        state.shader_lang = shader_lang;
+                    }
+
+                    Ok(Box::new(FireworkEguiApp))
+                }),
             );
 
             AdapterResult::Void

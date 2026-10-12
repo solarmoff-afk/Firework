@@ -11,7 +11,9 @@ mod runtime_errors;
 #[cfg(feature = "safety")]
 use std::cell::RefCell;
 
-pub use firework_adapter::{AdapterClickPhase, AdapterCommand, AdapterEvent, AdapterResult};
+pub use firework_adapter::{
+    AdapterClickPhase, AdapterCommand, AdapterEvent, AdapterResult, ShaderLanguage,
+};
 pub use firework_macro::{component, effect, shared, ui};
 
 pub use null_adapter::null_adapter;
