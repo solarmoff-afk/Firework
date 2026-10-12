@@ -370,3 +370,39 @@ impl IntoSise for (i32, i32) {
         self
     }
 }
+
+/// Позволяет передавать радиус скругления либо одним числом (одинаковый для всех углов),
+/// либо кортежем из четырёх значений
+pub trait IntoCornerRadius {
+    fn into_corner_radius(self) -> (u16, u16, u16, u16);
+}
+
+impl IntoCornerRadius for i32 {
+    fn into_corner_radius(self) -> (u16, u16, u16, u16) {
+        let r = self.max(0) as u16;
+        (r, r, r, r)
+    }
+}
+
+impl IntoCornerRadius for u16 {
+    fn into_corner_radius(self) -> (u16, u16, u16, u16) {
+        (self, self, self, self)
+    }
+}
+
+impl IntoCornerRadius for (i32, i32, i32, i32) {
+    fn into_corner_radius(self) -> (u16, u16, u16, u16) {
+        (
+            self.0.max(0) as u16,
+            self.1.max(0) as u16,
+            self.2.max(0) as u16,
+            self.3.max(0) as u16,
+        )
+    }
+}
+
+impl IntoCornerRadius for (u16, u16, u16, u16) {
+    fn into_corner_radius(self) -> (u16, u16, u16, u16) {
+        self
+    }
+}

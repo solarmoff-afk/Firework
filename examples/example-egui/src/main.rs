@@ -22,6 +22,7 @@ component! {
                 position: (0, 0),
                 size: 100,
                 color: self.color.unwrap_or((255, 255, 255)),
+                rounded: 16,
                 on_click: || { println!("Hello") },
             }
         }
@@ -37,6 +38,7 @@ fn test_screen() {
         position: (10, 10),
         size: 100,
         color: (0, 255, 0),
+        rounded: 16,
         on_click: || {
             x += 25;
         },
@@ -46,6 +48,7 @@ fn test_screen() {
         position: (150, 10),
         size: 100,
         color: (255, 0, 0),
+        rounded: 16,
         on_click: || {
             x -= 25;
         },

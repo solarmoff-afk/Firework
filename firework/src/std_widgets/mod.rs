@@ -10,7 +10,7 @@ use widget::Widget;
 
 use crate::BuildContext;
 use crate::layout::{Constraints, Size};
-use crate::{IntoSise, adapter_command};
+use crate::{IntoCornerRadius, IntoSise, adapter_command};
 
 #[derive(Debug, Clone, Copy)]
 pub struct DefaultRectSkin {
@@ -65,6 +65,16 @@ impl DefaultRectSkin {
         let _ = adapter_command(AdapterCommand::SetColor(
             self.handle,
             (color.0, color.1, color.2, 255),
+        ));
+        self
+    }
+
+    /// Устаналивает скругление углов. Либо i32, либо (i32, i32, i32, i32), либо u16, либо
+    /// (u16, u16, u16, u16)
+    pub fn rounded<R: IntoCornerRadius>(self, radius: R) -> Self {
+        let _ = adapter_command(AdapterCommand::SetCornerRadius(
+            self.handle,
+            radius.into_corner_radius(),
         ));
         self
     }
