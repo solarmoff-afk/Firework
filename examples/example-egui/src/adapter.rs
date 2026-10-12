@@ -467,6 +467,8 @@ pub fn egui_adapter(cmd: AdapterCommand<'_>) -> AdapterResult {
             }
         }
 
+        AdapterCommand::GetShaderLanguage => AdapterResult::ShaderLang(state.shader_lang),
+
         AdapterCommand::Render => AdapterResult::Void,
     }
 }

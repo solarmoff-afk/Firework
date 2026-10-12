@@ -2,7 +2,7 @@
 // Лицензия EPL 2.0, подробнее в файле LICENSE. Copyright (c) 2026 Firework
 
 #[allow(unused)]
-use crate::{AdapterCommand, AdapterResult};
+use crate::{AdapterCommand, AdapterResult, ShaderLanguage};
 
 pub fn null_adapter(_cmd: AdapterCommand) -> AdapterResult {
     match &_cmd {
@@ -119,6 +119,8 @@ pub fn null_adapter(_cmd: AdapterCommand) -> AdapterResult {
 
             AdapterResult::Void
         }
+
+        AdapterCommand::GetShaderLanguage => AdapterResult::ShaderLang(ShaderLanguage::Software),
 
         _ => AdapterResult::Void,
     }
