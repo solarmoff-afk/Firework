@@ -4,13 +4,22 @@
 #[allow(unused)]
 use crate::{AdapterCommand, AdapterResult, ShaderLanguage};
 
+#[cfg(feature = "std-nulladapter")]
+use crate::AdapterEvent;
+
+#[cfg(feature = "std-nulladapter")]
+use std::thread;
+
+#[cfg(feature = "std-nulladapter")]
+use std::time::{Duration, Instant};
+
 pub fn null_adapter(_cmd: AdapterCommand) -> AdapterResult {
     match &_cmd {
         AdapterCommand::RunLoop {
             title: _title,
             width: _width,
             height: _height,
-            listener: _,
+            listener: _listener,
         } => {
             #[cfg(feature = "detail")]
             println!(
@@ -18,6 +27,27 @@ pub fn null_adapter(_cmd: AdapterCommand) -> AdapterResult {
                 _title, _width, _height
             );
 
+            #[cfg(feature = "std-nulladapter")]
+            {
+                let mut last_tick = Instant::now();
+                let target_frame_time = Duration::from_millis(16);
+
+                loop {
+                    let now = Instant::now();
+                    let elapsed = now.duration_since(last_tick);
+
+                    if elapsed >= target_frame_time {
+                        let delta_ms = elapsed.as_millis() as u32;
+                        last_tick = now;
+
+                        _listener(AdapterEvent::Tick(delta_ms));
+                    }
+
+                    thread::sleep(Duration::from_millis(1));
+                }
+            }
+
+            #[cfg(not(feature = "std-nulladapter"))]
             AdapterResult::Void
         }
 

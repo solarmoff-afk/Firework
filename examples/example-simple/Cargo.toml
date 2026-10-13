@@ -10,4 +10,4 @@ detail = ["firework_ui/detail"]
 trace = ["firework_ui/trace"]
 
 [dependencies]
-firework_ui = { workspace = true }
+firework_ui = { workspace = true, features = ["std-nulladapter"] }
