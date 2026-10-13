@@ -179,8 +179,8 @@ impl CodegenVisitor<'_> {
                                     <Self as firework_ui::std_widgets::widget::Widget>::__event(self, context);
                                 }
 
-                                pub fn __fwc_tick(&mut self, context: firework_ui::BuildContext, delta: u32) {
-                                    <Self as firework_ui::std_widgets::widget::Widget>::__tick(self, context, delta);
+                                pub fn __fwc_tick(&mut self, context: firework_ui::BuildContext, delta: u32, resolver: Option<fn()>) {
+                                    <Self as firework_ui::std_widgets::widget::Widget>::__tick(self, context, delta, resolver);
                                 }
                             }
                         };
@@ -249,7 +249,7 @@ impl CodegenVisitor<'_> {
                                     #event_tokens
                                 }
 
-                                fn __tick(&mut self, _context: firework_ui::BuildContext, _delta: u32) {
+                                fn __tick(&mut self, _context: firework_ui::BuildContext, _delta: u32, _resolver: Option<fn()>) {
                                     #tick_tokens
                                 }
                             }
