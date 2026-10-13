@@ -33,6 +33,11 @@ macro_rules! raw {
     };
 }
 
+#[macro_export]
+macro_rules! _fwrt_terminator {
+    () => {};
+}
+
 pub const TOUCH_HIT_GROUP: u16 = u16::MAX;
 
 /// Type for component props

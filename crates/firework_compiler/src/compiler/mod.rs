@@ -67,7 +67,7 @@ pub fn run_firework_compiler(
         #[cfg(feature = "trace")]
         let _span = info_span!("desugaring").entered();
 
-        normalize_ast(&mut file);
+        normalize_ast(&mut file, flags);
     }
 
     let output = {

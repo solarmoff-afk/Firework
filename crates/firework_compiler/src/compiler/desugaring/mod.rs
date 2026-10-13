@@ -1,6 +1,8 @@
 // Часть проекта Firework с открытым исходным кодом.
 // Лицензия EPL 2.0, подробнее в файле LICENSE. Copyright (c) 2026 Firework
 
+mod flash;
+
 use syn::parse::Parser;
 
 use quote::quote;
@@ -9,10 +11,19 @@ use syn::{
     Expr, ExprBlock, ExprClosure, File, ItemMacro, Macro, parse_quote_spanned, spanned::Spanned,
 };
 
+use crate::CompileFlags;
 use crate::compiler::analyze::expr::widget::WidgetArgs;
 use crate::compiler::common::widget_kind::{is_layout, is_widget};
 
-pub struct DesugarVisitor;
+pub struct DesugarVisitor {
+    pub flags: CompileFlags,
+}
+
+impl DesugarVisitor {
+    pub fn new(flags: CompileFlags) -> Self {
+        Self { flags }
+    }
+}
 
 impl VisitMut for DesugarVisitor {
     /// Разворачивает короткое замыкание (без блока) в замыкание с блоком внутри. Это
@@ -117,9 +128,19 @@ impl VisitMut for DesugarVisitor {
         }
         syn::visit_mut::visit_macro_mut(self, i);
     }
+
+    fn visit_item_fn_mut(&mut self, i: &mut syn::ItemFn) {
+        syn::visit_mut::visit_item_fn_mut(self, i);
+        self.desugar_flash_item_fn(i);
+    }
+
+    fn visit_item_impl_mut(&mut self, i: &mut syn::ItemImpl) {
+        syn::visit_mut::visit_item_impl_mut(self, i);
+        self.desugar_flash_item_impl(i);
+    }
 }
 
-pub fn normalize_ast(file: &mut File) {
-    let mut visitor = DesugarVisitor;
+pub fn normalize_ast(file: &mut File, flags: CompileFlags) {
+    let mut visitor = DesugarVisitor::new(flags);
     visitor.visit_file_mut(file);
 }
