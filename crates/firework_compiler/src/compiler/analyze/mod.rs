@@ -3,7 +3,7 @@
 
 mod components;
 mod context;
-mod expr;
+pub mod expr;
 mod lifetime;
 mod linter;
 mod marks;
