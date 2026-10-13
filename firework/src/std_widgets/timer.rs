@@ -95,7 +95,7 @@ impl<T> Widget for Timer<T> {
 
     fn __event(&mut self, _context: BuildContext) {}
 
-    fn __tick(&mut self, _context: BuildContext, delta: u32) {
+    fn __tick(&mut self, _context: BuildContext, delta: u32, _resolver: Option<fn()>) {
         if !self.visible.get() || !self.is_active.get() {
             return;
         }

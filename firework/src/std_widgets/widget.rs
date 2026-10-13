@@ -24,7 +24,7 @@ pub trait Widget {
     fn __event(&mut self, context: BuildContext);
 
     /// Для стандартных виджетов заглушка, для компонентов передача
-    fn __tick(&mut self, context: BuildContext, delta: u32);
+    fn __tick(&mut self, context: BuildContext, delta: u32, resolver: Option<fn()>);
 }
 
 /// Реализация Widget для &mut T, так как он нужен в safety режиме на этапе расчёта Z. &mut
@@ -63,7 +63,7 @@ impl<T: Widget + ?Sized> Widget for &mut T {
         (**self).__event(context);
     }
 
-    fn __tick(&mut self, context: BuildContext, delta: u32) {
-        (**self).__tick(context, delta);
+    fn __tick(&mut self, context: BuildContext, delta: u32, resolver: Option<fn()>) {
+        (**self).__tick(context, delta, resolver);
     }
 }

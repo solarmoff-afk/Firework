@@ -342,7 +342,7 @@ impl CodegenVisitor<'_> {
 
                     widget_ticks.extend(quote! {
                         if let Some(ref mut _fwc_element) = _fwc_inst.#name {
-                            firework_ui::std_widgets::widget::Widget::__tick(_fwc_element, _context, _delta);
+                            firework_ui::std_widgets::widget::Widget::__tick(_fwc_element, _context, _delta, None);
                         }
                     });
                 }
