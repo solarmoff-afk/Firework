@@ -129,6 +129,11 @@ pub enum CurrentEvent {
         hit_object_id: Option<usize>,
         phase: AdapterClickPhase,
     },
+
+    Timeout {
+        timer_id: u32,
+        depth: u16,
+    },
 }
 
 #[cfg(not(feature = "safety"))]

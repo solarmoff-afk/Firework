@@ -81,6 +81,9 @@ pub struct AnalyzeContext {
 
     // Хук на последний лайаут
     pub layout_hook: Option<IrHook>,
+
+    // Счётчик таймеров timer! {}
+    pub timer_counter: usize,
 }
 
 impl AnalyzeContext {
@@ -129,6 +132,7 @@ impl AnalyzeContext {
             first_cycle: None,
             now_component: (None, None),
             layout_hook: None,
+            timer_counter: 0,
         }
     }
 }
