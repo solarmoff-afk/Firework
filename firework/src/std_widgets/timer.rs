@@ -10,8 +10,8 @@ use core::cell::Cell;
 
 #[derive(Debug)]
 pub struct Timer<T> {
-    pub time: Cell<i32>,
-    pub delay: Cell<i32>,
+    pub time: Cell<u32>,
+    pub delay: Cell<u32>,
     visible: Cell<bool>,
     pub is_active: Cell<bool>,
     pub output_value: Option<T>,
@@ -52,7 +52,7 @@ impl<T> Timer<T> {
         self
     }
 
-    pub fn delay(self, delay: i32) -> Self {
+    pub fn delay(self, delay: u32) -> Self {
         self.time.set(0);
         self.delay.set(delay);
         self.visible.set(true);
@@ -94,5 +94,19 @@ impl<T> Widget for Timer<T> {
     fn set_vcanvas(&self, _vcanvas_handle: usize) {}
 
     fn __event(&mut self, _context: BuildContext) {}
-    fn __tick(&mut self, _context: BuildContext, _delta: u32) {}
+
+    fn __tick(&mut self, _context: BuildContext, delta: u32) {
+        if !self.visible.get() || !self.is_active.get() {
+            return;
+        }
+
+        if self.time.get() < self.delay.get() {
+            self.time.set(self.time.get() + delta);
+            return;
+        }
+
+        println!("Now!");
+        self.is_active.set(false);
+        self.visible.set(false);
+    }
 }
