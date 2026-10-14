@@ -16,7 +16,7 @@ pub use firework_adapter::{
 };
 pub use firework_macro::{component, effect, shared, ui};
 
-pub use null_adapter::null_adapter;
+pub use null_adapter::{null_adapter, test_null_adapter};
 pub use runtime::dyn_list::{DynList, ListEntry};
 pub use runtime_errors::RENDER_ADAPTER_MISSING_ERROR;
 

@@ -15,6 +15,7 @@ detail = ["firework_macro/debug_output"]
 trace = ["firework_macro/trace"]
 async = ["dep:tokio", "dep:futures", "dep:tokio-stream", "firework_macro/async"]
 ru = ["firework_macro/ru"]
+test-mode = []
 
 [dependencies]
 firework_macro = { workspace = true }

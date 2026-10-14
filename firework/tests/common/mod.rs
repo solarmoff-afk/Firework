@@ -2,7 +2,7 @@
 // Лицензия EPL 2.0, подробнее в файле LICENSE. Copyright (c) 2026 Firework
 
 use firework_adapter::TestCommand;
-use firework_ui::{AdapterCommand, AdapterResult, null_adapter, run_with_adapter};
+use firework_ui::{AdapterCommand, AdapterResult, run_with_adapter, test_null_adapter};
 use std::cell::RefCell;
 
 thread_local! {
@@ -19,7 +19,7 @@ impl TestHarness {
             COMMANDS.with(|cmds| cmds.borrow_mut().push(test_cmd));
         }
 
-        null_adapter(command)
+        test_null_adapter(command)
     }
 
     pub fn run(ui_fn: fn()) -> Vec<TestCommand> {
