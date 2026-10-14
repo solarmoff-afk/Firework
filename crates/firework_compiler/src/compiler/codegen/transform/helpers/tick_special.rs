@@ -10,7 +10,7 @@ use crate::compiler::codegen::ir::WidgetDescription;
 
 impl CodegenVisitor<'_> {
     pub fn gen_tick_resolver(&self, description: &WidgetDescription) -> TokenStream {
-        let mut resolver = quote! { None };
+        let mut resolver = quote! {};
 
         if let SpecialWidget::Timer(_timer) = &description.special {
             resolver = quote! {
