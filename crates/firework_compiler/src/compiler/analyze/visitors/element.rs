@@ -170,6 +170,13 @@ impl<'ast> Analyzer {
             // Для специальных виджетов
             let mut special = SpecialWidget::None;
             if name == "timer" {
+                if let Some(component_name) = &self.context.now_component.0
+                    && let Some(component) =
+                        self.context.ir.component_structs.get_mut(component_name)
+                {
+                    component.events.on_timeout = true;
+                }
+
                 // Если мы в замыкании и есть on_timeout ивент, то нужно выкинуть ошибку
                 if self.lifetime_manager.in_closure.is_some() && timer_on_timeout {
                     self.context.errors.push(compile_error_spanned(

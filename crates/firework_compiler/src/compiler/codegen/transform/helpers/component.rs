@@ -138,14 +138,21 @@ impl CodegenVisitor<'_> {
     }
 
     pub fn gen_event_tokens(&self, declaration: &ComponentDeclaration) -> TokenStream {
+        let null_tokens = quote! {};
         let flash_tokens = quote! {
             self.flash(_context);
         };
 
         let on_click_tokens = if declaration.events.on_click {
-            flash_tokens
+            &flash_tokens
         } else {
-            quote! {}
+            &null_tokens
+        };
+
+        let on_timeout_tokens = if declaration.events.on_timeout {
+            &flash_tokens
+        } else {
+            &null_tokens
         };
 
         let mut visible_tokens = quote! {
@@ -156,6 +163,12 @@ impl CodegenVisitor<'_> {
                     ..
                 } = firework_ui::take_current_event() {
                     #on_click_tokens
+                }
+
+                if let firework_ui::CurrentEvent::Timeout {
+                    ..
+                } = firework_ui::take_current_event() {
+                    #on_timeout_tokens
                 }
             }
         };
