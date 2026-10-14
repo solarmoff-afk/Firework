@@ -7,4 +7,5 @@ pub mod dynamic_list;
 pub mod flash_pass;
 pub mod reactive;
 pub mod shared;
+pub mod tick_special;
 pub mod widget_bitmask;

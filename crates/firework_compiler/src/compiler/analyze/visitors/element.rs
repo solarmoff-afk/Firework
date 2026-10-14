@@ -350,7 +350,13 @@ impl<'ast> Analyzer {
             self.add_field_to_struct(widget_field_name.clone(), skin_field.to_string());
 
             // Отдельное добавление виджета для кодоегенрации расчёта z иерархии
-            self.add_widget_to_struct(widget_field_name, widget_type, has_microruntime, has_z);
+            self.add_widget_to_struct(
+                widget_field_name,
+                widget_type,
+                has_microruntime,
+                has_z,
+                descriptor.clone(),
+            );
 
             let widget_block = FireworkAction::WidgetBlock(descriptor);
             self.context.statement.action = widget_block;

@@ -8,6 +8,7 @@ fn test_screen() {
         target: red,
         output: 100,
         delay: 1500,
+        on_click: || { println!("Hello"); },
     }
 
     timer! {

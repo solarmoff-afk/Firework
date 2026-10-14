@@ -339,10 +339,11 @@ impl CodegenVisitor<'_> {
             if let Some(screen) = self.ir.screen_structs.get(&struct_name) {
                 for i in &screen.widgets.widgets {
                     let name = format_ident!("{}", i.0);
+                    let resolver = self.gen_tick_resolver(&i.4);
 
                     widget_ticks.extend(quote! {
                         if let Some(ref mut _fwc_element) = _fwc_inst.#name {
-                            firework_ui::std_widgets::widget::Widget::__tick(_fwc_element, _context, _delta, None);
+                            firework_ui::std_widgets::widget::Widget::__tick(_fwc_element, _context, _delta, #resolver);
                         }
                     });
                 }

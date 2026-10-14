@@ -178,10 +178,11 @@ impl CodegenVisitor<'_> {
 
         for i in &declaration.widgets.widgets {
             let name = format_ident!("{}", i.0);
+            let resolver = self.gen_tick_resolver(&i.4);
 
             tick_tokens.extend(quote! {
                 if let Some(ref mut _fwc_element) = self.#name {
-                    _fwc_element.__tick(_context, _delta, None);
+                    _fwc_element.__tick(_context, _delta, #resolver);
                 }
             });
         }

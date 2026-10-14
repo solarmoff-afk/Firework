@@ -2,6 +2,7 @@
 // Лицензия EPL 2.0, подробнее в файле LICENSE. Copyright (c) 2026 Firework
 
 use crate::compiler::codegen::ir::ScreenWidgetType;
+use crate::compiler::codegen::ir::WidgetDescription;
 
 pub use super::super::*;
 
@@ -62,6 +63,7 @@ impl Analyzer {
         widget_type: ScreenWidgetType,
         is_microruntime: bool,
         has_z_prop: bool,
+        description: WidgetDescription,
     ) {
         if let Some(_function_name) = &self.function_name {
             match self.context.now_component.0 {
@@ -70,10 +72,15 @@ impl Analyzer {
                     widget_type,
                     is_microruntime,
                     has_z_prop,
+                    description,
                 ),
-                None => {
-                    self.add_widget_to_screen(field_name, widget_type, is_microruntime, has_z_prop)
-                }
+                None => self.add_widget_to_screen(
+                    field_name,
+                    widget_type,
+                    is_microruntime,
+                    has_z_prop,
+                    description,
+                ),
             }
         }
     }
@@ -84,6 +91,7 @@ impl Analyzer {
         widget_type: ScreenWidgetType,
         is_microruntime: bool,
         has_z_prop: bool,
+        description: WidgetDescription,
     ) {
         self.context
             .ir
@@ -100,6 +108,7 @@ impl Analyzer {
                 widget_type,
                 is_microruntime,
                 has_z_prop,
+                description,
             ));
     }
 
@@ -109,6 +118,7 @@ impl Analyzer {
         widget_type: ScreenWidgetType,
         is_microruntime: bool,
         has_z_prop: bool,
+        description: WidgetDescription,
     ) {
         // SAFETY: Этот метож вызывается только из add_field_to_struct и только если
         // now_component это Some
@@ -124,6 +134,7 @@ impl Analyzer {
                 widget_type,
                 is_microruntime,
                 has_z_prop,
+                description,
             ));
     }
 }

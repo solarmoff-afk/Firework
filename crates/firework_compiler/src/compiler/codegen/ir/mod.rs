@@ -155,10 +155,11 @@ pub struct ScreenDeclaration {
 #[derive(Debug, Clone, Default)]
 pub struct WidgetsStorage {
     pub widgets: Vec<(
-        /* Имя поля */ String,
-        /* Тип виджета */ ScreenWidgetType,
-        /* В цикле ли он */ bool,
-        /* Есть ли забитый z */ bool,
+        /* Имя поля (0) */ String,
+        /* Тип виджета (1) */ ScreenWidgetType,
+        /* В цикле ли он (2) */ bool,
+        /* Есть ли забитый z (3) */ bool,
+        /* Дескриптор виджета (4) */ WidgetDescription,
     )>,
 }
 

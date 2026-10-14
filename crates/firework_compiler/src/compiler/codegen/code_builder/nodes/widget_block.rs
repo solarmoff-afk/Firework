@@ -194,6 +194,16 @@ impl CodeBuilder {
                 widget_init.extend(quote! {
                     .__fwc_timer_cfg(#id, _fwc_depth)
                 });
+
+                widget_reactive.extend(quote! {
+                    if firework_ui::tiny_matches!(_fwc_event, firework_ui::LifeCycle::Event) {
+                        if let firework_ui::CurrentEvent::Timeout {
+                            timer_id: id, depth,
+                        } = firework_ui::take_current_event() {
+                            println!("Timeout");
+                        }
+                    }
+                });
             }
 
             if is_component {
