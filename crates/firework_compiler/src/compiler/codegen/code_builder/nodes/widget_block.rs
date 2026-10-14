@@ -200,7 +200,10 @@ impl CodeBuilder {
                         if let firework_ui::CurrentEvent::Timeout {
                             timer_id: id, depth,
                         } = firework_ui::take_current_event() {
-                            println!("Timeout");
+                            let _fwc_wb_3 = _fwc_wb_1.id.get();
+                            if id == _fwc_wb_3.0 && depth == _fwc_wb_3.1 {
+                                println!("Timeout");
+                            }
                         }
                     }
                 });

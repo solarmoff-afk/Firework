@@ -131,7 +131,7 @@ pub enum CurrentEvent {
     },
 
     Timeout {
-        timer_id: u32,
+        timer_id: usize,
         depth: u16,
     },
 }
