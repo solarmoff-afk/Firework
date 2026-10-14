@@ -82,8 +82,8 @@ impl<K: Eq + PartialEq, T: Widget> DynList<K, T> {
     }
 
     /// Групповое управление видимостью для финализатора экрана
-    pub fn visible(&self, state: bool) {
-        for (_, item) in &self.current_items {
+    pub fn visible(&mut self, state: bool) {
+        for (_, item) in &mut self.current_items {
             item.visible(state);
         }
     }
@@ -98,7 +98,7 @@ impl<K: Eq + PartialEq, T: Widget> DynList<K, T> {
 
     /// Устанавливает z координату в диапазоне. Нужно вызывать после end_pass
     pub fn set_z_range(
-        &self,
+        &mut self,
         /* z координата первого элемента списка, для каждого следующего элемента
          * делается +1 к этому параметру. Так продолжается пока элементы не подойдут
          * к концу */
@@ -106,7 +106,7 @@ impl<K: Eq + PartialEq, T: Widget> DynList<K, T> {
     ) {
         let mut z = z_start;
 
-        for (_, item) in self.current_items.iter() {
+        for (_, item) in self.current_items.iter_mut() {
             item.set_z(z);
             z = z.saturating_add(1);
         }
@@ -194,9 +194,9 @@ impl<K: Eq + PartialEq, T: Widget> DynList<K, T> {
         }
     }
 
-    pub fn visible(&self, state: bool) {
+    pub fn visible(&mut self, state: bool) {
         for i in 0..self.current_count {
-            if let Some((_, item)) = &self.current_items[i] {
+            if let Some((_, item)) = &mut self.current_items[i] {
                 item.visible(state);
             }
         }
@@ -225,11 +225,11 @@ impl<K: Eq + PartialEq, T: Widget> DynList<K, T> {
         self.current_count.try_into().unwrap()
     }
 
-    pub fn set_z_range(&self, z_start: i16) {
+    pub fn set_z_range(&mut self, z_start: i16) {
         let mut current_z = z_start;
 
         for i in 0..self.current_count {
-            if let Some((_, item)) = &self.current_items[i] {
+            if let Some((_, item)) = &mut self.current_items[i] {
                 item.set_z(current_z);
                 current_z = current_z.saturating_add(1);
             }
@@ -238,9 +238,9 @@ impl<K: Eq + PartialEq, T: Widget> DynList<K, T> {
 }
 
 impl<K: Eq + PartialEq, T: Widget> Widget for DynList<K, T> {
-    fn position(&self, _position: (i32, i32)) {}
+    fn position(&mut self, _position: (i32, i32)) {}
 
-    fn visible(&self, visible: bool) {
+    fn visible(&mut self, visible: bool) {
         self.visible(visible);
     }
 
@@ -267,11 +267,11 @@ impl<K: Eq + PartialEq, T: Widget> Widget for DynList<K, T> {
         }
     }
 
-    fn get_z_size(&self) -> i16 {
+    fn get_z_size(&mut self) -> i16 {
         self.len()
     }
 
-    fn set_z(&self, z: i16) {
+    fn set_z(&mut self, z: i16) {
         self.set_z_range(z);
     }
 

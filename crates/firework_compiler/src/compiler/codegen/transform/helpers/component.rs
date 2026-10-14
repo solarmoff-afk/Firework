@@ -14,7 +14,7 @@ impl CodegenVisitor<'_> {
     pub fn gen_get_z_size_tokens(&self, declaration: &ComponentDeclaration) -> TokenStream {
         let mut z_compute_tokens = quote! {};
         let z_compute_widget_tokens = quote! {
-            _fwc_z += firework_ui::std_widgets::widget::Widget::get_z_size(&_fwc_element) + 1;
+            _fwc_z += firework_ui::std_widgets::widget::Widget::get_z_size(_fwc_element) + 1;
         };
 
         let z_compute_dynlist_tokens = quote! {
@@ -32,7 +32,7 @@ impl CodegenVisitor<'_> {
             };
 
             z_compute_tokens.extend(quote! {
-                if let Some(_fwc_element) = self.#name {
+                if let Some(ref mut _fwc_element) = self.#name {
                     #z_variant
                 }
             });
@@ -45,8 +45,8 @@ impl CodegenVisitor<'_> {
     pub fn gen_set_s_tokens(&self, declaration: &ComponentDeclaration) -> TokenStream {
         let mut z_compute_tokens = quote! {};
         let z_compute_widget_tokens = quote! {
-            firework_ui::std_widgets::widget::Widget::set_z(&_fwc_element, _fwc_z);
-            _fwc_z += firework_ui::std_widgets::widget::Widget::get_z_size(&_fwc_element) + 1;
+            firework_ui::std_widgets::widget::Widget::set_z(_fwc_element, _fwc_z);
+            _fwc_z += firework_ui::std_widgets::widget::Widget::get_z_size(_fwc_element) + 1;
         };
 
         let z_compute_dynlist_tokens = quote! {
@@ -71,7 +71,7 @@ impl CodegenVisitor<'_> {
             };
 
             z_compute_tokens.extend(quote! {
-                if let Some(_fwc_element) = self.#name {
+                if let Some(ref mut _fwc_element) = self.#name {
                     #z_variant
                 }
             });
@@ -112,7 +112,7 @@ impl CodegenVisitor<'_> {
             let name = format_ident!("{}", i.0);
 
             visible_tokens.extend(quote! {
-                if let Some(_fwc_element) = self.#name {
+                if let Some(ref mut _fwc_element) = self.#name {
                     _fwc_element.visible(visible);
                 }
             });

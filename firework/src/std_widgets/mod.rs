@@ -114,11 +114,11 @@ impl DefaultRectSkin {
 }
 
 impl Widget for DefaultRectSkin {
-    fn position(&self, position: (i32, i32)) {
+    fn position(&mut self, position: (i32, i32)) {
         DefaultRectSkin::position(*self, position);
     }
 
-    fn visible(&self, state: bool) {
+    fn visible(&mut self, state: bool) {
         DefaultRectSkin::visible(*self, state);
     }
 
@@ -149,11 +149,11 @@ impl Widget for DefaultRectSkin {
         }
     }
 
-    fn get_z_size(&self) -> i16 {
+    fn get_z_size(&mut self) -> i16 {
         1
     }
 
-    fn set_z(&self, z: i16) {
+    fn set_z(&mut self, z: i16) {
         self.z(z);
     }
 

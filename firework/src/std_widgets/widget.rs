@@ -7,15 +7,15 @@ use crate::layout::{Constraints, Size};
 /// Трейт который должны реализовать все скины для поддержки видимости в списках. Он
 /// гарантирует наличие метода visible
 pub trait Widget {
-    fn position(&self, position: (i32, i32));
-    fn visible(&self, state: bool);
+    fn position(&mut self, position: (i32, i32));
+    fn visible(&mut self, state: bool);
     fn unmount(self);
     fn layout(&mut self, constraints: Constraints) -> Size;
 
     /// Сколько z занимает этот виджет (для компоновки)
-    fn get_z_size(&self) -> i16;
+    fn get_z_size(&mut self) -> i16;
 
-    fn set_z(&self, z: i16);
+    fn set_z(&mut self, z: i16);
 
     /// Устаналивает VCanvas для проекции компонента
     fn set_vcanvas(&self, vcanvas_handle: usize);
@@ -30,11 +30,11 @@ pub trait Widget {
 /// Реализация Widget для &mut T, так как он нужен в safety режиме на этапе расчёта Z. &mut
 /// здесь нужен для того, чтобы не было ошибки из-за метода layout
 impl<T: Widget + ?Sized> Widget for &mut T {
-    fn position(&self, position: (i32, i32)) {
+    fn position(&mut self, position: (i32, i32)) {
         (**self).position(position);
     }
 
-    fn visible(&self, state: bool) {
+    fn visible(&mut self, state: bool) {
         (**self).visible(state);
     }
 
@@ -47,11 +47,11 @@ impl<T: Widget + ?Sized> Widget for &mut T {
         (**self).layout(constraints)
     }
 
-    fn get_z_size(&self) -> i16 {
+    fn get_z_size(&mut self) -> i16 {
         (**self).get_z_size()
     }
 
-    fn set_z(&self, z: i16) {
+    fn set_z(&mut self, z: i16) {
         (**self).set_z(z);
     }
 

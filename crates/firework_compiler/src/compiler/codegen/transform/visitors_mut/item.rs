@@ -133,8 +133,8 @@ impl CodegenVisitor<'_> {
                                     self
                                 }
 
-                                pub fn z(self, z: i16) -> Self {
-                                    <Self as firework_ui::std_widgets::widget::Widget>::set_z(&self, z);
+                                pub fn z(mut self, z: i16) -> Self {
+                                    <Self as firework_ui::std_widgets::widget::Widget>::set_z(&mut self, z);
                                     self
                                 }
 
@@ -188,11 +188,11 @@ impl CodegenVisitor<'_> {
                         // Реализация виджета
                         let widget_impl = parse_quote! {
                             impl #generics firework_ui::std_widgets::widget::Widget for #struct_name #type_generics {
-                                fn position(&self, position: (i32, i32)) {
+                                fn position(&mut self, position: (i32, i32)) {
                                     self.__set_position(position);
                                 }
 
-                                fn visible(&self, visible: bool) {
+                                fn visible(&mut self, visible: bool) {
                                     #visible_tokens
                                 }
 
@@ -211,7 +211,7 @@ impl CodegenVisitor<'_> {
                                     }
                                 }
 
-                                fn get_z_size(&self) -> i16 {
+                                fn get_z_size(&mut self) -> i16 {
                                     // По умолчанию 1 из-за подложки которая занимает 1 z
                                     let mut _fwc_z: i16 = 1;
                                     #get_z_size_tokens
@@ -219,7 +219,7 @@ impl CodegenVisitor<'_> {
                                     _fwc_z
                                 }
 
-                                fn set_z(&self, z: i16) {
+                                fn set_z(&mut self, z: i16) {
                                     let mut _fwc_z: i16 = z;
                                     #set_z_tokens
 
@@ -612,11 +612,11 @@ impl CodegenVisitor<'_> {
 
                 let mut z_compute_tokens = quote! {};
                 let z_compute_widget_tokens = quote! {
-                    firework_ui::std_widgets::widget::Widget::set_z(&_fwc_element, _fwc_z);
+                    firework_ui::std_widgets::widget::Widget::set_z(_fwc_element, _fwc_z);
 
                     // +1 так как следующий виджет займёт именно _fwc_z позицию,
                     // поэтому выделяется место под следующий
-                    _fwc_z += firework_ui::std_widgets::widget::Widget::get_z_size(&_fwc_element) + 1;
+                    _fwc_z += firework_ui::std_widgets::widget::Widget::get_z_size(_fwc_element) + 1;
                 };
 
                 let z_compute_dynlist_tokens = quote! {
@@ -647,7 +647,7 @@ impl CodegenVisitor<'_> {
 
                     if is_component {
                         z_compute_tokens.extend(quote! {
-                            if let Some(_fwc_element) = self.#name {
+                            if let Some(ref mut _fwc_element) = self.#name {
                                 #z_compute_variant
                             }
                         });

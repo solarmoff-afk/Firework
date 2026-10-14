@@ -75,9 +75,9 @@ impl<T> Timer<T> {
 }
 
 impl<T> Widget for Timer<T> {
-    fn position(&self, _position: (i32, i32)) {}
+    fn position(&mut self, _position: (i32, i32)) {}
 
-    fn visible(&self, state: bool) {
+    fn visible(&mut self, state: bool) {
         self.visible.set(state);
     }
 
@@ -93,11 +93,11 @@ impl<T> Widget for Timer<T> {
         }
     }
 
-    fn get_z_size(&self) -> i16 {
+    fn get_z_size(&mut self) -> i16 {
         0
     }
 
-    fn set_z(&self, _z: i16) {}
+    fn set_z(&mut self, _z: i16) {}
 
     fn set_vcanvas(&self, _vcanvas_handle: usize) {}
 
