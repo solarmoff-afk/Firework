@@ -8,6 +8,7 @@ use super::super::*;
 
 use crate::CompileType;
 use crate::compiler::CodegenVisitor;
+use crate::compiler::codegen::ir::SpecialWidget;
 
 impl CodeBuilder {
     #[cfg_attr(feature = "trace", tracing::instrument(skip_all, fields(span = ?span)))]
@@ -181,6 +182,18 @@ impl CodeBuilder {
                         }
                     });
                 }
+            }
+
+            // Для таймера нужно добавить отдельную конфигурацию, чтобы внести в него id таймера
+            // как магическое число и _fwc_depth
+            if description.widget_type == "timer"
+                && let SpecialWidget::Timer(timer) = &description.special
+            {
+                let id = timer.id;
+
+                widget_init.extend(quote! {
+                    .__fwc_timer_cfg(#id, _fwc_depth)
+                });
             }
 
             if is_component {

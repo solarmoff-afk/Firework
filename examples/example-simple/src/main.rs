@@ -10,6 +10,12 @@ fn test_screen() {
         delay: 1500,
     }
 
+    timer! {
+        target: red,
+        output: 200,
+        delay: 5000,
+    }
+
     effect!(red, {
         println!("Red: {}", red);
     });

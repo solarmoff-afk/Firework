@@ -15,6 +15,7 @@ pub struct Timer<T> {
     visible: Cell<bool>,
     pub is_active: Cell<bool>,
     pub output_value: Option<T>,
+    pub id: Cell<(/* id */ usize, /* depth */ u16)>,
 }
 
 impl<T> Timer<T> {
@@ -25,6 +26,7 @@ impl<T> Timer<T> {
             visible: Cell::new(false),
             is_active: Cell::new(false),
             output_value: None,
+            id: Cell::new((0, 0)),
         })
     }
 
@@ -62,6 +64,12 @@ impl<T> Timer<T> {
 
     pub fn output(mut self, value: T) -> Self {
         self.output_value = Some(value);
+        self
+    }
+
+    /// Конфигурация таймера
+    pub fn __fwc_timer_cfg(self, id: usize, depth: u16) -> Self {
+        self.id.set((id, depth));
         self
     }
 }
