@@ -77,5 +77,5 @@ pub struct TimerWidget {
     pub write: bool,
     pub event: bool,
     pub id: usize,
-    pub spark_id: Option<usize>,
+    pub spark: Option<(/* Имя */ String, /* Id */ usize)>,
 }

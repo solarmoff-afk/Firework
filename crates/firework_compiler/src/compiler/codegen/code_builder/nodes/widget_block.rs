@@ -191,6 +191,23 @@ impl CodeBuilder {
             {
                 let id = timer.id;
 
+                // Для спарка таймера
+                let mask_statement = if let Some(spark) = &timer.spark {
+                    let mask = get_spark_mask(spark.1);
+                    let mask_ident = format_ident!("_fwc_bitmask{}", mask);
+                    let bit_id = normalize_bit_index(spark.1);
+                    let name = format_ident!("{}", spark.0);
+
+                    quote! {
+                        if let Some(_val) = _fwc_wb_1.output_value.take() {
+                            #name = _val;
+                            #mask_ident.set(#mask_ident.get() | (1 << #bit_id));
+                        }
+                    }
+                } else {
+                    quote! {}
+                };
+
                 widget_init.extend(quote! {
                     .__fwc_timer_cfg(#id, _fwc_depth)
                 });
@@ -202,7 +219,7 @@ impl CodeBuilder {
                         } = firework_ui::take_current_event() {
                             let _fwc_wb_3 = _fwc_wb_1.id.get();
                             if id == _fwc_wb_3.0 && depth == _fwc_wb_3.1 {
-                                println!("Timeout");
+                                #mask_statement
                             }
                         }
                     }

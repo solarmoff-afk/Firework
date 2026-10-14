@@ -197,13 +197,13 @@ impl<'ast> Analyzer {
 
                 // Эта переменная нужна, чтобы заполнить её при наличии спарка и использовать
                 // в заполнении SpecialWidget
-                let mut spark_id: Option<usize> = None;
+                let mut timer_spark: Option<(String, usize)> = None;
 
                 skin_field = if let Some(ident) = timer_target_expr
                     && let Some(simple) = simple_ident(&ident)
                     && let Some(spark) = self.lifetime_manager.find_spark_type(&simple)
                 {
-                    spark_id = Some(spark.1);
+                    timer_spark = Some((simple, spark.1));
                     format!("{}<{}>", skin_field, /* Тип */ spark.0)
                 } else {
                     self.context.errors.push(compile_error_spanned(
@@ -218,7 +218,7 @@ impl<'ast> Analyzer {
                     write: timer_target && timer_output,
                     event: timer_on_timeout,
                     id: self.context.timer_counter,
-                    spark_id,
+                    spark: timer_spark,
                 });
                 self.context.timer_counter += 1;
             }
