@@ -103,21 +103,19 @@ impl<T> Widget for Timer<T> {
 
     fn __event(&mut self, _context: BuildContext) {}
 
-    fn __tick(&mut self, _context: BuildContext, delta: u32, resolver: Option<fn()>) {
+    fn __tick(&mut self, delta: u32) -> bool {
         if !self.visible.get() || !self.is_active.get() {
-            return;
+            return false;
         }
 
         if self.time.get() < self.delay.get() {
             self.time.set(self.time.get() + delta);
-            return;
-        }
-
-        if let Some(callback) = resolver {
-            callback();
+            return false;
         }
 
         self.is_active.set(false);
         self.visible.set(false);
+
+        true
     }
 }

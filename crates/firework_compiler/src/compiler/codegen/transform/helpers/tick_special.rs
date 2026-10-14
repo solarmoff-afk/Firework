@@ -13,7 +13,12 @@ impl CodegenVisitor<'_> {
         let mut resolver = quote! { None };
 
         if let SpecialWidget::Timer(_timer) = &description.special {
-            resolver = quote! { Some(|| { println!("Timer"); } ) }
+            resolver = quote! {
+                if _fwc_wb_2 {
+                    let _fwc_wb_3 = _fwc_element.id.get();
+                    println!("Id: {}, Depth: {}", _fwc_wb_3.0, _fwc_wb_3.1);
+                }
+            };
         }
 
         resolver

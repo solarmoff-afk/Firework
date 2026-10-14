@@ -182,7 +182,8 @@ impl CodegenVisitor<'_> {
 
             tick_tokens.extend(quote! {
                 if let Some(ref mut _fwc_element) = self.#name {
-                    _fwc_element.__tick(_context, _delta, #resolver);
+                    let _fwc_wb_2 = _fwc_element.__tick(_context, _delta);
+                    #resolver
                 }
             });
         }

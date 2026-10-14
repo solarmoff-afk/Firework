@@ -118,10 +118,14 @@ impl<K: Eq + PartialEq, T: Widget> DynList<K, T> {
         }
     }
 
-    pub fn __tick(&mut self, context: BuildContext, delta: u32, resolver: Option<fn()>) {
+    pub fn __tick(&mut self, delta: u32) -> bool {
+        let mut any = false;
+
         for (_, item) in &mut self.current_items {
-            item.__tick(context, delta, resolver);
+            any |= item.__tick(delta);
         }
+
+        any
     }
 }
 
@@ -206,12 +210,14 @@ impl<K: Eq + PartialEq, T: Widget> DynList<K, T> {
         }
     }
 
-    pub fn __tick(&mut self, context: BuildContext, delta: u32, resolver: Option<fn()>) {
+    pub fn __tick(&mut self, delta: u32) -> bool {
+        let mut any = false;
         for i in 0..self.current_count {
             if let Some((_, item)) = &mut self.current_items[i] {
-                item.__tick(context, delta, resolver);
+                any |= item.__tick(delta);
             }
         }
+        any
     }
 
     pub fn len(&self) -> i16 {
@@ -287,7 +293,7 @@ impl<K: Eq + PartialEq, T: Widget> Widget for DynList<K, T> {
         self.__event(context);
     }
 
-    fn __tick(&mut self, context: BuildContext, delta: u32, resolver: Option<fn()>) {
-        self.__tick(context, delta, resolver);
+    fn __tick(&mut self, delta: u32) -> bool {
+        self.__tick(delta)
     }
 }

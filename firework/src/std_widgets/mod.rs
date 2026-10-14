@@ -162,5 +162,7 @@ impl Widget for DefaultRectSkin {
     }
 
     fn __event(&mut self, _context: BuildContext) {}
-    fn __tick(&mut self, _context: BuildContext, _delta: u32, _resolver: Option<fn()>) {}
+    fn __tick(&mut self, _delta: u32) -> bool {
+        false
+    }
 }
