@@ -157,18 +157,18 @@ impl CodegenVisitor<'_> {
 
         let mut visible_tokens = quote! {
             if firework_ui::tiny_matches!(_context.cycle, firework_ui::LifeCycle::Event) {
-                if let firework_ui::CurrentEvent::Touch {
-                    hit_object_id: Some(id),
-                    phase,
-                    ..
-                } = firework_ui::take_current_event() {
-                    #on_click_tokens
-                }
-
-                if let firework_ui::CurrentEvent::Timeout {
-                    ..
-                } = firework_ui::take_current_event() {
-                    #on_timeout_tokens
+                match firework_ui::take_current_event() {
+                    firework_ui::CurrentEvent::Touch {
+                        hit_object_id: Some(id),
+                        phase,
+                        ..
+                    } => {
+                        #on_click_tokens
+                    }
+                    firework_ui::CurrentEvent::Timeout { .. } => {
+                        #on_timeout_tokens
+                    }
+                    _ => {}
                 }
             }
         };
