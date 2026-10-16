@@ -446,15 +446,15 @@ impl CodeBuilder {
 
                         if is_inside_closure {
                             final_tokens.extend(quote_spanned!(span=>
+                                #tokens
+                            ));
+                        } else {
+                            final_tokens.extend(quote_spanned!(span=>
                                 #instance_ident_upper.with(|inst| {
                                     let mut _fwc_inst_guard = inst.borrow_mut();
                                     let _fwc_inst = &mut *_fwc_inst_guard;
                                     #tokens
                                 });
-                            ));
-                        } else {
-                            final_tokens.extend(quote_spanned!(span=>
-                                #tokens
                             ));
                         }
                     }
