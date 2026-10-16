@@ -23,6 +23,8 @@ use super::ir::{FireworkIR, FireworkStatement};
 use crate::CompileFlags;
 
 pub struct CodegenVisitor<'a> {
+    pub escape_tokens: Vec<TokenStream>,
+
     // IR от анализатора, содержит плоские семантические метки для каждого стейтемента,
     // а также содержит снапшот (Мапинг спан -> метка стейтемента)
     pub ir: &'a mut FireworkIR,
@@ -52,6 +54,7 @@ pub struct CodegenVisitor<'a> {
 impl<'a> CodegenVisitor<'a> {
     pub fn new(ir: &'a mut FireworkIR) -> Self {
         Self {
+            escape_tokens: Vec::new(),
             builder: CodeBuilder::new(CompileFlags::new()),
             ir,
             ui_id: None,

@@ -61,8 +61,10 @@ fn test_screen() {
         size: 100,
         color: (red, 0, 255),
         on_click: || {
-            if raw!(red < 255 - 25) {
-                red += 25;
+            timer! {
+                target: red,
+                output: raw!(red + 25),
+                delay: 3000,
             }
 
             println!("Component click");

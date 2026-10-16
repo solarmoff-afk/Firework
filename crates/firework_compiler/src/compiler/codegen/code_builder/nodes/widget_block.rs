@@ -21,6 +21,7 @@ impl CodeBuilder {
         visitor: &mut CodegenVisitor,
     ) -> bool {
         if let FireworkAction::WidgetBlock(description) = &statement.action {
+            let is_inside_closure = statement.parent_widget_id.is_some();
             let is_component = matches!(visitor.flags.compile_type, CompileType::Component);
 
             // Не кэшируется так как здесь профилирование показывает что расходы HashMap
@@ -212,18 +213,69 @@ impl CodeBuilder {
                     .__fwc_timer_cfg(#id, _fwc_depth)
                 });
 
-                widget_reactive.extend(quote! {
+                let timer_code = quote! {
+                    let _fwc_wb_3 = _fwc_wb_1.id.get();
+                    if id == _fwc_wb_3.0 && depth == _fwc_wb_3.1 {
+                        #mask_statement
+                    }
+                };
+
+                #[cfg(feature = "safety")]
+                let mut timer_slot_handling = quote! {
+                    #instance_ident_upper.with(|inst| {
+                        let mut _fwc_inst_guard = inst.borrow_mut();
+                        let _fwc_inst = &mut *_fwc_inst_guard;
+
+                        if let Some(ref mut _fwc_wb_1) = _fwc_inst.#field_ident.as_mut() {
+                            #timer_code
+                        }
+                    });
+                };
+
+                #[cfg(not(feature = "safety"))]
+                let mut timer_slot_handling = quote! {
+                    unsafe {
+                        let _fwc_inst = &mut *::core::ptr::addr_of_mut!(#instance_ident_upper);
+
+                        if let Some(ref mut _fwc_wb_1) = _fwc_inst.#field_ident.as_mut() {
+                            #timer_code
+                        }
+                    }
+                };
+
+                if !is_inside_closure {
+                    timer_slot_handling = quote! {
+                        #timer_code
+                    };
+                } else if is_component {
+                    timer_slot_handling = quote! {
+                        if let Some(ref mut _fwc_wb_1) = self.#field_ident {
+                            #timer_code
+                        }
+                    };
+                }
+
+                let timeout_event_code = quote! {
                     if firework_ui::tiny_matches!(_fwc_event, firework_ui::LifeCycle::Event) {
                         if let firework_ui::CurrentEvent::Timeout {
                             timer_id: id, depth,
                         } = firework_ui::take_current_event() {
-                            let _fwc_wb_3 = _fwc_wb_1.id.get();
-                            if id == _fwc_wb_3.0 && depth == _fwc_wb_3.1 {
-                                #mask_statement
-                            }
+                            #timer_slot_handling
                         }
                     }
-                });
+                };
+
+                if is_inside_closure {
+                    visitor.escape_tokens.push(timeout_event_code);
+
+                    // Использование в замыкании означает, что каждое использование
+                    // замыкания должно перезапускать таймер
+                    widget_reactive.extend(quote! {
+                        **_fwc_wb_1 = #widget_init;
+                    });
+                } else {
+                    widget_reactive.extend(timeout_event_code);
+                }
             }
 
             if is_component {
@@ -365,13 +417,24 @@ impl CodeBuilder {
                             }
                         ));
                     } else {
-                        final_tokens.extend(quote_spanned!(span=>
-                            #instance_ident_upper.with(|inst| {
-                                let mut _fwc_inst = inst.borrow_mut();
-                                let mut _fwc_list_ref = _fwc_inst.#field_ident.as_mut().unwrap();
-                                #inner_tokens
-                            });
-                        ));
+                        let tokens = quote! {
+                            let mut _fwc_list_ref = _fwc_inst.#field_ident.as_mut().unwrap();
+                            #inner_tokens
+                        };
+
+                        if is_inside_closure {
+                            final_tokens.extend(quote_spanned!(span=>
+                                #instance_ident_upper.with(|inst| {
+                                    let mut _fwc_inst_guard = inst.borrow_mut();
+                                    let _fwc_inst = &mut *_fwc_inst_guard;
+                                    #tokens
+                                });
+                            ));
+                        } else {
+                            final_tokens.extend(quote_spanned!(span=>
+                                #tokens
+                            ));
+                        }
                     }
                 }
 
@@ -425,23 +488,35 @@ impl CodeBuilder {
                             }
                         },
                     );
+
                     if !is_component {
-                        final_tokens.extend(quote_spanned!(span=>
-                            #instance_ident_upper.with(|inst| {
-                                let mut _fwc_inst = inst.borrow_mut();
-                                match _fwc_inst.#field_ident.as_mut() {
-                                    #some_safe
-                                    None => {
-                                        _fwc_inst.#field_ident = Some(#widget_init);
-                                        {
-                                            let _fwc_component_instance = _fwc_inst.#field_ident.as_mut().unwrap();
-                                            #distributor
-                                        }
-                                        #widget_update_bitmask
-                                    },
-                                };
-                            });
-                        ));
+                        let tokens = quote! {
+                            match _fwc_inst.#field_ident.as_mut() {
+                                #some_safe
+                                None => {
+                                    _fwc_inst.#field_ident = Some(#widget_init);
+                                    {
+                                        let _fwc_component_instance = _fwc_inst.#field_ident.as_mut().unwrap();
+                                        #distributor
+                                    }
+                                    #widget_update_bitmask
+                                },
+                            };
+                        };
+
+                        if is_inside_closure {
+                            final_tokens.extend(quote_spanned!(span=>
+                                #tokens
+                            ));
+                        } else {
+                            final_tokens.extend(quote_spanned!(span=>
+                                #instance_ident_upper.with(|inst| {
+                                    let mut _fwc_inst_guard = inst.borrow_mut();
+                                    let _fwc_inst = &mut *_fwc_inst_guard;
+                                    #tokens
+                                });
+                            ));
+                        }
                     } else {
                         final_tokens.extend(quote_spanned!(span=>
                             match self.#field_ident.as_mut() {
@@ -530,7 +605,9 @@ impl CodeBuilder {
                 if !is_component {
                     self.tokens.push(quote_spanned!(span=>
                         #instance_ident_upper.with(|inst| {
-                            let mut _fwc_inst = inst.borrow_mut();
+                            let mut _fwc_inst_guard = inst.borrow_mut();
+                            let _fwc_inst = &mut *_fwc_inst_guard;
+
                             match _fwc_inst.#field_ident.as_mut() {
                                 Some(_fwc_wb_1) => {
                                     if #condition_statement {
@@ -594,6 +671,14 @@ impl CodeBuilder {
                         };
                     ));
                 }
+            }
+
+            // Вставка сбежавших токенов
+            if statement.parent_widget_id.is_none() && !visitor.escape_tokens.is_empty() {
+                let escaped = std::mem::take(&mut visitor.escape_tokens);
+                final_tokens.extend(quote! {
+                    #(#escaped)*
+                });
             }
 
             return true;

@@ -351,20 +351,14 @@ impl CodegenVisitor<'_> {
                 }
             }
 
-            #[cfg(feature = "safety")]
+            // Мы объединяем режимы safety и non-safety для функции тика.
+            // Использование as_ptr() обязательно, потому что дочерние компоненты
+            // вызывают dispatch_event синхронно, что требует реентерабельности в test_screen.
             let tick_tokens = quote! {
                 #instance_ident.with(|inst| {
-                    let mut _fwc_inst = inst.borrow_mut();
+                    let _fwc_inst = unsafe { &mut *inst.as_ptr() };
                     #widget_ticks
                 });
-            };
-
-            #[cfg(not(feature = "safety"))]
-            let tick_tokens = quote! {
-                unsafe {
-                    let _fwc_inst = &mut *::core::ptr::addr_of_mut!(#instance_ident);
-                    #widget_ticks
-                }
             };
 
             let tick_name = format_ident!("_fwc_tick_{}", self.ui_id.unwrap_or(0));
@@ -374,7 +368,6 @@ impl CodegenVisitor<'_> {
                 }
             });
         }
-
         self.visit_block_mut(block);
 
         if let Some(id) = self.ui_id {
