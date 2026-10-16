@@ -63,6 +63,9 @@ impl CodeBuilder {
             let mut key_expr: Option<TokenStream> = None;
             let mut widget_has_event = false;
 
+            // Спеицальный ивент виджета вне общего порядка (как on_timeout)
+            let mut special_event = quote! {};
+
             // Обход всех полей
             for (name, field) in &description.fields {
                 // Поле в формате TokenStream для сохранения спанов при ошибках
@@ -81,6 +84,24 @@ impl CodeBuilder {
 
                 // Если это таймер, то target не учитывается
                 if description.widget_type == "timer" && name == "target" {
+                    continue;
+                }
+
+                if description.widget_type == "timer" && name == "on_timeout" && field.is_fn {
+                    let mut closure_expr: Expr = match syn::parse2(field_value.clone()) {
+                        Ok(expr) => expr,
+                        Err(_) => {
+                            continue;
+                        }
+                    };
+
+                    visitor.visit_expr_mut(&mut closure_expr);
+
+                    special_event = quote_spanned! (span => {
+                        let mut _fwc_cl = #closure_expr;
+                        _fwc_cl();
+                    });
+
                     continue;
                 }
 
@@ -217,6 +238,7 @@ impl CodeBuilder {
                     let _fwc_wb_3 = _fwc_wb_1.id.get();
                     if id == _fwc_wb_3.0 && depth == _fwc_wb_3.1 {
                         #mask_statement
+                        #special_event
                     }
                 };
 

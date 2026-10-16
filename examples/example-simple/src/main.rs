@@ -40,6 +40,7 @@ fn test_screen() {
         target: red,
         output: 100,
         delay: 1500,
+        on_timeout: || { println!("Now"); },
     }
 
     timer! {
