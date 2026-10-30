@@ -10,6 +10,7 @@ pub use super::super::*;
 
 use crate::CompileType;
 use crate::compiler::codegen::generator::static_gen;
+use crate::compiler::codegen::transform::helpers::component::ComponentImpl;
 use crate::compiler::codegen::transform::visitors_mut::self_visitor::SelfFieldAdder;
 
 impl CodegenVisitor<'_> {
@@ -47,41 +48,29 @@ impl CodegenVisitor<'_> {
 
                         let component_declaration =
                             self.ir.component_structs.get(&struct_name.to_string());
-                        let (
-                            get_z_size_tokens,
-                            set_z_tokens,
-                            is_dirty_check,
-                            visible_tokens,
-                            unmount_tokens,
-                            event_tokens,
-                            tick_tokens,
-                            generics,
-                            type_generics,
-                        ) = if let Some(declaration) = component_declaration {
-                            (
-                                self.gen_get_z_size_tokens(declaration),
-                                self.gen_set_s_tokens(declaration),
-                                self.gen_is_dirty_check(declaration),
-                                self.gen_visible_tokens(declaration),
-                                self.gen_unmount_tokens(declaration),
-                                self.gen_event_tokens(declaration),
-                                self.gen_tick_tokens(declaration),
-                                declaration.tcomponents.clone(),
-                                declaration.struct_generics.clone(),
-                            )
-                        } else {
-                            (
-                                quote! {},
-                                quote! {},
-                                quote! {},
-                                quote! {},
-                                quote! {},
-                                quote! {},
-                                quote! {},
-                                Generics::default(),
-                                Generics::default(),
-                            )
+
+                        let component_impl = match component_declaration {
+                            Some(declaration) => ComponentImpl::generate(declaration, self),
+                            None => ComponentImpl::default(),
                         };
+
+                        let get_z_size_tokens = component_impl.get_z_size_tokens;
+                        let set_z_tokens = component_impl.set_z_tokens;
+                        let is_dirty_check = component_impl.is_dirty_check;
+                        let visible_tokens = component_impl.visible_tokens;
+                        let unmount_tokens = component_impl.unmount_tokens;
+                        let event_tokens = component_impl.event_tokens;
+                        let tick_tokens = component_impl.tick_tokens;
+
+                        let (generics, type_generics) =
+                            if let Some(declaration) = component_declaration {
+                                (
+                                    declaration.tcomponents.clone(),
+                                    declaration.struct_generics.clone(),
+                                )
+                            } else {
+                                (Generics::default(), Generics::default())
+                            };
 
                         // Методы компонента
                         let component_funcs = parse_quote! {

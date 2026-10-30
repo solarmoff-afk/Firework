@@ -7,6 +7,51 @@ use super::super::*;
 
 use crate::compiler::codegen::ir::ComponentDeclaration;
 
+/// Структура для хранения всех токенов методов реализации трейта Widget для компонента
+#[derive(Default)]
+pub struct ComponentImpl {
+    // Токены для метода get_z_size. Он возвращает i32 и нужен чтобы получить сколько
+    // z занимает в иерархии виджет
+    pub get_z_size_tokens: TokenStream,
+
+    // Токены для метода set_z. Он принимает i32 (z координата) и нужен чтобы установить z
+    // координату виджету
+    pub set_z_tokens: TokenStream,
+
+    // Токены для метода отдельного от реализации трейта widget чтобы проверить есть ли
+    // изменения в битовых масках глобальных пропов компонента
+    pub is_dirty_check: TokenStream,
+
+    // Токены для метода видимости реализации трейта Widget, он устанавливает видимость всем
+    // виджетам и компонентам внутри компонента
+    pub visible_tokens: TokenStream,
+
+    // Токены размонтирования, нужны для компонентов внутри DynList и размонтируют все виджеты
+    // и компоненты внутри компонента
+    pub unmount_tokens: TokenStream,
+
+    // Токены для метода получения ивента и реакции на него
+    pub event_tokens: TokenStream,
+
+    // Токены для обработки события смены кадра
+    pub tick_tokens: TokenStream,
+}
+
+impl ComponentImpl {
+    /// Сгенерировать все токены методов реализации трейта Widget
+    pub fn generate(declaration: &ComponentDeclaration, visitor: &CodegenVisitor) -> Self {
+        Self {
+            get_z_size_tokens: visitor.gen_get_z_size_tokens(declaration),
+            set_z_tokens: visitor.gen_set_z_tokens(declaration),
+            is_dirty_check: visitor.gen_is_dirty_check(declaration),
+            visible_tokens: visitor.gen_visible_tokens(declaration),
+            unmount_tokens: visitor.gen_unmount_tokens(declaration),
+            event_tokens: visitor.gen_event_tokens(declaration),
+            tick_tokens: visitor.gen_tick_tokens(declaration),
+        }
+    }
+}
+
 impl CodegenVisitor<'_> {
     /// Метод для генерации токенов get_z_size у компонента для подсчёта размера всех виджетов
     /// компонента. Требует существования счётчика _fwc_z в области видимости, куда
@@ -42,7 +87,7 @@ impl CodegenVisitor<'_> {
     }
 
     /// Метод для того, чтобы установить z индекс всем элементам компонента
-    pub fn gen_set_s_tokens(&self, declaration: &ComponentDeclaration) -> TokenStream {
+    pub fn gen_set_z_tokens(&self, declaration: &ComponentDeclaration) -> TokenStream {
         let mut z_compute_tokens = quote! {};
         let z_compute_widget_tokens = quote! {
             firework_ui::std_widgets::widget::Widget::set_z(_fwc_element, _fwc_z);
