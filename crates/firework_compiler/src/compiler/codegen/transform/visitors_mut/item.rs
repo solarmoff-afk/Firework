@@ -580,84 +580,7 @@ impl CodegenVisitor<'_> {
                     final_stmts.append(&mut original_block.stmts);
                 }
 
-                let default = Vec::new();
-                let widget = if is_component
-                    && let Some(name) = component_name.clone()
-                    && let Some(component) = self.ir.component_structs.get(&name)
-                {
-                    &component.widgets.widgets
-                } else if let Some(screen) = self.ir.screen_structs.get(&struct_name_raw) {
-                    &screen.widgets.widgets
-                } else {
-                    &default
-                };
-
-                let mut z_compute_tokens = quote! {};
-                let z_compute_widget_tokens = quote! {
-                    firework_ui::std_widgets::widget::Widget::set_z(_fwc_element, _fwc_z);
-
-                    // +1 так как следующий виджет займёт именно _fwc_z позицию,
-                    // поэтому выделяется место под следующий
-                    _fwc_z += firework_ui::std_widgets::widget::Widget::get_z_size(_fwc_element) + 1;
-                };
-
-                let z_compute_dynlist_tokens = quote! {
-                    // Устаналиваем списку этот z, DynList сам распределит z по элементам.
-                    // Первый получит актуальный z, второй z+1 и так далее
-                    _fwc_element.set_z_range(_fwc_z);
-
-                    // Добавляем к _fwc_z количество элементов в списке +1 для слуедующего
-                    // элемента
-                    _fwc_z += _fwc_element.len() + 1;
-                };
-
-                for i in widget {
-                    let name = format_ident!("{}", i.0);
-                    let is_microruntime = i.2;
-
-                    if
-                    /* has_z */
-                    i.3 {
-                        continue;
-                    }
-
-                    let z_compute_variant = if is_microruntime {
-                        &z_compute_dynlist_tokens
-                    } else {
-                        &z_compute_widget_tokens
-                    };
-
-                    if is_component {
-                        z_compute_tokens.extend(quote! {
-                            if let Some(ref mut _fwc_element) = self.#name {
-                                #z_compute_variant
-                            }
-                        });
-                    } else {
-                        #[cfg(not(feature = "safety"))]
-                        z_compute_tokens.extend(quote! {
-                            unsafe {
-                                let _fwc_slot = &mut (*::core::ptr::addr_of_mut!(#_instance_ident)).#name;
-                                if let Some(_fwc_element) = _fwc_slot.as_mut() {
-                                    #z_compute_variant
-                                }
-                            }
-                        });
-
-                        #[cfg(feature = "safety")]
-                        z_compute_tokens.extend(quote! {
-                            #_instance_ident.with(|inst| {
-                                let mut _fwc_inst = inst.borrow_mut();
-
-                                // Ref mut так как реализация только для &mut Widget из-за
-                                // метода layout
-                                if let Some(ref mut _fwc_element) = _fwc_inst.#name {
-                                    #z_compute_variant
-                                }
-                            });
-                        });
-                    }
-                }
+                let z_compute_tokens = self.generate_compute_z(is_component, &component_name, id);
 
                 final_stmts.extend(parse_batch(quote! {
                     // #dyn_lists_end
@@ -692,6 +615,97 @@ impl CodegenVisitor<'_> {
 
         // Очистка локальных данных билдера
         self.builder.function_end();
+    }
+
+    fn generate_compute_z(
+        &self,
+        is_component: bool,
+        component_name: &Option<String>,
+        id: u128,
+    ) -> TokenStream {
+        let struct_name_raw = format!("ApplicationUiBlockStruct{}", id);
+        let _instance_ident = format_ident!("APPLICATIONUIBLOCKSTRUCT{}_INSTANCE", id);
+
+        let default = Vec::new();
+        let widget = if is_component
+            && let Some(name) = component_name.clone()
+            && let Some(component) = self.ir.component_structs.get(&name)
+        {
+            &component.widgets.widgets
+        } else if let Some(screen) = self.ir.screen_structs.get(&struct_name_raw) {
+            &screen.widgets.widgets
+        } else {
+            &default
+        };
+
+        let mut z_compute_tokens = quote! {};
+        let z_compute_widget_tokens = quote! {
+            firework_ui::std_widgets::widget::Widget::set_z(_fwc_element, _fwc_z);
+
+            // +1 так как следующий виджет займёт именно _fwc_z позицию,
+            // поэтому выделяется место под следующий
+            _fwc_z += firework_ui::std_widgets::widget::Widget::get_z_size(_fwc_element) + 1;
+        };
+
+        let z_compute_dynlist_tokens = quote! {
+            // Устаналиваем списку этот z, DynList сам распределит z по элементам.
+            // Первый получит актуальный z, второй z+1 и так далее
+            _fwc_element.set_z_range(_fwc_z);
+
+            // Добавляем к _fwc_z количество элементов в списке +1 для слуедующего
+            // элемента
+            _fwc_z += _fwc_element.len() + 1;
+        };
+
+        for i in widget {
+            let name = format_ident!("{}", i.0);
+            let is_microruntime = i.2;
+
+            if
+            /* has_z */
+            i.3 {
+                continue;
+            }
+
+            let z_compute_variant = if is_microruntime {
+                &z_compute_dynlist_tokens
+            } else {
+                &z_compute_widget_tokens
+            };
+
+            if is_component {
+                z_compute_tokens.extend(quote! {
+                    if let Some(ref mut _fwc_element) = self.#name {
+                        #z_compute_variant
+                    }
+                });
+            } else {
+                #[cfg(not(feature = "safety"))]
+                z_compute_tokens.extend(quote! {
+                    unsafe {
+                        let _fwc_slot = &mut (*::core::ptr::addr_of_mut!(#_instance_ident)).#name;
+                        if let Some(_fwc_element) = _fwc_slot.as_mut() {
+                            #z_compute_variant
+                        }
+                    }
+                });
+
+                #[cfg(feature = "safety")]
+                z_compute_tokens.extend(quote! {
+                    #_instance_ident.with(|inst| {
+                        let mut _fwc_inst = inst.borrow_mut();
+
+                        // Ref mut так как реализация только для &mut Widget из-за метода
+                        // layout
+                        if let Some(ref mut _fwc_element) = _fwc_inst.#name {
+                            #z_compute_variant
+                        }
+                    });
+                });
+            }
+        }
+
+        z_compute_tokens
     }
 
     /// Генерирует набор полей для вставки по ссылке на fields и возвращает вектор сырых
