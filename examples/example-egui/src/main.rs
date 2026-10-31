@@ -34,6 +34,7 @@ fn test_screen() {
     let mut x = spark!(10);
     let mut red = spark!(0u8);
 
+    // horizontal! {
     rect! {
         position: (10, 10),
         size: 100,
@@ -53,6 +54,7 @@ fn test_screen() {
             x -= 25;
         },
     }
+    // }
 
     component! {
         target: Button,

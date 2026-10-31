@@ -454,7 +454,11 @@ impl<'ast> Analyzer {
             self.context.layouts_count += 1;
 
             let old_in_halper = self.context.ir.in_helper;
-            self.context.ir.in_helper = true;
+
+            // Режим диагностики включается только если мы в макросе helper! {}
+            if i.path.is_ident("helper") {
+                self.context.ir.in_helper = true;
+            }
 
             for statement in block.stmts {
                 // Парсинг всех команд внутри
