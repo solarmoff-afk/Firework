@@ -57,6 +57,9 @@ pub struct WidgetDescription {
     pub is_maybe: Option<usize>,
 
     pub special: SpecialWidget,
+
+    /// Находится ли виджет внутри лайаут блока
+    pub in_layout: bool,
 }
 
 #[derive(Debug, Clone)]

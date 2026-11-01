@@ -8,7 +8,7 @@ pub use super::super::*;
 
 use crate::compiler::codegen::ir::TimerWidget;
 use crate::compiler::codegen::ir::{ScreenWidgetType, SpecialWidget, WidgetDescription};
-use crate::compiler::common::widget_kind::is_functional_widget;
+use crate::compiler::common::widget_kind::{is_functional_widget, is_ui_widget};
 
 impl<'ast> Analyzer {
     /// Макрос который используются не в выражении, а как отдельный statement (команда)
@@ -230,6 +230,15 @@ impl<'ast> Analyzer {
                 self.context.timer_counter += 1;
             }
 
+            // Находимся ли мы внутри лайаута (проверка на то, есть ли хук на лайаут блок)
+            let in_layout = self.context.layout_hook.is_some();
+
+            // Виджеты внутри лайаут оборачиваются в LayoutState чтобы там кэшировать данные
+            // лайаута
+            if is_ui_widget(&name) && in_layout {
+                skin_field = format!("firework_ui::layout::LayoutState<{}>", skin_field);
+            }
+
             // Если это цикл (for, while или loop) необходимо обработать его специально, ибо
             // все виджеты внутри являются частью динамических списков
             if self.is_loop {
@@ -256,8 +265,8 @@ impl<'ast> Analyzer {
             // Для того, чтобы добавить виджет в IR к экрану, нужны параметры для создания
             // структуры WidgetStorage
             let mut widget_type = ScreenWidgetType::Base;
-
             self.context.statement.string = i.to_token_stream().to_string();
+
             let descriptor = WidgetDescription {
                 // Тип виджета это то, что указывается в макросе при его декларации как имя
                 // макросы. Например: rect!, text!, component!, layout! и так далее
@@ -300,6 +309,7 @@ impl<'ast> Analyzer {
                 },
 
                 special,
+                in_layout,
             };
 
             if let Some(hook) = &self.context.layout_hook {

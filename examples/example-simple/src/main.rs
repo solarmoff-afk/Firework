@@ -6,10 +6,10 @@ fn test_screen() {
 
     horizontal! {
         horizontal! {
-            timer! {
-                target: red,
-                output: 200,
-                delay: 3000,
+            rect! {
+                position: (100, 100),
+                size: 100,
+                color: (red, 0, 0),
             }
         }
     }

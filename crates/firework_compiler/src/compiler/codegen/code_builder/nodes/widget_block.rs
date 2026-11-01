@@ -23,6 +23,7 @@ impl CodeBuilder {
         if let FireworkAction::WidgetBlock(description) = &statement.action {
             let is_inside_closure = statement.parent_widget_id.is_some();
             let is_component = matches!(visitor.flags.compile_type, CompileType::Component);
+            let is_inside_layout = description.in_layout;
 
             // Не кэшируется так как здесь профилирование показывает что расходы HashMap
             // выше чем экономия, без кэширование 780 микросекунд, с нмм ~970
@@ -197,9 +198,16 @@ impl CodeBuilder {
                         method_ident
                     };
 
+                    let mark_layout_dirty = if is_inside_layout {
+                        quote! { _fwc_wb_1.mark_dirty(); }
+                    } else {
+                        quote! {}
+                    };
+
                     widget_reactive.extend(quote! {
                         if #( #condition )||* {
                             _fwc_wb_1.#method_name(#field_value);
+                            #mark_layout_dirty
                             #mark_z_dirty
                         }
                     });
@@ -349,6 +357,12 @@ impl CodeBuilder {
                 }
             }
 
+            let final_widget_init = if is_inside_layout {
+                quote! { firework_ui::layout::LayoutState::new(#widget_init) }
+            } else {
+                widget_init
+            };
+
             // Токен стрим для хранения обновления нужного бита в бит маске (активации
             // бита) чтобы показать что виджет жив
             let mut widget_update_bitmask = TokenStream::new();
@@ -416,7 +430,7 @@ impl CodeBuilder {
 
                     let mut _fwc_wb_1 = match _fwc_list_ref.entry(#key_token) {
                         firework_ui::ListEntry::Occupied(existing) => existing,
-                        firework_ui::ListEntry::Vacant(vacant) => vacant.insert(#widget_init),
+                        firework_ui::ListEntry::Vacant(vacant) => vacant.insert(#final_widget_init),
                     };
 
                     {
@@ -516,7 +530,7 @@ impl CodeBuilder {
                             match _fwc_inst.#field_ident.as_mut() {
                                 #some_safe
                                 None => {
-                                    _fwc_inst.#field_ident = Some(#widget_init);
+                                    _fwc_inst.#field_ident = Some(#final_widget_init);
                                     {
                                         let _fwc_component_instance = _fwc_inst.#field_ident.as_mut().unwrap();
                                         #distributor
@@ -544,7 +558,7 @@ impl CodeBuilder {
                             match self.#field_ident.as_mut() {
                                 #some_safe
                                 None => {
-                                    self.#field_ident = Some(#widget_init);
+                                    self.#field_ident = Some(#final_widget_init);
                                     {
                                         let _fwc_component_instance = self.#field_ident.as_mut().unwrap();
                                         #distributor
@@ -586,7 +600,7 @@ impl CodeBuilder {
                                         let slot =
                                             &mut (*::core::ptr::addr_of_mut!(#instance_ident_upper)).#field_ident;
 
-                                        *slot = Some(#widget_init);
+                                        *slot = Some(#final_widget_init);
 
                                         {
                                             let _fwc_component_instance = slot.as_mut().unwrap_unchecked();
@@ -604,7 +618,7 @@ impl CodeBuilder {
                                 #some_unsafe
 
                                 None => {
-                                    self.#field_ident = Some(#widget_init);
+                                    self.#field_ident = Some(#final_widget_init);
 
                                     {
                                         let _fwc_component_instance = unsafe {
