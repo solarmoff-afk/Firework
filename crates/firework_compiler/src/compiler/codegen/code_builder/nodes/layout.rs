@@ -13,15 +13,17 @@ impl CodeBuilder {
         _visitor: &mut CodegenVisitor,
         processed_body: &TokenStream,
     ) -> bool {
-        if let FireworkAction::LayoutBlock(name, _microruntime, _descriptor) = &statement.action {
+        if let FireworkAction::LayoutBlock(name, _microruntime, _descriptor, ..) = &statement.action
+        {
             // Хелпер это инструмент разработчика, для него не нужно генерировать лайаут
             if name == "helper" {
                 return false;
             }
 
             final_tokens.extend(quote_spanned!(span=>
-                println!("Layout placeholder");
+                println!("Layout begin placeholder");
                 #processed_body
+                println!("Layout end placeholder");
             ));
 
             return true;

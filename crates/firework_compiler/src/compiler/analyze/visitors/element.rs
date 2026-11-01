@@ -310,7 +310,7 @@ impl<'ast> Analyzer {
                 // в LayoutBlock. Благодаря этому layout! {} может быть где угодно
                 let statement = self.get_statement_from_hook(hook.clone());
 
-                if let FireworkAction::LayoutBlock(_, _, desc) = &mut statement.action {
+                if let FireworkAction::LayoutBlock(_, _, desc, _, _) = &mut statement.action {
                     *desc = Some(descriptor);
                 }
 
@@ -440,8 +440,13 @@ impl<'ast> Analyzer {
             // Изначально дескриптор None, но ниже сохраняется хук на эту запись в IR чтобы
             // потом при нахождении дескриптора layour! {} записать внутренности в этот
             // лайаут блок
-            self.context.statement.action =
-                FireworkAction::LayoutBlock(name.clone(), has_microruntime, None);
+            self.context.statement.action = FireworkAction::LayoutBlock(
+                name.clone(),
+                has_microruntime,
+                None,
+                /* TODO: Сделать глубину */ 0,
+                /* TODO: Заплнять его */ Vec::new(),
+            );
 
             self.context.statement.screen_index = self.lifetime_manager.scope.screen_index;
             self.context.statement.depth = self.lifetime_manager.scope.depth;
