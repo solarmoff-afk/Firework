@@ -437,6 +437,10 @@ impl<'ast> Analyzer {
             // внутри лайаут блока
             self.descript_layout = false;
 
+            // Текущая глубина
+            let old_layout_depth = self.context.layout_depth;
+            self.context.layout_depth += 1;
+
             // Изначально дескриптор None, но ниже сохраняется хук на эту запись в IR чтобы
             // потом при нахождении дескриптора layour! {} записать внутренности в этот
             // лайаут блок
@@ -444,7 +448,7 @@ impl<'ast> Analyzer {
                 name.clone(),
                 has_microruntime,
                 None,
-                /* TODO: Сделать глубину */ 0,
+                self.context.layout_depth,
                 /* TODO: Заплнять его */ Vec::new(),
             );
 
@@ -470,6 +474,7 @@ impl<'ast> Analyzer {
                 self.visit_stmt(&statement);
             }
 
+            self.context.layout_depth = old_layout_depth;
             self.context.ir.in_helper = old_in_halper;
 
             self.context.layouts_count -= 1;

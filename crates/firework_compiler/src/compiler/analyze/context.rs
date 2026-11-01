@@ -84,6 +84,20 @@ pub struct AnalyzeContext {
 
     // Счётчик таймеров timer! {}
     pub timer_counter: usize,
+
+    // Считаем глубину лайаутов. Изначально глубина 0, но как только мы заходим в лайаут
+    // он добавляет +1 на входе и вычитает на выходе
+    //
+    // println!("Hello world"); // Depth: 0
+    //
+    // stack! { // Depth: 1
+    //    stack! { // Depth: 2
+    //
+    //    } // Depth: 2
+    // } // Depth: 1
+    //
+    // println!("Hello world 2"); // Depth: 0
+    pub layout_depth: usize,
 }
 
 impl AnalyzeContext {
@@ -133,6 +147,7 @@ impl AnalyzeContext {
             now_component: (None, None),
             layout_hook: None,
             timer_counter: 0,
+            layout_depth: 0,
         }
     }
 }
