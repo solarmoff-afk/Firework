@@ -33,6 +33,7 @@ fn test_analyze_basic_widget() {
             skin: "firework_ui::skins::DefaultRectSkin".to_string(),
             is_maybe: None,
             special: SpecialWidget::None,
+            in_layout: false,
         }),
         Terminator,
     ];
@@ -90,6 +91,7 @@ fn test_analyze_widget_with_sparks() {
             skin: "firework_ui::skins::DefaultRectSkin".to_string(),
             is_maybe: None,
             special: SpecialWidget::None,
+            in_layout: false,
         }),
         DropSpark {
             name: "y".to_string(),
@@ -178,6 +180,7 @@ fn test_analyze_layout_widget() {
             skin: "".to_string(),
             is_maybe: None,
             special: SpecialWidget::None,
+            in_layout: false,
         }),
         Terminator,
     ];
