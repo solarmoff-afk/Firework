@@ -457,7 +457,7 @@ impl<'ast> Analyzer {
                 has_microruntime,
                 None,
                 self.context.layout_depth,
-                /* TODO: Заплнять его */ Vec::new(),
+                Vec::new(),
             );
 
             self.context.statement.screen_index = self.lifetime_manager.scope.screen_index;

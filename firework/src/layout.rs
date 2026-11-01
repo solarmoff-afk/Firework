@@ -13,6 +13,54 @@ pub struct Constraints {
     pub max_height: i32,
 }
 
+impl Constraints {
+    /// Создает жесткие ограничения (когда виджет обязан принять точный размер)
+    pub fn tight(size: Size) -> Self {
+        Self {
+            min_width: size.width,
+            max_width: size.width,
+            min_height: size.height,
+            max_height: size.height,
+        }
+    }
+
+    /// Создает свободные ограничения (виджет может быть от 0 до заданного размера)
+    pub fn loose(size: Size) -> Self {
+        Self {
+            min_width: 0,
+            max_width: size.width,
+            min_height: 0,
+            max_height: size.height,
+        }
+    }
+
+    /// Вгоняет запрошенный размер в рамки текущих ограничений
+    pub fn constrain(&self, size: Size) -> Size {
+        Size {
+            width: size.width.clamp(self.min_width, self.max_width),
+            height: size.height.clamp(self.min_height, self.max_height),
+        }
+    }
+
+    /// Проверяет являются ли ограничения фиксированными
+    pub fn is_tight(&self) -> bool {
+        self.min_width == self.max_width && self.min_height == self.max_height
+    }
+
+    /// Безопасно уменьшает ограничения на заданный паддинг (top, right, bottom, left)
+    pub fn deflate(&self, padding: (i32, i32, i32, i32)) -> Self {
+        let horizontal = padding.3 + padding.1; // Лево и право
+        let vertical = padding.0 + padding.2; // Верх и низ
+
+        Self {
+            min_width: (self.min_width - horizontal).max(0),
+            max_width: (self.max_width - horizontal).max(0),
+            min_height: (self.min_height - vertical).max(0),
+            max_height: (self.max_height - vertical).max(0),
+        }
+    }
+}
+
 /// Итоговый размер виджета после вызова layout
 #[derive(Debug, Clone, Copy)]
 pub struct Size {
@@ -86,6 +134,33 @@ impl LayoutParams {
 
         new_constraints
     }
+}
+
+/// Ось компоновки
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Axis {
+    Horizontal,
+    Vertical,
+}
+
+/// Выравнивание по главной оси
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum MainAxisAlignment {
+    Start,
+    Center,
+    End,
+    SpaceBetween,
+    SpaceAround,
+    SpaceEvenly,
+}
+
+/// Выравнивание по второй оси
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CrossAxisAlignment {
+    Start,
+    Center,
+    End,
+    Stretch,
 }
 
 #[cfg(test)]
