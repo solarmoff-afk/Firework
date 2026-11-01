@@ -1,57 +1,18 @@
-use firework_ui::{BuildContext, Prop, component, ui};
-
-component! {
-    pub struct ForTimer {
-        pub example_prop: Prop<bool>,
-    }
-
-    impl ForTimer {
-        pub fn new() -> Self {
-            Self {
-                example_prop: None,
-            }
-        }
-
-        pub fn flash(&mut self, _context: BuildContext) {
-            let mut my_state = spark!(0);
-
-            timer! {
-                target: my_state,
-                output: 123,
-                delay: 2500,
-            }
-
-            effect!(my_state, {
-                println!("State: {}", my_state);
-            });
-        }
-    }
-}
+use firework_ui::ui;
 
 #[ui]
 fn test_screen() {
     let mut red = spark!(0u8);
 
-    component! {
-        target: ForTimer,
+    horizontal! {
+        horizontal! {
+            timer! {
+                target: red,
+                output: 200,
+                delay: 3000,
+            }
+        }
     }
-
-    timer! {
-        target: red,
-        output: 100,
-        delay: 1500,
-        on_timeout: || { println!("Now"); },
-    }
-
-    timer! {
-        target: red,
-        output: 200,
-        delay: 3000,
-    }
-
-    effect!(red, {
-        println!("Red: {}", red);
-    });
 }
 
 fn main() {

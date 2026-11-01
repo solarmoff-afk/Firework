@@ -59,16 +59,6 @@ pub struct WidgetDescription {
     pub special: SpecialWidget,
 }
 
-/// Представление виджета как ребёнка лайаута
-#[derive(Debug, Clone)]
-pub struct LayoutWidgetChild {
-    pub widget_type: String,
-    pub is_functional: bool,
-    pub has_microruntime: bool,
-    pub id: usize,
-    pub skin: String,
-}
-
 #[derive(Debug, Clone)]
 pub enum SpecialWidget {
     None,

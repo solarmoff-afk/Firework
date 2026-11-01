@@ -302,20 +302,28 @@ impl<'ast> Analyzer {
                 special,
             };
 
-            if name == "layout"
-                && let Some(hook) = &self.context.layout_hook
-            {
-                // Мы сохранили стейтемент где находится основной лайаут (vertical! или другой)
-                // чтобы в дескрипторе (тут, в функциональном виджете) мы могли добавить его
-                // в LayoutBlock. Благодаря этому layout! {} может быть где угодно
+            if let Some(hook) = &self.context.layout_hook {
+                // Мы сохранили стейтемент где находится основной лайаут (vertical! или
+                // другой) чтобы в дескрипторе (тут, в функциональном виджете) мы могли
+                // добавить его в LayoutBlock. Благодаря этому layout! {} может быть где
+                // угодно
                 let statement = self.get_statement_from_hook(hook.clone());
 
-                if let FireworkAction::LayoutBlock(_, _, desc, _, _) = &mut statement.action {
-                    *desc = Some(descriptor);
-                }
+                if name == "layout" {
+                    if let FireworkAction::LayoutBlock(_, _, desc, _, _) = &mut statement.action {
+                        *desc = Some(descriptor);
+                    }
 
-                visit::visit_macro(self, i);
-                return;
+                    visit::visit_macro(self, i);
+                    return;
+                } else {
+                    // Если мы находимся внутри лайаута и это не конфигурационный виджет
+                    // лайаута, то необходимо вставить этот виджет в поле детей лайаута
+                    if let FireworkAction::LayoutBlock(_, _, _, _, children) = &mut statement.action
+                    {
+                        children.push(descriptor.clone());
+                    }
+                }
             }
 
             // Если это вставка компонента в экран или другой компонент мы должны найти target

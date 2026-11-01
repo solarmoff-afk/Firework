@@ -4,7 +4,7 @@
 use proc_macro2::TokenStream;
 
 use super::reactive_block::FireworkReactiveBlock;
-use super::widget::{LayoutWidgetChild, WidgetDescription};
+use super::widget::WidgetDescription;
 
 use crate::compiler::analyze::ClosureData;
 use crate::compiler::analyze::utils::check_expr::ExprAnalyzeResult;
@@ -92,7 +92,7 @@ pub enum FireworkAction {
         /* Нужен ли цикл */ bool,
         /* Дескриптор */ Option<WidgetDescription>,
         /* Глубина */ usize,
-        /* Дети */ Vec<LayoutWidgetChild>,
+        /* Дети */ Vec<WidgetDescription>,
     ),
 
     // Виджет, декларативное описание для скина. Виджет это compile-time концепция,
