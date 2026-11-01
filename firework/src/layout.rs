@@ -1,11 +1,15 @@
 // Часть проекта Firework с открытым исходным кодом.
 // Лицензия EPL 2.0, подробнее в файле LICENSE. Copyright (c) 2026 Firework
 
+use crate::BuildContext;
+use crate::std_widgets::widget::Widget;
+use core::ops::{Deref, DerefMut};
+
 /// Структура ограничений которые родитель отдаёт ребёнку. В Firework есть чёткое разделение
 /// на лайаут и виджет поэтому лайаут берёт свои ограничения (которые он получил от своего
 /// родителя или корня) и передаёт их детям чтобы они знали в какое пространство им нужно
 /// вместиться
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Constraints {
     pub min_width: i32,
     pub max_width: i32,
@@ -69,6 +73,13 @@ pub struct Size {
 }
 
 impl Size {
+    pub fn zero() -> Self {
+        Self {
+            width: 0,
+            height: 0,
+        }
+    }
+
     /// Проверка того что размер виджета не выходит за границы ограничений родительского
     /// лайаута
     pub fn is_valid(&self, constraints: Constraints) -> bool {
@@ -161,6 +172,133 @@ pub enum CrossAxisAlignment {
     Center,
     End,
     Stretch,
+}
+
+/// Специальный контейнер для виджета который находится внутри лайаута. Он хранит внутри
+/// кэшируемую информацию и флаг is_dirty. Не применяется для виджетов без отображения, то
+/// есть таймеров, layout конфигуратора (layout! {}) и так далее
+#[derive(Debug)]
+pub struct LayoutState<T> {
+    pub widget: T,
+    pub cached_constraints: Constraints,
+    pub cached_size: Size,
+    pub cached_position: (i32, i32),
+    pub is_dirty: bool,
+}
+
+impl<T: Clone> Clone for LayoutState<T> {
+    fn clone(&self) -> Self {
+        Self {
+            widget: self.widget.clone(),
+            cached_constraints: self.cached_constraints,
+            cached_size: self.cached_size,
+            cached_position: self.cached_position,
+            is_dirty: self.is_dirty,
+        }
+    }
+}
+
+impl<T: Copy> Copy for LayoutState<T> {}
+
+impl<T> LayoutState<T> {
+    pub fn new(widget: T) -> Self {
+        Self {
+            widget,
+            cached_constraints: Constraints {
+                min_width: 0,
+                max_width: 0,
+                min_height: 0,
+                max_height: 0,
+            },
+            cached_size: Size::zero(),
+            cached_position: (0, 0),
+            is_dirty: true,
+        }
+    }
+
+    #[inline(always)]
+    pub fn mark_dirty(&mut self) {
+        self.is_dirty = true;
+    }
+
+    #[inline(always)]
+    pub fn needs_layout(&self, new_constraints: &Constraints) -> bool {
+        self.is_dirty || &self.cached_constraints != new_constraints
+    }
+}
+
+impl<T> Deref for LayoutState<T> {
+    type Target = T;
+
+    #[inline(always)]
+    fn deref(&self) -> &Self::Target {
+        &self.widget
+    }
+}
+
+impl<T> DerefMut for LayoutState<T> {
+    #[inline(always)]
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.widget
+    }
+}
+
+impl<T: Widget> Widget for LayoutState<T> {
+    fn layout(&mut self, constraints: Constraints) -> Size {
+        if !self.needs_layout(&constraints) {
+            return self.cached_size;
+        }
+
+        let computed_size = self.widget.layout(constraints);
+
+        self.cached_constraints = constraints;
+        self.cached_size = computed_size;
+        self.is_dirty = false;
+
+        computed_size
+    }
+
+    fn position(&mut self, position: (i32, i32)) {
+        if self.cached_position != position || self.is_dirty {
+            self.cached_position = position;
+            self.widget.position(position);
+        }
+    }
+
+    #[inline(always)]
+    fn visible(&mut self, state: bool) {
+        self.widget.visible(state);
+    }
+
+    #[inline(always)]
+    fn unmount(self) {
+        self.widget.unmount();
+    }
+
+    #[inline(always)]
+    fn get_z_size(&mut self) -> i16 {
+        self.widget.get_z_size()
+    }
+
+    #[inline(always)]
+    fn set_z(&mut self, z: i16) {
+        self.widget.set_z(z);
+    }
+
+    #[inline(always)]
+    fn set_vcanvas(&self, vcanvas_handle: usize) {
+        self.widget.set_vcanvas(vcanvas_handle);
+    }
+
+    #[inline(always)]
+    fn __event(&mut self, context: BuildContext) {
+        self.widget.__event(context);
+    }
+
+    #[inline(always)]
+    fn __tick(&mut self, delta: u32) -> bool {
+        self.widget.__tick(delta)
+    }
 }
 
 #[cfg(test)]
