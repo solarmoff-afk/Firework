@@ -184,6 +184,9 @@ pub struct LayoutState<T> {
     pub cached_size: Size,
     pub cached_position: (i32, i32),
     pub is_dirty: bool,
+
+    // Для того, чтобы не считать в лайауте скрытые объекты (в том числе условные виджеты)
+    pub is_visible: bool,
 }
 
 impl<T: Clone> Clone for LayoutState<T> {
@@ -194,6 +197,7 @@ impl<T: Clone> Clone for LayoutState<T> {
             cached_size: self.cached_size,
             cached_position: self.cached_position,
             is_dirty: self.is_dirty,
+            is_visible: self.is_visible,
         }
     }
 }
@@ -213,6 +217,7 @@ impl<T> LayoutState<T> {
             cached_size: Size::zero(),
             cached_position: (0, 0),
             is_dirty: true,
+            is_visible: true,
         }
     }
 
@@ -245,6 +250,12 @@ impl<T> DerefMut for LayoutState<T> {
 
 impl<T: Widget> Widget for LayoutState<T> {
     fn layout(&mut self, constraints: Constraints) -> Size {
+        // Если виджет скрыт, то он занимает ноль пикселей
+        if !self.is_visible {
+            self.cached_size = Size::zero();
+            return Size::zero();
+        }
+
         if !self.needs_layout(&constraints) {
             return self.cached_size;
         }
@@ -265,8 +276,15 @@ impl<T: Widget> Widget for LayoutState<T> {
         }
     }
 
-    #[inline(always)]
     fn visible(&mut self, state: bool) {
+        if self.is_visible != state {
+            self.is_visible = state;
+
+            // Если объект скрыли или показали, то лайаут необходимо пересчитать, но проверка
+            // выше защищает от повторного применения одного и того же значения
+            self.is_dirty = true;
+        }
+
         self.widget.visible(state);
     }
 
@@ -298,6 +316,10 @@ impl<T: Widget> Widget for LayoutState<T> {
     #[inline(always)]
     fn __tick(&mut self, delta: u32) -> bool {
         self.widget.__tick(delta)
+    }
+
+    fn is_layout_visible(&self) -> bool {
+        self.is_visible
     }
 }
 

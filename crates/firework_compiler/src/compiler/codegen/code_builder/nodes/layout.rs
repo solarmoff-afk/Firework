@@ -132,6 +132,8 @@ impl CodeBuilder {
 
         // Извлечение полей лайаут
         if let Some(descriptor) = option_descriptor {
+            // TODO: Начать учитывать реактивные пропы
+
             for (field_name, field) in &descriptor.fields {
                 if field_name == "spacing" {
                     spacing_tokens = field.token_stream.clone();
@@ -149,18 +151,26 @@ impl CodeBuilder {
         // Токены если виджет существует (просто расчёт лайаута). Виджет (в if let Some) должен
         // называться _fwc_wb_4
         let some_size_tokens = quote! {
-            firework_ui::std_widgets::widget::Widget::layout(_fwc_wb_4, _c)
+            (
+                /* Размер */ firework_ui::std_widgets::widget::Widget::layout(_fwc_wb_4, _c),
+                /* Видимость */ firework_ui::std_widgets::widget::Widget::is_layout_visible(_fwc_wb_4)
+            )
         };
 
         // Размер если виджет не найден при попытке получить его из Option в экране/компоненте
         // (То есть, если он не создан, то не учавствует)
-        let else_size_tokens = quote! { firework_ui::layout::Size { width: 0, height: 0 } };
+        let else_size_tokens = quote! {
+            (
+                firework_ui::layout::Size { width: 0, height: 0 },
+                false,
+            )
+        };
 
         for (index, child) in children.iter().enumerate() {
             let child_field = format_ident!("_fwc_widget_object_{}", child.id);
             let child_size_ident = format_ident!("_fwc_child_size_{}_{}", depth, index);
+            let child_visible_ident = format_ident!("_fwc_child_vis_{}_{}", depth, index);
 
-            // TODO: Учитывать скрытые условием виджеты (Maybe widget)
             let access_widget = if is_component {
                 quote_spanned! {span=>
                     if let Some(ref mut _fwc_wb_4) = self.#child_field {
@@ -199,27 +209,29 @@ impl CodeBuilder {
                 }
             };
 
-            // Отступ добавляется только между элементами (для первого элемента отступ 0)
-            let spacing_add = if index > 0 {
-                quote! { + (#spacing_tokens) }
-            } else {
-                quote! {}
-            };
-
             // Генерация добавления размера к счётчикам лайаута
             children_measure.extend(quote_spanned! {span=>
-                let #child_size_ident = {
+                let (#child_size_ident, #child_visible_ident) = {
                     let _c = firework_ui::layout::Constraints {
                         min_width: 0,
                         max_width: #parent_constraints.max_width,
                         min_height: 0,
                         max_height: #parent_constraints.max_height.saturating_sub(_fwc_current_height).max(0),
                     };
+
                     #access_widget
                 };
 
-                _fwc_current_height += #child_size_ident.height #spacing_add;
-                _fwc_max_width = _fwc_max_width.max(#child_size_ident.width);
+                if #child_visible_ident {
+                    // Размер увеличивается только если виджет видимый
+                    if _fwc_has_visible_children {
+                        _fwc_current_height += #spacing_tokens;
+                    }
+
+                    _fwc_current_height += #child_size_ident.height;
+                    _fwc_max_width = _fwc_max_width.max(#child_size_ident.width);
+                    _fwc_has_visible_children = true;
+                }
             });
         }
 
@@ -227,6 +239,10 @@ impl CodeBuilder {
         quote_spanned! {span=>
             let mut _fwc_current_height: i32 = 0;
             let mut _fwc_max_width: i32 = 0;
+
+            // Флаг, который стаивтся на true если появляются видимые виджеты. Это необходимо
+            // чтобы не давать первому виджету спейсинг, но первые виджеты могут быть скрыты
+            let mut _fwc_has_visible_children = false;
 
             #children_measure
 

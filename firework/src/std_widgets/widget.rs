@@ -25,6 +25,12 @@ pub trait Widget {
 
     /// Для стандартных виджетов заглушка, для компонентов передача
     fn __tick(&mut self, delta: u32) -> bool;
+
+    /// Так как мы не находимся внутри лайаута (Находится только LayoutState), мы возвращает
+    /// true
+    fn is_layout_visible(&self) -> bool {
+        true
+    }
 }
 
 /// Реализация Widget для &mut T, так как он нужен в safety режиме на этапе расчёта Z. &mut
@@ -65,5 +71,9 @@ impl<T: Widget + ?Sized> Widget for &mut T {
 
     fn __tick(&mut self, delta: u32) -> bool {
         (**self).__tick(delta)
+    }
+
+    fn is_layout_visible(&self) -> bool {
+        (**self).is_layout_visible()
     }
 }
