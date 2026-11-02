@@ -27,7 +27,7 @@ pub fn is_ui_widget(name: &str) -> bool {
 /// лайаута задаётся в фигурных скобках
 ///
 /// Пример:
-/// vertical! {
+/// vstack! {
 ///    // Код
 /// };
 pub fn is_layout(name: &str) -> bool {
