@@ -1,21 +1,4 @@
-use firework_ui::{component, ui};
-
-component! {
-    pub struct BasicComponent {}
-
-    impl BasicComponent {
-        pub fn new() -> Self {
-            Self {}
-        }
-
-        pub fn flash(&mut self, _context: BuildContext) {
-            rect! {
-                position: (10, 10),
-                color: (255, 0, 0),
-            }
-        }
-    }
-}
+use firework_ui::ui;
 
 #[ui]
 fn test_screen() {
