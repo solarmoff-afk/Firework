@@ -89,6 +89,7 @@ impl CodeBuilder {
                 span,
                 statement.screen_index,
                 depth,
+                name,
                 is_component,
                 descriptor,
                 children,
@@ -119,6 +120,7 @@ impl CodeBuilder {
         span: Span,
         screen_index: u128,
         depth: usize,
+        layout_name: &str,
         is_component: bool,
         option_descriptor: &Option<WidgetDescription>,
         children: &[WidgetDescription],
@@ -132,8 +134,6 @@ impl CodeBuilder {
 
         // Извлечение полей лайаут
         if let Some(descriptor) = option_descriptor {
-            // TODO: Начать учитывать реактивные пропы
-
             for (field_name, field) in &descriptor.fields {
                 if field_name == "spacing" {
                     spacing_tokens = field.token_stream.clone();
@@ -151,25 +151,18 @@ impl CodeBuilder {
         // Токены если виджет существует (просто расчёт лайаута). Виджет (в if let Some) должен
         // называться _fwc_wb_4
         let some_size_tokens = quote! {
-            (
-                /* Размер */ firework_ui::std_widgets::widget::Widget::layout(_fwc_wb_4, _c),
-                /* Видимость */ firework_ui::std_widgets::widget::Widget::is_layout_visible(_fwc_wb_4)
-            )
+            firework_ui::std_widgets::widget::Widget::layout(_fwc_wb_4, _c)
         };
 
         // Размер если виджет не найден при попытке получить его из Option в экране/компоненте
         // (То есть, если он не создан, то не учавствует)
         let else_size_tokens = quote! {
-            (
-                firework_ui::layout::Size { width: 0, height: 0 },
-                false,
-            )
+            firework_ui::layout::Size { width: 0, height: 0 }
         };
 
         for (index, child) in children.iter().enumerate() {
             let child_field = format_ident!("_fwc_widget_object_{}", child.id);
             let child_size_ident = format_ident!("_fwc_child_size_{}_{}", depth, index);
-            let child_visible_ident = format_ident!("_fwc_child_vis_{}_{}", depth, index);
 
             let access_widget = if is_component {
                 quote_spanned! {span=>
@@ -210,45 +203,111 @@ impl CodeBuilder {
             };
 
             // Генерация добавления размера к счётчикам лайаута
-            children_measure.extend(quote_spanned! {span=>
-                let (#child_size_ident, #child_visible_ident) = {
-                    let _c = firework_ui::layout::Constraints {
-                        min_width: 0,
-                        max_width: #parent_constraints.max_width,
-                        min_height: 0,
-                        max_height: #parent_constraints.max_height.saturating_sub(_fwc_current_height).max(0),
-                    };
+            let (constraints_tokens, accumulate_tokens) = match layout_name {
+                // Горизонтальный стэк. Виджеты и компоненты размещаются по горизонтальной
+                // линнии
+                //
+                // [ - - - - - - - - - - - - - ]
+                // [ Elem      Elem       Elem ]
+                // ] - - - - - - - - - - - - - ]
+                "hstack" => (
+                    quote! {
+                        firework_ui::layout::Constraints {
+                            min_width: 0,
+                            max_width: #parent_constraints.max_width.saturating_sub(_fwc_layout_width).max(0),
+                            min_height: 0,
+                            max_height: #parent_constraints.max_height,
+                        }
+                    },
+                    quote! {
+                        if #child_size_ident.width > 0 {
+                            if _fwc_has_visible_children {
+                                // Тут мы добавляем ширину к размеру
+                                _fwc_layout_width += #spacing_tokens;
+                            }
 
+                            _fwc_layout_width += #child_size_ident.width;
+                            _fwc_layout_height = _fwc_layout_height.max(#child_size_ident.height);
+
+                            // Этот флаг помечает, что в лайауте уже был один видимый виджет
+                            // или компонент и теперь можно считать отступы, ибо от невидимых
+                            // виджетов и компонентов отступы считать не нужно
+                            _fwc_has_visible_children = true;
+                        }
+                    },
+                ),
+
+                // Обычный стэк в котором элементы накладываются друг на друга по слоям
+                "zstack" => (
+                    quote! {
+                        firework_ui::layout::Constraints {
+                            min_width: 0,
+                            max_width: #parent_constraints.max_width,
+                            min_height: 0,
+                            max_height: #parent_constraints.max_height,
+                        }
+                    },
+                    quote! {
+                        _fwc_layout_width = _fwc_layout_width.max(#child_size_ident.width);
+                        _fwc_layout_height = _fwc_layout_height.max(#child_size_ident.height);
+                    },
+                ),
+
+                _ => (
+                    // По умолчанию vstack, то есть вертикальный стэк. В нём используется
+                    // компоновка в колонку
+                    //
+                    // [ - - - - ]
+                    // [ Element ]
+                    // [         ]
+                    // [ Element ]
+                    // [         ]
+                    // [ Element ]
+                    // [ - - - - ]
+                    quote! {
+                        firework_ui::layout::Constraints {
+                            min_width: 0,
+                            max_width: #parent_constraints.max_width,
+                            min_height: 0,
+                            max_height: #parent_constraints.max_height.saturating_sub(_fwc_layout_height).max(0),
+                        }
+                    },
+                    quote! {
+                        if #child_size_ident.height > 0 {
+                            if _fwc_has_visible_children {
+                                // Тут мы добавляем высоту к размеру
+                                _fwc_layout_height += #spacing_tokens;
+                            }
+
+                            _fwc_layout_height += #child_size_ident.height;
+                            _fwc_layout_width = _fwc_layout_width.max(#child_size_ident.width);
+                            _fwc_has_visible_children = true;
+                        }
+                    },
+                ),
+            };
+
+            children_measure.extend(quote_spanned! {span=>
+                let #child_size_ident = {
+                    let _c = #constraints_tokens;
                     #access_widget
                 };
 
-                if #child_visible_ident {
-                    // Размер увеличивается только если виджет видимый
-                    if _fwc_has_visible_children {
-                        _fwc_current_height += #spacing_tokens;
-                    }
-
-                    _fwc_current_height += #child_size_ident.height;
-                    _fwc_max_width = _fwc_max_width.max(#child_size_ident.width);
-                    _fwc_has_visible_children = true;
-                }
+                #accumulate_tokens
             });
         }
 
         // Возвращает итоговый расчёт размеров
         quote_spanned! {span=>
-            let mut _fwc_current_height: i32 = 0;
-            let mut _fwc_max_width: i32 = 0;
-
-            // Флаг, который стаивтся на true если появляются видимые виджеты. Это необходимо
-            // чтобы не давать первому виджету спейсинг, но первые виджеты могут быть скрыты
+            let mut _fwc_layout_width: i32 = 0;
+            let mut _fwc_layout_height: i32 = 0;
             let mut _fwc_has_visible_children = false;
 
             #children_measure
 
             let #layout_size_ident = firework_ui::layout::Size {
-                width: _fwc_max_width,
-                height: _fwc_current_height,
+                width: _fwc_layout_width,
+                height: _fwc_layout_height,
             };
         }
     }
