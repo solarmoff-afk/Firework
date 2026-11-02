@@ -134,6 +134,11 @@ pub enum CurrentEvent {
         timer_id: usize,
         depth: u16,
     },
+
+    Viewport {
+        width: u32,
+        height: u32,
+    },
 }
 
 #[cfg(not(feature = "safety"))]
@@ -333,6 +338,10 @@ pub fn after_first_flash() {
             AdapterEvent::Tick(delta) => {
                 adapter_command(AdapterCommand::Render);
                 get_tick_fn()(delta);
+            }
+
+            AdapterEvent::Viewport(width, height) => {
+                dispatch_event(CurrentEvent::Viewport { width, height });
             }
 
             _ => {}

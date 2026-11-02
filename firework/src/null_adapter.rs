@@ -277,6 +277,7 @@ pub fn test_null_adapter(_cmd: AdapterCommand) -> AdapterResult {
 
         AdapterCommand::GetShaderLanguage => AdapterResult::ShaderLang(ShaderLanguage::Software),
 
+        // TODO: Добавить GetViewport, иначе в тестах сломается лайаут
         _ => AdapterResult::Void,
     }
 }

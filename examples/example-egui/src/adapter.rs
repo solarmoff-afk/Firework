@@ -84,6 +84,7 @@ struct AdapterState {
     dirty: bool,
     ctx: Option<egui::Context>,
     shader_lang: ShaderLanguage,
+    viewport: (u32, u32),
 }
 
 static ADAPTER_STATE: Mutex<AdapterState> = Mutex::new(AdapterState {
@@ -92,6 +93,7 @@ static ADAPTER_STATE: Mutex<AdapterState> = Mutex::new(AdapterState {
     dirty: false,
     ctx: None,
     shader_lang: ShaderLanguage::Software,
+    viewport: (0, 0),
 });
 
 fn resolve_vcanvas(objects: &[RenderObject], obj: &RenderObject) -> (i32, i32, i32, i32) {
@@ -469,6 +471,20 @@ pub fn egui_adapter(cmd: AdapterCommand<'_>) -> AdapterResult {
 
         AdapterCommand::GetShaderLanguage => AdapterResult::ShaderLang(state.shader_lang),
 
+        AdapterCommand::GetViewport => {
+            let size = if let Some(ctx) = &state.ctx {
+                let rect = ctx.input(|i| i.screen_rect());
+                let w = rect.width().max(0.0) as u32;
+                let h = rect.height().max(0.0) as u32;
+                state.viewport = (w, h);
+                (w, h)
+            } else {
+                state.viewport
+            };
+
+            AdapterResult::Size(size.0, size.1)
+        }
+
         AdapterCommand::Render => AdapterResult::Void,
     }
 }
@@ -477,13 +493,26 @@ struct FireworkEguiApp;
 
 impl eframe::App for FireworkEguiApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
-        let listener = {
+        let (listener, viewport_event) = {
             let mut state = ADAPTER_STATE.lock().unwrap();
             state.ctx = Some(ctx.clone());
-            state.listener
+
+            let rect = ctx.input(|i| i.screen_rect());
+            let w = rect.width().max(0.0) as u32;
+            let h = rect.height().max(0.0) as u32;
+            let old = state.viewport;
+            state.viewport = (w, h);
+
+            let changed = old != (0, 0) && old != (w, h);
+
+            (state.listener, if changed { Some((w, h)) } else { None })
         };
 
         if let Some(listener) = listener {
+            if let Some((w, h)) = viewport_event {
+                listener(AdapterEvent::Viewport(w, h));
+            }
+
             let dt_seconds = ctx.input(|i| i.stable_dt);
             let dt_ms = (dt_seconds * 1000.0).round() as u32;
             let safe_dt_ms = dt_ms.min(250);

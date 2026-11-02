@@ -152,6 +152,9 @@ pub enum AdapterCommand<'a> {
 
     /// Возвращает AdapterResult::ShaderLang
     GetShaderLanguage,
+
+    /// Возвращает AdapterResult::Size, который содержит ширину и высоту окна
+    GetViewport,
 }
 
 /// Перечисления для реализации абстракции над событием EventLoop. В своей реализации
@@ -176,6 +179,10 @@ pub enum AdapterEvent {
     /// > ENG: Request to close the application
     /// > RU: Запрос на закрытие приложения
     CloseRequest,
+
+    /// Ивент изменение размера окна. Не должен срабатывать в первом кадре, иначе будут
+    /// происходить лишние вычисления лайаута
+    Viewport(u32, u32),
 }
 
 /// > ENG: Enumeration for specifying the screen click phase.
