@@ -2,6 +2,7 @@
 // Лицензия EPL 2.0, подробнее в файле LICENSE. Copyright (c) 2026 Firework
 
 use crate::CompileType;
+use crate::compiler::codegen::ir::WidgetDescription;
 
 use super::super::*;
 
@@ -15,7 +16,7 @@ impl CodeBuilder {
         visitor: &mut CodegenVisitor,
         processed_body: &TokenStream,
     ) -> bool {
-        if let FireworkAction::LayoutBlock(name, _microruntime, _descriptor, depth, _children) =
+        if let FireworkAction::LayoutBlock(name, _microruntime, descriptor, depth, children) =
             &statement.action
         {
             // Хелпер это инструмент разработчика, для него не нужно генерировать лайаут
@@ -25,6 +26,11 @@ impl CodeBuilder {
 
             let depth = *depth;
             let is_component = matches!(visitor.flags.compile_type, CompileType::Component);
+
+            // Локальные счётчики для этого лайаута
+            let current_constraints = format_ident!("_fwc_constraints_{}", depth);
+            let current_pos_x = format_ident!("_fwc_pos_x_{}", depth);
+            let current_pos_y = format_ident!("_fwc_pos_y_{}", depth);
 
             let init_layout = if depth == 1 {
                 let root_constraints_init = if is_component {
@@ -55,23 +61,38 @@ impl CodeBuilder {
                 quote_spanned! {span=>
                     #root_constraints_init
 
-                    let mut _fwc_constraints_1 = firework_ui::layout::Constraints {
+                    let mut #current_constraints = firework_ui::layout::Constraints {
                         min_width: 0,
                         max_width: _fwc_root_w,
                         min_height: 0,
                         max_height: _fwc_root_h,
                     };
-                    let mut _fwc_pos_x_1 = 0;
-                    let mut _fwc_pos_y_1 = 0;
+                    let mut #current_pos_x = 0;
+                    let mut #current_pos_y = 0;
                 }
             } else {
-                // Вложенные лайауты получат ограничения от родителей, им не нужны размеры
-                // окна или размер подложки компонента
-                quote! {}
+                // Для глубина лайаута в иерархии больше 1, то есть это вложенный лауаут, то
+                // берем ограничения от предыдущего уровня глубины
+                let previous_depth = depth - 1;
+                let previous_constraints = format_ident!("_fwc_constraints_{}", previous_depth);
+                let previous_pos_x = format_ident!("_fwc_pos_x_{}", previous_depth);
+                let previous_pos_y = format_ident!("_fwc_pos_y_{}", previous_depth);
+
+                quote_spanned! {span=>
+                    let mut #current_constraints = #previous_constraints;
+                    let mut #current_pos_x = #previous_pos_x;
+                    let mut #current_pos_y = #previous_pos_y;
+                }
             };
 
-            // Имя переменной лайаута определяется его позицией в иерархии лайаутов
-            let layout_size_ident = format_ident!("_fwc_layout_size_{}", depth);
+            let measure_tokens = self.generate_measure(
+                span,
+                statement.screen_index,
+                depth,
+                is_component,
+                descriptor,
+                children,
+            );
 
             final_tokens.extend(quote_spanned!(span=>
                 {
@@ -80,12 +101,10 @@ impl CodeBuilder {
 
                     #processed_body
 
+                    // Расчёт размеров всех виджетов
+                    #measure_tokens
+
                     // println!("Layout end placeholder");
-                    // TODO: Считать реальные размеры
-                    let #layout_size_ident = firework_ui::layout::Size {
-                        width: 0,
-                        height: 0,
-                    };
                 }
             ));
 
@@ -93,5 +112,128 @@ impl CodeBuilder {
         }
 
         false
+    }
+
+    fn generate_measure(
+        &self,
+        span: Span,
+        screen_index: u128,
+        depth: usize,
+        is_component: bool,
+        option_descriptor: &Option<WidgetDescription>,
+        children: &[WidgetDescription],
+    ) -> TokenStream {
+        let instance_ident_upper =
+            format_ident!("APPLICATIONUIBLOCKSTRUCT{}_INSTANCE", screen_index);
+
+        // Извлечённые поля лайаута. Они создаются с значением которое будет по умолчанию
+        // если нет лайаут дескриптора layout! {}
+        let mut spacing_tokens = quote! { 0 };
+
+        // Извлечение полей лайаут
+        if let Some(descriptor) = option_descriptor {
+            for (field_name, field) in &descriptor.fields {
+                if field_name == "spacing" {
+                    spacing_tokens = field.token_stream.clone();
+                }
+
+                // TODO: Добавить остальные поля
+            }
+        }
+
+        let parent_constraints = format_ident!("_fwc_constraints_{}", depth);
+        let layout_size_ident = format_ident!("_fwc_layout_size_{}", depth);
+
+        let mut children_measure = TokenStream::new();
+
+        // Токены если виджет существует (просто расчёт лайаута). Виджет (в if let Some) должен
+        // называться _fwc_wb_4
+        let some_size_tokens = quote! {
+            firework_ui::std_widgets::widget::Widget::layout(_fwc_wb_4, _c)
+        };
+
+        // Размер если виджет не найден при попытке получить его из Option в экране/компоненте
+        // (То есть, если он не создан, то не учавствует)
+        let else_size_tokens = quote! { firework_ui::layout::Size { width: 0, height: 0 } };
+
+        for (index, child) in children.iter().enumerate() {
+            let child_field = format_ident!("_fwc_widget_object_{}", child.id);
+            let child_size_ident = format_ident!("_fwc_child_size_{}_{}", depth, index);
+
+            // TODO: Учитывать скрытые условием виджеты (Maybe widget)
+            let access_widget = if is_component {
+                quote_spanned! {span=>
+                    if let Some(ref mut _fwc_wb_4) = self.#child_field {
+                        #some_size_tokens
+                    } else {
+                        #else_size_tokens
+                    }
+                }
+            } else {
+                #[cfg(feature = "safety")]
+                {
+                    quote_spanned! {span=>
+                        #instance_ident_upper.with(|inst| {
+                            let mut _inst = inst.borrow_mut();
+                            if let Some(ref mut _fwc_wb_4) = _inst.#child_field {
+                                #some_size_tokens
+                            } else {
+                                #else_size_tokens
+                            }
+                        })
+                    }
+                }
+
+                #[cfg(not(feature = "safety"))]
+                {
+                    quote_spanned! {span=>
+                        unsafe {
+                            let _inst = &mut *::core::ptr::addr_of_mut!(#instance_ident_upper);
+                            if let Some(ref mut _fwc_wb_4) = _inst.#child_field {
+                                #some_size_tokens
+                            } else {
+                                #else_size_tokens
+                            }
+                        }
+                    }
+                }
+            };
+
+            // Отступ добавляется только между элементами (для первого элемента отступ 0)
+            let spacing_add = if index > 0 {
+                quote! { + (#spacing_tokens) }
+            } else {
+                quote! {}
+            };
+
+            // Генерация добавления размера к счётчикам лайаута
+            children_measure.extend(quote_spanned! {span=>
+                let #child_size_ident = {
+                    let _c = firework_ui::layout::Constraints {
+                        min_width: 0,
+                        max_width: #parent_constraints.max_width,
+                        min_height: 0,
+                        max_height: #parent_constraints.max_height.saturating_sub(_fwc_current_height).max(0),
+                    };
+                    #access_widget
+                };
+
+                _fwc_current_height += #child_size_ident.height #spacing_add;
+                _fwc_max_width = _fwc_max_width.max(#child_size_ident.width);
+            });
+        }
+
+        // Возвращает итоговый расчёт размеров
+        quote_spanned! {span=>
+            let mut _fwc_current_height: i32 = 0;
+            let mut _fwc_max_width: i32 = 0;
+
+            #children_measure
+
+            let #layout_size_ident = firework_ui::layout::Size {
+                width: _fwc_max_width,
+                height: _fwc_current_height,
+            };
+        }
     }
 }
