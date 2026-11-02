@@ -48,7 +48,8 @@ pub struct ComponentData {
     // Трейт Widget требует &self вместо &mut self для метода position
     pub position: Cell<(i32, i32)>,
 
-    pub size: Cell<(i32, i32)>,
+    // Заполяется методом __set_size компонента
+    pub size: (i32, i32),
 
     pub substrate: usize,
 }
@@ -68,7 +69,7 @@ impl ComponentData {
 
         Self {
             position: Cell::new((0, 0)),
-            size: Cell::new((0, 0)),
+            size: (0, 0),
             substrate: substrate.unwrap_or(0),
         }
     }
@@ -83,7 +84,6 @@ impl ComponentData {
     }
 
     pub fn set_size(&self, size: (i32, i32)) {
-        self.size.set(size);
         adapter_command(AdapterCommand::SetSize(self.substrate, size));
     }
 }
