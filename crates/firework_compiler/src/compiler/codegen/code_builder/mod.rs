@@ -2,6 +2,7 @@
 // Лицензия EPL 2.0, подробнее в файле LICENSE. Copyright (c) 2026 Firework
 
 mod cache;
+mod layout;
 mod nodes;
 
 #[cfg(feature = "trace")]
