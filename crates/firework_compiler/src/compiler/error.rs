@@ -77,7 +77,7 @@ pub const LAYOUT_PARSE_ERROR: &str = "\
 error[FE008]: failed to parse layout macro invocation
    = note: layout macros expect valid Rust code, custom syntax is only available in widgets
    = help: use valid Rust expressions inside the layout block
-   = note: example: `vertical! { println!(\"Hi!\"); };`
+   = note: example: `vstackl! { println!(\"Hi!\"); };`
    = note: for more information, see: [WORK IN PROGRESS]
 ";
 

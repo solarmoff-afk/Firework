@@ -285,7 +285,7 @@ fn test_analyze_widget_in_loop() {
 fn test_analyze_nested_widgets() {
     let tokens = quote::quote! {
         fn screen() {
-            vertical! {
+            vstack! {
                 rect! {
                     position: (0, 0),
                     size: (100, 50),

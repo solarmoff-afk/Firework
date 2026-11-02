@@ -4,8 +4,8 @@ use firework_ui::ui;
 fn test_screen() {
     let mut red = spark!(0u8);
 
-    horizontal! {
-        horizontal! {
+    hstack! {
+        hstack! {
             rect! {
                 position: (100, 100),
                 size: 100,
