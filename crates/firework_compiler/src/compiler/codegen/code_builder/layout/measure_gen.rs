@@ -101,80 +101,23 @@ impl CodeBuilder {
                 // [ - - - - - - - - - - - - - ]
                 // [ Elem      Elem       Elem ]
                 // ] - - - - - - - - - - - - - ]
-                "hstack" => (
-                    quote! {
-                        firework_ui::layout::Constraints {
-                            min_width: 0,
-                            max_width: #parent_constraints.max_width.saturating_sub(_fwc_layout_width).max(0),
-                            min_height: 0,
-                            max_height: #parent_constraints.max_height,
-                        }
-                    },
-                    quote! {
-                        if #child_size_ident.width > 0 {
-                            if _fwc_has_visible_children {
-                                // Тут мы добавляем ширину к размеру
-                                _fwc_layout_width += #spacing_tokens;
-                            }
-
-                            _fwc_layout_width += #child_size_ident.width;
-                            _fwc_layout_height = _fwc_layout_height.max(#child_size_ident.height);
-
-                            // Этот флаг помечает, что в лайауте уже был один видимый виджет
-                            // или компонент и теперь можно считать отступы, ибо от невидимых
-                            // виджетов и компонентов отступы считать не нужно
-                            _fwc_has_visible_children = true;
-                        }
-                    },
+                "hstack" => self.generate_measure_hstack(
+                    span,
+                    &parent_constraints,
+                    &child_size_ident,
+                    &spacing_tokens,
                 ),
 
                 // Обычный стэк в котором элементы накладываются друг на друга по слоям
-                "zstack" => (
-                    quote! {
-                        firework_ui::layout::Constraints {
-                            min_width: 0,
-                            max_width: #parent_constraints.max_width,
-                            min_height: 0,
-                            max_height: #parent_constraints.max_height,
-                        }
-                    },
-                    quote! {
-                        _fwc_layout_width = _fwc_layout_width.max(#child_size_ident.width);
-                        _fwc_layout_height = _fwc_layout_height.max(#child_size_ident.height);
-                    },
-                ),
+                "zstack" => {
+                    self.generate_measure_zstack(span, &parent_constraints, &child_size_ident)
+                }
 
-                _ => (
-                    // По умолчанию vstack, то есть вертикальный стэк. В нём используется
-                    // компоновка в колонку
-                    //
-                    // [ - - - - ]
-                    // [ Element ]
-                    // [         ]
-                    // [ Element ]
-                    // [         ]
-                    // [ Element ]
-                    // [ - - - - ]
-                    quote! {
-                        firework_ui::layout::Constraints {
-                            min_width: 0,
-                            max_width: #parent_constraints.max_width,
-                            min_height: 0,
-                            max_height: #parent_constraints.max_height.saturating_sub(_fwc_layout_height).max(0),
-                        }
-                    },
-                    quote! {
-                        if #child_size_ident.height > 0 {
-                            if _fwc_has_visible_children {
-                                // Тут мы добавляем высоту к размеру
-                                _fwc_layout_height += #spacing_tokens;
-                            }
-
-                            _fwc_layout_height += #child_size_ident.height;
-                            _fwc_layout_width = _fwc_layout_width.max(#child_size_ident.width);
-                            _fwc_has_visible_children = true;
-                        }
-                    },
+                _ => self.generate_measure_vstack(
+                    span,
+                    &parent_constraints,
+                    &child_size_ident,
+                    &spacing_tokens,
                 ),
             };
 
