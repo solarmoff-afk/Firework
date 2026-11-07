@@ -84,7 +84,19 @@ impl CodeBuilder {
                 }
             };
 
+            // Измерение (1 проход)
             let measure_tokens = self.generate_measure(
+                span,
+                statement.screen_index,
+                depth,
+                name,
+                is_component,
+                descriptor,
+                children,
+            );
+
+            // Раскладка (2 проход)
+            let arrange_tokens = self.generate_arrange(
                 span,
                 statement.screen_index,
                 depth,
@@ -103,6 +115,7 @@ impl CodeBuilder {
 
                     // Расчёт размеров всех виджетов
                     #measure_tokens
+                    #arrange_tokens
 
                     // println!("Layout end placeholder");
                 }
