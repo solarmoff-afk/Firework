@@ -17,6 +17,8 @@ impl CodeBuilder {
         span: Span,
         child_size_ident: &syn::Ident,
         spacing_tokens: &TokenStream,
+        cross_alignment: &TokenStream,
+        parent_constraints: &syn::Ident,
         access_widget: &TokenStream,
     ) -> TokenStream {
         quote_spanned! {span=>
@@ -25,10 +27,9 @@ impl CodeBuilder {
                     _fwc_current_x += #spacing_tokens;
                 }
 
-                // TODO: Добавить CrossAxisAlignment
                 let _child_x = _fwc_current_x;
-
-                let _child_y = _fwc_current_y;
+                let _cross_offset = #cross_alignment.calculate(#parent_constraints.max_height, #child_size_ident.height);
+                let _child_y = _fwc_current_y + _cross_offset;
 
                 #access_widget
 

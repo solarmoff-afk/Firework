@@ -21,10 +21,19 @@ impl CodeBuilder {
 
         // TODO: Добавить реактивонсть
         let mut spacing_tokens = quote! { 0 };
+
+        // Оси (основная и поперечная ось)
+        let mut main_alignment = quote! { firework_ui::layout::MainAxisAlignment::Start };
+        let mut cross_alignment = quote! { firework_ui::layout::CrossAxisAlignment::Start };
+
         if let Some(descriptor) = option_descriptor {
             for (field_name, field) in &descriptor.fields {
                 if field_name == "spacing" {
                     spacing_tokens = field.token_stream.clone();
+                } else if field_name == "main_axis" {
+                    main_alignment = field.token_stream.clone();
+                } else if field_name == "cross_axis" {
+                    cross_alignment = field.token_stream.clone();
                 }
             }
         }
@@ -33,6 +42,9 @@ impl CodeBuilder {
         let parent_pos_y = format_ident!("_fwc_pos_y_{}", depth);
 
         let mut children_arrange = TokenStream::new();
+        let actual_spacing_tokens = quote! { _fwc_actual_spacing };
+        let layout_size_ident = format_ident!("_fwc_layout_size_{}", depth);
+        let parent_constraints = format_ident!("_fwc_constraints_{}", depth);
 
         for (index, child) in children.iter().enumerate() {
             let child_field = format_ident!("_fwc_widget_object_{}", child.id);
@@ -51,7 +63,9 @@ impl CodeBuilder {
                 "hstack" => self.generate_arrange_hstack(
                     span,
                     &child_size_ident,
-                    &spacing_tokens,
+                    &actual_spacing_tokens,
+                    &cross_alignment,
+                    &parent_constraints,
                     &access_widget,
                 ),
 
@@ -61,7 +75,9 @@ impl CodeBuilder {
                 _ => self.generate_arrange_vstack(
                     span,
                     &child_size_ident,
-                    &spacing_tokens,
+                    &actual_spacing_tokens,
+                    &cross_alignment,
+                    &parent_constraints,
                     &access_widget,
                 ),
             };
@@ -71,12 +87,44 @@ impl CodeBuilder {
             });
         }
 
-        quote_spanned! {span=>
-            // Стартовые курсоры для этого лайаута
-            let mut _fwc_current_x = #parent_pos_x;
-            let mut _fwc_current_y = #parent_pos_y;
-            let mut _fwc_has_visible_children_arrange = false;
+        // Определяем какая ось главная для вычисления MainAxisAlignment
+        let total_children = children.len() as i32;
 
+        let calculate_alignments = match layout_name {
+            "hstack" => quote_spanned! {span=>
+                let (_fwc_start_offset, _fwc_actual_spacing) = #main_alignment.calculate(
+                    #parent_constraints.max_width,
+                    #layout_size_ident.width,
+                    #total_children,
+                    #spacing_tokens
+                );
+
+                let mut _fwc_current_x = #parent_pos_x + _fwc_start_offset;
+                let mut _fwc_current_y = #parent_pos_y;
+            },
+
+            "zstack" => quote_spanned! {span=>
+                let _fwc_actual_spacing = 0;
+                let mut _fwc_current_x = #parent_pos_x;
+                let mut _fwc_current_y = #parent_pos_y;
+            },
+
+            _ => quote_spanned! {span=>
+                let (_fwc_start_offset, _fwc_actual_spacing) = #main_alignment.calculate(
+                    #parent_constraints.max_height,
+                    #layout_size_ident.height,
+                    #total_children,
+                    #spacing_tokens
+                );
+
+                let mut _fwc_current_x = #parent_pos_x;
+                let mut _fwc_current_y = #parent_pos_y + _fwc_start_offset;
+            },
+        };
+
+        quote_spanned! {span=>
+            #calculate_alignments
+            let mut _fwc_has_visible_children_arrange = false;
             #children_arrange
         }
     }
