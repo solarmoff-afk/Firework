@@ -165,6 +165,57 @@ pub enum MainAxisAlignment {
     SpaceEvenly,
 }
 
+impl MainAxisAlignment {
+    pub fn calculate(
+        &self,
+        available_space: i32,
+        used_space: i32,
+        children_count: i32,
+        base_spacing: i32,
+    ) -> (i32, i32) {
+        if children_count == 0 {
+            return (0, 0);
+        }
+
+        let free_space = (available_space - used_space).max(0);
+
+        match self {
+            MainAxisAlignment::Start => (0, base_spacing),
+            MainAxisAlignment::End => {
+                let total_spacing = base_spacing * (children_count - 1);
+                let start_offset = (free_space - total_spacing).max(0);
+                (start_offset, base_spacing)
+            }
+
+            MainAxisAlignment::Center => {
+                let total_spacing = base_spacing * (children_count - 1);
+                let start_offset = (free_space - total_spacing).max(0) / 2;
+                (start_offset, base_spacing)
+            }
+
+            MainAxisAlignment::SpaceBetween => {
+                if children_count == 1 {
+                    return (0, 0);
+                }
+
+                let dynamic_spacing = free_space / (children_count - 1);
+                (0, dynamic_spacing)
+            }
+
+            MainAxisAlignment::SpaceAround => {
+                let dynamic_spacing = free_space / children_count;
+                let start_offset = dynamic_spacing / 2;
+                (start_offset, dynamic_spacing)
+            }
+
+            MainAxisAlignment::SpaceEvenly => {
+                let dynamic_spacing = free_space / (children_count + 1);
+                (dynamic_spacing, dynamic_spacing)
+            }
+        }
+    }
+}
+
 /// Выравнивание по второй оси
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CrossAxisAlignment {
@@ -172,6 +223,22 @@ pub enum CrossAxisAlignment {
     Center,
     End,
     Stretch,
+}
+
+impl CrossAxisAlignment {
+    /// Рассчитывает позицию элемента по поперечной оси
+    pub fn calculate(&self, available_space: i32, child_size: i32) -> i32 {
+        let free_space = (available_space - child_size).max(0);
+
+        match self {
+            CrossAxisAlignment::Start => 0,
+            CrossAxisAlignment::Center => free_space / 2,
+            CrossAxisAlignment::End => free_space,
+
+            // При stretch позиция 0, а размер растягивается
+            CrossAxisAlignment::Stretch => 0,
+        }
+    }
 }
 
 /// Специальный контейнер для виджета который находится внутри лайаута. Он хранит внутри
