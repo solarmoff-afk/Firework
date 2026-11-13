@@ -60,7 +60,7 @@ impl CodegenVisitor<'_> {
                     let bit: u8 = normalize_bit_index(prop.bit);
 
                     quote! {
-                        self.#bitmask_name |= 1 << #bit;
+                        self.#bitmask_name |= 1u64 << #bit;
                     }
                 } else {
                     quote! {}

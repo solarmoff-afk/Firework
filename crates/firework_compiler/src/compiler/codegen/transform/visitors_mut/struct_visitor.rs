@@ -47,7 +47,7 @@ impl CodegenVisitor<'_> {
                     let name = format_ident!("_fwc_component_bitmask_{}", i);
 
                     let new_field: syn::Field = parse_quote! {
-                        pub #name: u8
+                        pub #name: u64
                     };
 
                     fields_named.named.push(new_field);

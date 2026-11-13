@@ -390,6 +390,36 @@ impl<T: Widget> Widget for LayoutState<T> {
     }
 }
 
+pub trait IntoPadding {
+    /// Возвращает (top, right, bottom, left)
+    fn into_padding(
+        self,
+    ) -> (
+        /* Top */ i32,
+        /* Rigth */ i32,
+        /* Bottom */ i32,
+        /* left */ i32,
+    );
+}
+
+impl IntoPadding for i32 {
+    fn into_padding(self) -> (i32, i32, i32, i32) {
+        (self, self, self, self)
+    }
+}
+
+impl IntoPadding for (i32, i32) {
+    fn into_padding(self) -> (i32, i32, i32, i32) {
+        (self.1, self.0, self.1, self.0)
+    }
+}
+
+impl IntoPadding for (i32, i32, i32, i32) {
+    fn into_padding(self) -> (i32, i32, i32, i32) {
+        self
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
