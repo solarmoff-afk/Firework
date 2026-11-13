@@ -21,6 +21,7 @@ impl CodeBuilder {
 
         // TODO: Добавить реактивонсть
         let mut spacing_tokens = quote! { 0 };
+        let mut padding_tokens = quote! { 0 };
 
         // Оси (основная и поперечная ось)
         let mut main_alignment = quote! { firework_ui::layout::MainAxisAlignment::Start };
@@ -30,6 +31,8 @@ impl CodeBuilder {
             for (field_name, field) in &descriptor.fields {
                 if field_name == "spacing" {
                     spacing_tokens = field.token_stream.clone();
+                } else if field_name == "padding" {
+                    padding_tokens = field.token_stream.clone();
                 } else if field_name == "main_axis" {
                     main_alignment = field.token_stream.clone();
                 } else if field_name == "cross_axis" {
@@ -92,33 +95,38 @@ impl CodeBuilder {
 
         let calculate_alignments = match layout_name {
             "hstack" => quote_spanned! {span=>
+                let _fwc_padding = firework_ui::layout::IntoPadding::into_padding(#padding_tokens);
+
                 let (_fwc_start_offset, _fwc_actual_spacing) = #main_alignment.calculate(
-                    #parent_constraints.max_width,
-                    #layout_size_ident.width,
+                    #parent_constraints.max_width - (_fwc_padding.1 + _fwc_padding.3),
+                    #layout_size_ident.width - (_fwc_padding.1 + _fwc_padding.3),
                     #total_children,
                     #spacing_tokens
                 );
 
-                let mut _fwc_current_x = #parent_pos_x + _fwc_start_offset;
-                let mut _fwc_current_y = #parent_pos_y;
+                let mut _fwc_current_x = #parent_pos_x + _fwc_padding.3 + _fwc_start_offset;
+                let mut _fwc_current_y = #parent_pos_y + _fwc_padding.0;
             },
 
             "zstack" => quote_spanned! {span=>
+                let _fwc_padding = firework_ui::layout::IntoPadding::into_padding(#padding_tokens);
                 let _fwc_actual_spacing = 0;
-                let mut _fwc_current_x = #parent_pos_x;
-                let mut _fwc_current_y = #parent_pos_y;
+                let mut _fwc_current_x = #parent_pos_x + _fwc_padding.3;
+                let mut _fwc_current_y = #parent_pos_y + _fwc_padding.0;
             },
 
             _ => quote_spanned! {span=>
+                let _fwc_padding = firework_ui::layout::IntoPadding::into_padding(#padding_tokens);
+
                 let (_fwc_start_offset, _fwc_actual_spacing) = #main_alignment.calculate(
-                    #parent_constraints.max_height,
-                    #layout_size_ident.height,
+                    #parent_constraints.max_height - (_fwc_padding.0 + _fwc_padding.2),
+                    #layout_size_ident.height - (_fwc_padding.0 + _fwc_padding.2),
                     #total_children,
                     #spacing_tokens
                 );
 
-                let mut _fwc_current_x = #parent_pos_x;
-                let mut _fwc_current_y = #parent_pos_y + _fwc_start_offset;
+                let mut _fwc_current_x = #parent_pos_x + _fwc_padding.3;
+                let mut _fwc_current_y = #parent_pos_y + _fwc_padding.0 + _fwc_start_offset;
             },
         };
 
