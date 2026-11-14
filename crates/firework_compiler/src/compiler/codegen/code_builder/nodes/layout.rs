@@ -2,6 +2,7 @@
 // Лицензия EPL 2.0, подробнее в файле LICENSE. Copyright (c) 2026 Firework
 
 use crate::CompileType;
+use crate::compiler::common::widget_kind::is_layout;
 
 use super::super::*;
 
@@ -106,10 +107,23 @@ impl CodeBuilder {
                 children,
             );
 
+            let mut nested_size_decls = TokenStream::new();
+            let mut declared_ids = Vec::new();
+            for child in children {
+                if is_layout(&child.widget_type) && !declared_ids.contains(&child.id) {
+                    declared_ids.push(child.id);
+                    let child_layout_size = format_ident!("_fwc_layout_size_{}", child.id);
+                    nested_size_decls.extend(quote_spanned! {span=>
+                        let mut #child_layout_size = firework_ui::layout::Size { width: 0, height: 0 };
+                    });
+                }
+            }
+
             final_tokens.extend(quote_spanned!(span=>
                 {
                     // println!("Layout begin placeholder");
                     #init_layout
+                    #nested_size_decls
 
                     #processed_body
 

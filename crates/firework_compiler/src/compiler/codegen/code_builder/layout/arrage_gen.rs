@@ -2,6 +2,7 @@
 // Лицензия EPL 2.0, подробнее в файле LICENSE. Copyright (c) 2026 Firework
 
 use crate::compiler::codegen::ir::WidgetDescription;
+use crate::compiler::common::widget_kind::is_layout;
 
 use super::super::*;
 
@@ -53,12 +54,16 @@ impl CodeBuilder {
             let child_field = format_ident!("_fwc_widget_object_{}", child.id);
             let child_size_ident = format_ident!("_fwc_child_size_{}_{}", depth, index);
 
-            let access_widget = self.generate_arrange_access_widget(
-                span,
-                &instance_ident_upper,
-                &child_field,
-                is_component,
-            );
+            let access_widget = if is_layout(&child.widget_type) {
+                quote! {}
+            } else {
+                self.generate_arrange_access_widget(
+                    span,
+                    &instance_ident_upper,
+                    &child_field,
+                    is_component,
+                )
+            };
 
             // Вычисляем координаты и сдвигаем курсор лайаута в зависимости от оси лайаута
             // (горизонтальный, вертикальный, стэк и так далее)

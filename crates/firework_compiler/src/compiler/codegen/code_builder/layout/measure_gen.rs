@@ -2,6 +2,7 @@
 // Лицензия EPL 2.0, подробнее в файле LICENSE. Copyright (c) 2026 Firework
 
 use crate::compiler::codegen::ir::WidgetDescription;
+use crate::compiler::common::widget_kind::is_layout;
 
 use super::super::*;
 
@@ -55,7 +56,10 @@ impl CodeBuilder {
             let child_field = format_ident!("_fwc_widget_object_{}", child.id);
             let child_size_ident = format_ident!("_fwc_child_size_{}_{}", depth, index);
 
-            let access_widget = if is_component {
+            let access_widget = if is_layout(&child.widget_type) {
+                let child_layout_size = format_ident!("_fwc_layout_size_{}", child.id);
+                quote_spanned! {span=> #child_layout_size }
+            } else if is_component {
                 quote_spanned! {span=>
                     if let Some(ref mut _fwc_wb_4) = self.#child_field {
                         #some_size_tokens
@@ -132,6 +136,22 @@ impl CodeBuilder {
         }
 
         // Возвращает итоговый расчёт размеров
+        let assign_layout_size = if depth == 1 {
+            quote_spanned! {span=>
+                let #layout_size_ident = firework_ui::layout::Size {
+                    width: _fwc_layout_width,
+                    height: _fwc_layout_height,
+                };
+            }
+        } else {
+            quote_spanned! {span=>
+                #layout_size_ident = firework_ui::layout::Size {
+                    width: _fwc_layout_width,
+                    height: _fwc_layout_height,
+                };
+            }
+        };
+
         quote_spanned! {span=>
             let mut _fwc_layout_width: i32 = 0;
             let mut _fwc_layout_height: i32 = 0;
@@ -139,10 +159,7 @@ impl CodeBuilder {
 
             #children_measure
 
-            let #layout_size_ident = firework_ui::layout::Size {
-                width: _fwc_layout_width,
-                height: _fwc_layout_height,
-            };
+            #assign_layout_size
         }
     }
 }

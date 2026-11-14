@@ -231,7 +231,7 @@ impl<'ast> Analyzer {
             }
 
             // Находимся ли мы внутри лайаута (проверка на то, есть ли хук на лайаут блок)
-            let in_layout = self.context.layout_hook.is_some();
+            let in_layout = self.context.layout_hook.is_empty();
 
             // Виджеты внутри лайаут оборачиваются в LayoutState чтобы там кэшировать данные
             // лайаута
@@ -312,7 +312,7 @@ impl<'ast> Analyzer {
                 in_layout,
             };
 
-            if let Some(hook) = &self.context.layout_hook {
+            if let Some(hook) = self.context.layout_hook.last() {
                 // Мы сохранили стейтемент где находится основной лайаут (vertical! или
                 // другой) чтобы в дескрипторе (тут, в функциональном виджете) мы могли
                 // добавить его в LayoutBlock. Благодаря этому layout! {} может быть где
@@ -459,6 +459,26 @@ impl<'ast> Analyzer {
             let old_layout_depth = self.context.layout_depth;
             self.context.layout_depth += 1;
 
+            let current_depth = self.context.layout_depth;
+            if let Some(parent_hook) = self.context.layout_hook.last() {
+                let parent_statement = self.get_statement_from_hook(parent_hook.clone());
+                if let FireworkAction::LayoutBlock(_, _, _, _, parent_children) =
+                    &mut parent_statement.action
+                {
+                    parent_children.push(WidgetDescription {
+                        widget_type: name.clone(),
+                        fields: Vec::new(),
+                        is_functional: true,
+                        id: current_depth,
+                        has_microruntime: false,
+                        skin: String::new(),
+                        is_maybe: None,
+                        special: SpecialWidget::None,
+                        in_layout: true,
+                    });
+                }
+            }
+
             // Изначально дескриптор None, но ниже сохраняется хук на эту запись в IR чтобы
             // потом при нахождении дескриптора layour! {} записать внутренности в этот
             // лайаут блок
@@ -473,7 +493,11 @@ impl<'ast> Analyzer {
             self.context.statement.screen_index = self.lifetime_manager.scope.screen_index;
             self.context.statement.depth = self.lifetime_manager.scope.depth;
             self.context.ir.push(self.context.statement.clone());
-            self.context.layout_hook = self.get_hook();
+
+            if let Some(hook) = self.get_hook() {
+                self.context.layout_hook.push(hook);
+            }
+
             self.lifetime_manager.scope.depth += 1;
             self.context.statement.depth += 1;
 
@@ -492,6 +516,7 @@ impl<'ast> Analyzer {
                 self.visit_stmt(&statement);
             }
 
+            self.context.layout_hook.pop();
             self.context.layout_depth = old_layout_depth;
             self.context.ir.in_helper = old_in_halper;
 

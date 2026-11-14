@@ -80,7 +80,7 @@ pub struct AnalyzeContext {
     ),
 
     // Хук на последний лайаут
-    pub layout_hook: Option<IrHook>,
+    pub layout_hook: Vec<IrHook>,
 
     // Счётчик таймеров timer! {}
     pub timer_counter: usize,
@@ -145,7 +145,7 @@ impl AnalyzeContext {
             first_ui_reactive_block: None,
             first_cycle: None,
             now_component: (None, None),
-            layout_hook: None,
+            layout_hook: Vec::new(),
             timer_counter: 0,
             layout_depth: 0,
         }
