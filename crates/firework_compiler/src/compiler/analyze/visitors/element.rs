@@ -167,6 +167,10 @@ impl<'ast> Analyzer {
             // то значит это функиональный виджет
             let mut skin_field = _skin_struct.clone().unwrap_or("".to_string());
 
+            // Для того, чтобы добавить виджет в IR к экрану, нужны параметры для создания
+            // структуры WidgetStorage
+            let mut widget_type = ScreenWidgetType::Base;
+
             // Для специальных виджетов
             let mut special = SpecialWidget::None;
             if name == "timer" {
@@ -230,12 +234,39 @@ impl<'ast> Analyzer {
                 self.context.timer_counter += 1;
             }
 
+            // Если это вставка компонента в экран или другой компонент мы должны найти target
+            // (это структура компонента) и использовать его как поле для структуры экрана
+            // или компонента куда мы вставим компонент
+            if name == "component" {
+                // Виджет нужно добавить в структуру как коипонент. Это нужно для расчёта z
+                // иерархии деерва
+                widget_type = ScreenWidgetType::Component;
+
+                for prop in &args.properties {
+                    if prop.name == "target" {
+                        let expr = &prop.value;
+                        skin_field = quote::quote!(#expr).to_string();
+                    }
+                }
+
+                // Генерация дженерика для скина в случае декларации T-компонента
+                if !generics.is_empty() {
+                    let raw_skin_field = format_ident!("{}", skin_field);
+                    let generic = quote::quote! {
+                        #raw_skin_field<#(#generics),*>
+                    };
+
+                    skin_field = generic.to_string();
+                }
+            }
+
             // Находимся ли мы внутри лайаута (проверка на то, есть ли хук на лайаут блок)
-            let in_layout = self.context.layout_hook.is_empty();
+            let in_layout = !self.context.layout_hook.is_empty();
 
             // Виджеты внутри лайаут оборачиваются в LayoutState чтобы там кэшировать данные
             // лайаута
-            if is_ui_widget(&name) && in_layout {
+            let wrap_in_layout = is_ui_widget(&name) && in_layout;
+            if wrap_in_layout {
                 skin_field = format!("firework_ui::layout::LayoutState<{}>", skin_field);
             }
 
@@ -262,9 +293,6 @@ impl<'ast> Analyzer {
                 }
             }
 
-            // Для того, чтобы добавить виджет в IR к экрану, нужны параметры для создания
-            // структуры WidgetStorage
-            let mut widget_type = ScreenWidgetType::Base;
             self.context.statement.string = i.to_token_stream().to_string();
 
             let descriptor = WidgetDescription {
@@ -309,7 +337,7 @@ impl<'ast> Analyzer {
                 },
 
                 special,
-                in_layout,
+                in_layout: wrap_in_layout,
             };
 
             if let Some(hook) = self.context.layout_hook.last() {
@@ -333,32 +361,6 @@ impl<'ast> Analyzer {
                     {
                         children.push(descriptor.clone());
                     }
-                }
-            }
-
-            // Если это вставка компонента в экран или другой компонент мы должны найти target
-            // (это структура компонента) и использовать его как поле для структуры экрана
-            // или компонента куда мы вставим компонент
-            if name == "component" {
-                // Виджет нужно добавить в структуру как коипонент. Это нужно для расчёта z
-                // иерархии деерва
-                widget_type = ScreenWidgetType::Component;
-
-                for prop in &args.properties {
-                    if prop.name == "target" {
-                        let expr = &prop.value;
-                        skin_field = quote::quote!(#expr).to_string();
-                    }
-                }
-
-                // Генерация дженерика для скина в случае декларации T-компонента
-                if !generics.is_empty() {
-                    let raw_skin_field = format_ident!("{}", skin_field);
-                    let generic = quote::quote! {
-                        #raw_skin_field<#(#generics),*>
-                    };
-
-                    skin_field = generic.to_string();
                 }
             }
 
