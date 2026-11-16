@@ -17,7 +17,7 @@ component! {
             }
         }
 
-        pub fn flash(&mut self, _context: BuildContext) {
+        pub fn flash(&mut self, context: BuildContext) {
             rect! {
                 position: (0, 0),
                 size: 100,

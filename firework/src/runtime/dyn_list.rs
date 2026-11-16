@@ -7,21 +7,21 @@ use crate::BuildContext;
 use crate::std_widgets::widget::Widget;
 
 /// Результат поиска элемента в списке
-pub enum ListEntry<'a, K, T> {
+pub enum ListEntry<'a, K, T, const N: usize = 64> {
     /// Элемент найден в старом кадре и перенесён в текущий
     Occupied(&'a mut T),
 
     /// Элемента с таким ключом нет и нужно вставить новый
-    Vacant(VacantEntry<'a, K, T>),
+    Vacant(VacantEntry<'a, K, T, N>),
 }
 
 /// Структура для вставки нового элемента
-pub struct VacantEntry<'a, K, T> {
-    list: &'a mut DynList<K, T>,
+pub struct VacantEntry<'a, K, T, const N: usize = 64> {
+    list: &'a mut DynList<K, T, N>,
     key: K,
 }
 
-impl<'a, K: Eq + PartialEq, T: Widget> VacantEntry<'a, K, T> {
+impl<'a, K: Eq + PartialEq, T: Widget, const N: usize> VacantEntry<'a, K, T, N> {
     /// Вставляет созданный виджет в список и возвращает мутабельную ссылку на него
     pub fn insert(self, value: T) -> &'a mut T {
         self.list.insert_at_current(self.key, value)
@@ -29,23 +29,26 @@ impl<'a, K: Eq + PartialEq, T: Widget> VacantEntry<'a, K, T> {
 }
 
 #[cfg(not(feature = "no-alloc"))]
-pub struct DynList<K, T> {
+pub struct DynList<K, T, const N: usize = 64> {
     current_items: Vec<(K, T)>,
     old_items: Vec<(K, T)>,
+    _marker: core::marker::PhantomData<[(); N]>,
 }
 
 #[cfg(not(feature = "no-alloc"))]
-impl<K: Eq + PartialEq, T: Widget> Default for DynList<K, T> {
+impl<K: Eq + PartialEq, T: Widget, const N: usize> Default for DynList<K, T, N> {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl<K: Eq + PartialEq, T: Widget> DynList<K, T> {
+#[cfg(not(feature = "no-alloc"))]
+impl<K: Eq + PartialEq, T: Widget, const N: usize> DynList<K, T, N> {
     pub fn new() -> Self {
         Self {
-            current_items: Vec::new(),
-            old_items: Vec::new(),
+            current_items: Vec::with_capacity(N),
+            old_items: Vec::with_capacity(N),
+            _marker: core::marker::PhantomData,
         }
     }
 
@@ -56,7 +59,7 @@ impl<K: Eq + PartialEq, T: Widget> DynList<K, T> {
     }
 
     /// Поиск элемента по ключу
-    pub fn entry(&mut self, key: K) -> ListEntry<'_, K, T> {
+    pub fn entry(&mut self, key: K) -> ListEntry<'_, K, T, N> {
         let found_idx = self.old_items.iter().position(|(k, _)| k == &key);
 
         if let Some(idx) = found_idx {
@@ -130,18 +133,25 @@ impl<K: Eq + PartialEq, T: Widget> DynList<K, T> {
 }
 
 #[cfg(feature = "no-alloc")]
-pub struct DynList<K, T> {
-    current_items: [Option<(K, T)>; 64],
-    old_items: [Option<(K, T)>; 64],
+pub struct DynList<K, T, const N: usize = 64> {
+    current_items: [Option<(K, T)>; N],
+    old_items: [Option<(K, T)>; N],
     current_count: usize,
 }
 
 #[cfg(feature = "no-alloc")]
-impl<K: Eq + PartialEq, T: Widget> DynList<K, T> {
+impl<K: Eq + PartialEq, T: Widget, const N: usize> Default for DynList<K, T, N> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+#[cfg(feature = "no-alloc")]
+impl<K: Eq + PartialEq, T: Widget, const N: usize> DynList<K, T, N> {
     pub fn new() -> Self {
         Self {
-            current_items: [const { None }; 64],
-            old_items: [const { None }; 64],
+            current_items: [const { None }; N],
+            old_items: [const { None }; N],
             current_count: 0,
         }
     }
@@ -151,9 +161,9 @@ impl<K: Eq + PartialEq, T: Widget> DynList<K, T> {
         self.current_count = 0;
     }
 
-    pub fn entry(&mut self, key: K) -> ListEntry<'_, K, T> {
+    pub fn entry(&mut self, key: K) -> ListEntry<'_, K, T, N> {
         let mut found_idx = None;
-        for i in 0..64 {
+        for i in 0..N {
             if let Some((ref k, _)) = self.old_items[i] {
                 if k == &key {
                     found_idx = Some(i);
@@ -163,8 +173,13 @@ impl<K: Eq + PartialEq, T: Widget> DynList<K, T> {
         }
 
         if let Some(idx) = found_idx {
-            let item = self.old_items[idx].take().unwrap();
             let pos = self.current_count;
+
+            if pos >= N {
+                panic!("DynList is overflow, disable no-alloc mode");
+            }
+
+            let item = self.old_items[idx].take().unwrap();
             self.current_items[pos] = Some(item);
             self.current_count += 1;
             ListEntry::Occupied(&mut self.current_items[pos].as_mut().unwrap().1)
@@ -176,8 +191,7 @@ impl<K: Eq + PartialEq, T: Widget> DynList<K, T> {
     fn insert_at_current(&mut self, key: K, value: T) -> &mut T {
         let pos = self.current_count;
 
-        // На 16 битном устройстве (embedded) 16 * 2 = 32 байта, это нормально
-        if pos >= 16 {
+        if pos >= N {
             panic!("DynList is overflow, disable no-alloc mode");
         }
 
@@ -187,8 +201,8 @@ impl<K: Eq + PartialEq, T: Widget> DynList<K, T> {
     }
 
     pub fn end_pass(&mut self) {
-        for i in 0..16 {
-            if let Some(item) = self.old_items[i].take() {
+        for i in 0..N {
+            if let Some((_, item)) = self.old_items[i].take() {
                 item.unmount();
             }
         }
@@ -237,7 +251,7 @@ impl<K: Eq + PartialEq, T: Widget> DynList<K, T> {
     }
 }
 
-impl<K: Eq + PartialEq, T: Widget> Widget for DynList<K, T> {
+impl<K: Eq + PartialEq, T: Widget, const N: usize> Widget for DynList<K, T, N> {
     fn position(&mut self, _position: (i32, i32)) {}
 
     fn visible(&mut self, visible: bool) {

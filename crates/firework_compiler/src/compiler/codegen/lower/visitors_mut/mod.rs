@@ -53,14 +53,17 @@ impl<'a> VisitMut for LowerVisitor<'a> {
         match stmt {
             Stmt::Local(local) => {
                 remove_attribute(&mut local.attrs, "raw");
+                remove_attribute(&mut local.attrs, "capacity");
             }
 
             Stmt::Expr(expr, _) => {
                 remove_expr_attribute(expr, "raw");
+                remove_expr_attribute(expr, "capacity");
             }
 
             Stmt::Macro(macro_stmt) => {
                 remove_attribute(&mut macro_stmt.attrs, "raw");
+                remove_attribute(&mut macro_stmt.attrs, "capacity");
             }
 
             Stmt::Item(_) => {}

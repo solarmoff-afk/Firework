@@ -285,7 +285,16 @@ impl<'ast> Analyzer {
                 has_microruntime = true;
                 self.context.microruntime_widgets.has_widgets = true;
 
-                skin_field = format!("firework_ui::DynList<{}, {}>", key_type, skin_field);
+                // Если есть атрибут capacity, то необходимо задать именно его как константу.
+                // Капасити это сколько будет выделено списку, для alloc режима это
+                // with_capacity для обоих векторов при инициализации, для no-alloc это
+                // рахзмер массива
+                skin_field = if let Some(capacity) = self.context.capacity {
+                    format!("firework_ui::DynList<{}, {}, {}>", key_type, skin_field, capacity)
+                } else {
+                    format!("firework_ui::DynList<{}, {}>", key_type, skin_field)
+                };
+
                 self.context
                     .ir
                     .screen_data

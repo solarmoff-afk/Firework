@@ -45,11 +45,32 @@ impl<'ast> Analyzer {
             self.context.statement.is_reactive_block = true;
         }
 
+        // Сохраняем старое капасити чтобы при выходе из влияния атрибута капасити мы
+        // возвращались к старому, который выше по области видимости. Например:
+        // #[capacity(10)] { #[capacity(200)] {} }
+        let old_capacity = self.context.capacity;
+
         // Атрибут #[raw] позволяет отключить анализ стейтемента для компилятора Firework,
         // тем самым удалив магию компилятора из него
         if !has_attribute(attrs, "raw") {
+            if let Some(attr) = attrs.iter().find(|a| a.path().is_ident("capacity")) {
+                if let Ok(lit_int) = attr.parse_args::<syn::LitInt>()
+                    && let Ok(val) = lit_int.base10_parse::<usize>()
+                {
+                    self.context.capacity = Some(val);
+                } else {
+                    self.context.errors.push(compile_error_spanned(
+                        attr,
+                        CAPACITY_INVALID_ARG_ERROR,
+                    ));
+                }
+            }
+
             visit::visit_stmt(self, i);
         }
+
+        // Выход из области видимости, капасити возвращается
+        self.context.capacity = old_capacity;
 
         self.statement_index += 1;
 

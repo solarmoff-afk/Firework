@@ -313,6 +313,16 @@ error[FE036]: `target` in timer! {} must be a simple spark name
    = note: for more information, see: [WORK IN PROGRESS]
 ";
 
+/// Атрибут #[capacity(N)] должен принимать только константное целочисленное значение
+pub const CAPACITY_INVALID_ARG_ERROR: &str = "\
+error[FE037]: `#[capacity(...)]` expects a constant positive integer literal
+   = note: capacity is used at compile time to allocate static arrays in `no-alloc` mode
+           or pre-allocate `Vec` capacity in standard mode
+   = help: pass a single integer literal inside the attribute
+   = help: example: `#[capacity(32)] for i in 0..count { ... }`
+   = note: for more information, see: [WORK IN PROGRESS]
+";
+
 pub fn compile_error_spanned<T: quote::ToTokens>(tokens: T, msg: &str) -> Error {
     Error::new_spanned(tokens, msg)
 }

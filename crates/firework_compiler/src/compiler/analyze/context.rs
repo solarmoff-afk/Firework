@@ -98,6 +98,9 @@ pub struct AnalyzeContext {
     //
     // println!("Hello world 2"); // Depth: 0
     pub layout_depth: usize,
+
+    // Вместимость для динамических списков DynList, заданная через #[capacity(N)]
+    pub capacity: Option<usize>,
 }
 
 impl AnalyzeContext {
@@ -148,6 +151,7 @@ impl AnalyzeContext {
             layout_hook: Vec::new(),
             timer_counter: 0,
             layout_depth: 0,
+            capacity: None,
         }
     }
 }
