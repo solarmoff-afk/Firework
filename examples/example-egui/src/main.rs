@@ -33,7 +33,9 @@ component! {
 fn test_screen() {
     let mut x = spark!(10);
     let mut red = spark!(0u8);
+
     let mut button_position = spark!((10, 10));
+    let mut button2_position = spark!((150, 10));
 
     rect! {
         position: button_position,
@@ -54,10 +56,18 @@ fn test_screen() {
     }
 
     rect! {
-        position: (150, 10),
+        position: button2_position,
         size: 100,
         color: (255, 0, 0),
         rounded: 16,
+
+        on_touch: |e: TouchEvent| {
+            if e.is_moved() {
+                button2_position.0 = (e.x as i32) - 50;
+                button2_position.1 = (e.y as i32) - 50;
+            }
+        },
+
         on_click: || {
             x -= 25;
         },

@@ -82,18 +82,32 @@ struct AdapterState {
     objects: [RenderObject; MAX_OBJECTS],
     listener: Option<fn(AdapterEvent)>,
     dirty: bool,
+    // [FIX] Закэшированный z-порядок (индексы живых объектов, отсортированные по z).
+    draw_order: Vec<usize>,
     ctx: Option<egui::Context>,
     shader_lang: ShaderLanguage,
     viewport: (u32, u32),
+
+    // [FIX] Pointer capture.
+    // Основная кнопка сейчас зажата.
+    pointer_down: bool,
+    // Идёт обработка Began: ResolveHit запоминает, какой элемент «захватил» указатель.
+    capture_armed: bool,
+    // hit_group -> элемент, найденный в момент нажатия.
+    captures: Vec<(u16, usize)>,
 }
 
 static ADAPTER_STATE: Mutex<AdapterState> = Mutex::new(AdapterState {
     objects: [const { RenderObject::empty() }; MAX_OBJECTS],
     listener: None,
     dirty: false,
+    draw_order: Vec::new(),
     ctx: None,
     shader_lang: ShaderLanguage::Software,
     viewport: (0, 0),
+    pointer_down: false,
+    capture_armed: false,
+    captures: Vec::new(),
 });
 
 fn resolve_vcanvas(objects: &[RenderObject], obj: &RenderObject) -> (i32, i32, i32, i32) {
@@ -104,6 +118,54 @@ fn resolve_vcanvas(objects: &[RenderObject], obj: &RenderObject) -> (i32, i32, i
     }
 
     obj.vcanvas
+}
+
+/// Обычный hit-test: верхний (по z) видимый объект группы, пересекающий прямоугольник.
+fn hit_test(
+    objects: &[RenderObject],
+    group: u16,
+    ax: i32,
+    ay: i32,
+    aw: i32,
+    ah: i32,
+) -> Option<usize> {
+    let mut highest_z = i16::MIN;
+    let mut found_id = None;
+
+    let a_left = ax;
+    let a_right = ax + aw;
+    let a_top = ay;
+    let a_bottom = ay + ah;
+
+    for (id, obj) in objects.iter().enumerate() {
+        if obj.alive && obj.visible && obj.hit_group == group {
+            let v = resolve_vcanvas(objects, obj);
+
+            let b_left = obj.pos.0 + v.0;
+            let b_right = obj.pos.0 + v.0 + obj.size.0;
+            let b_top = obj.pos.1 + v.1;
+            let b_bottom = obj.pos.1 + v.1 + obj.size.1;
+
+            let intersects =
+                a_left < b_right && a_right > b_left && a_top < b_bottom && a_bottom > b_top;
+
+            if intersects && obj.z_index >= highest_z {
+                highest_z = obj.z_index;
+                found_id = Some(id);
+            }
+        }
+    }
+
+    found_id
+}
+
+/// Элемент, захвативший указатель для группы (если он ещё жив и всё ещё в этой группе).
+/// Видимость намеренно не проверяем: захват не должен отваливаться посреди перетаскивания.
+fn captured_target(state: &AdapterState, group: u16) -> Option<usize> {
+    let (_, id) = *state.captures.iter().find(|c| c.0 == group)?;
+    let obj = state.objects.get(id)?;
+
+    (obj.alive && obj.hit_group == group).then_some(id)
 }
 
 fn create_layout_job(obj: &RenderObject) -> egui::text::LayoutJob {
@@ -191,7 +253,7 @@ pub fn egui_adapter(cmd: AdapterCommand<'_>) -> AdapterResult {
                         state.shader_lang = shader_lang;
                     }
 
-                    Ok(Box::new(FireworkEguiApp))
+                    Ok(Box::new(FireworkEguiApp::default()))
                 }),
             );
 
@@ -205,6 +267,9 @@ pub fn egui_adapter(cmd: AdapterCommand<'_>) -> AdapterResult {
                 obj.clip_to = None;
                 obj.vcanvas_ref = None;
             }
+
+            state.captures.clear();
+            state.dirty = true;
 
             AdapterResult::Void
         }
@@ -422,6 +487,9 @@ pub fn egui_adapter(cmd: AdapterCommand<'_>) -> AdapterResult {
                 state.dirty = true;
             }
 
+            // [FIX] Слот может быть переиспользован через NewRect — захват на него снимаем.
+            state.captures.retain(|c| c.1 != id);
+
             AdapterResult::Void
         }
 
@@ -434,36 +502,29 @@ pub fn egui_adapter(cmd: AdapterCommand<'_>) -> AdapterResult {
         }
 
         AdapterCommand::ResolveHit(group, (ax, ay, aw, ah)) => {
-            let mut highest_z = i16::MIN;
-            let mut found_id = None;
+            // [FIX] Pointer capture.
+            // Пока кнопка зажата, группа «прилипает» к элементу, найденному в момент
+            // нажатия, независимо от того, где сейчас курсор. Иначе при быстром движении
+            // курсор вылетает за границы элемента (тот отстаёт на кадр), hit-test
+            // промахивается и перетаскивание обрывается.
+            if state.pointer_down && !state.capture_armed {
+                if let Some(id) = captured_target(&state, group) {
+                    return AdapterResult::Handle(id);
+                }
+            }
 
-            let a_left = ax;
-            let a_right = ax + aw;
-            let a_top = ay;
-            let a_bottom = ay + ah;
+            let found = hit_test(&state.objects, group, ax, ay, aw, ah);
 
-            for (id, obj) in state.objects.iter().enumerate() {
-                if obj.alive && obj.visible && obj.hit_group == group {
-                    let v = resolve_vcanvas(&state.objects, obj);
-
-                    let b_left = obj.pos.0 + v.0;
-                    let b_right = obj.pos.0 + v.0 + obj.size.0;
-                    let b_top = obj.pos.1 + v.1;
-                    let b_bottom = obj.pos.1 + v.1 + obj.size.1;
-
-                    let intersects = a_left < b_right
-                        && a_right > b_left
-                        && a_top < b_bottom
-                        && a_bottom > b_top;
-
-                    if intersects && obj.z_index >= highest_z {
-                        highest_z = obj.z_index;
-                        found_id = Some(id);
+            // Момент нажатия (обработчик Began): запоминаем захватчика для этой группы.
+            if state.capture_armed {
+                if let Some(id) = found {
+                    if !state.captures.iter().any(|c| c.0 == group) {
+                        state.captures.push((group, id));
                     }
                 }
             }
 
-            match found_id {
+            match found {
                 Some(id) => AdapterResult::Handle(id),
                 None => AdapterResult::Fail,
             }
@@ -489,7 +550,164 @@ pub fn egui_adapter(cmd: AdapterCommand<'_>) -> AdapterResult {
     }
 }
 
-struct FireworkEguiApp;
+/// Входные события, собранные за кадр. Собираем их заранее, вне `ctx.input(..)`,
+/// чтобы listener не вызывался под блокировкой контекста egui
+/// (иначе вызов `MeasureText` из обработчика может заблокироваться).
+enum PointerInput {
+    Press(u32, u32),
+    Move(u32, u32),
+    Release(u32, u32),
+    Key(u32),
+}
+
+fn to_px(pos: egui::Pos2) -> (u32, u32) {
+    (pos.x.max(0.0) as u32, pos.y.max(0.0) as u32)
+}
+
+fn dispatch_input(listener: fn(AdapterEvent), input: PointerInput) {
+    match input {
+        PointerInput::Press(x, y) => {
+            {
+                // Включаем захват на время обработчика Began: ResolveHit внутри него
+                // запомнит, какой элемент оказался под курсором.
+                let mut state = ADAPTER_STATE.lock().unwrap();
+                state.pointer_down = true;
+                state.capture_armed = true;
+                state.captures.clear();
+            }
+
+            listener(AdapterEvent::Touch(x, y, AdapterClickPhase::Began));
+
+            ADAPTER_STATE.lock().unwrap().capture_armed = false;
+        }
+
+        PointerInput::Move(x, y) => {
+            listener(AdapterEvent::Touch(x, y, AdapterClickPhase::Moved));
+        }
+
+        PointerInput::Release(x, y) => {
+            // Ended тоже уходит владельцу захвата, поэтому захват снимаем только после него.
+            listener(AdapterEvent::Touch(x, y, AdapterClickPhase::Ended));
+
+            let mut state = ADAPTER_STATE.lock().unwrap();
+            state.pointer_down = false;
+            state.capture_armed = false;
+            state.captures.clear();
+        }
+
+        PointerInput::Key(code) => {
+            listener(AdapterEvent::Key(code));
+        }
+    }
+}
+
+#[derive(Default)]
+struct FireworkEguiApp {
+    // Основная кнопка зажата (с точки зрения адаптера).
+    pointer_down: bool,
+    // Последняя известная позиция курсора (egui при выходе из окна отдаёт None).
+    last_pos: egui::Pos2,
+}
+
+impl FireworkEguiApp {
+    /// Превращает сырые события egui в упорядоченный список событий для listener.
+    ///
+    /// Вместо «одно событие на кадр по latest_pos» обрабатываем каждое событие мыши:
+    ///  - Began получает точную позицию нажатия, а не позицию в конце кадра;
+    ///  - нажатие и отпускание в одном кадре не теряются;
+    ///  - выход курсора из окна (PointerGone) с зажатой кнопкой не обрывает драг;
+    ///  - Ended гарантированно приходит, даже если egui потерял событие отпускания.
+    fn collect_input(&mut self, ctx: &egui::Context) -> Vec<PointerInput> {
+        let mut out = Vec::new();
+
+        ctx.input(|i| {
+            // Движения внутри кадра склеиваем в одно (хватает последней позиции),
+            // но порядок относительно нажатия/отпускания сохраняем.
+            let mut pending_move: Option<egui::Pos2> = None;
+
+            for event in &i.events {
+                match event {
+                    egui::Event::PointerMoved(pos) => {
+                        self.last_pos = *pos;
+
+                        if self.pointer_down {
+                            pending_move = Some(*pos);
+                        }
+                    }
+
+                    egui::Event::PointerButton {
+                        pos,
+                        button: egui::PointerButton::Primary,
+                        pressed,
+                        ..
+                    } => {
+                        if let Some(p) = pending_move.take() {
+                            let (x, y) = to_px(p);
+                            out.push(PointerInput::Move(x, y));
+                        }
+
+                        self.last_pos = *pos;
+                        let (x, y) = to_px(*pos);
+
+                        if *pressed {
+                            if !self.pointer_down {
+                                self.pointer_down = true;
+                                out.push(PointerInput::Press(x, y));
+                            }
+                        } else if self.pointer_down {
+                            self.pointer_down = false;
+                            out.push(PointerInput::Release(x, y));
+                        }
+                    }
+
+                    egui::Event::Text(text) => {
+                        for c in text.chars() {
+                            out.push(PointerInput::Key(c as u32));
+                        }
+                    }
+
+                    egui::Event::Key {
+                        key: egui::Key::Backspace,
+                        pressed: true,
+                        ..
+                    } => {
+                        out.push(PointerInput::Key(8));
+                    }
+
+                    egui::Event::Key {
+                        key: egui::Key::Enter,
+                        pressed: true,
+                        ..
+                    } => {
+                        out.push(PointerInput::Key(13));
+                    }
+
+                    // PointerGone (курсор вышел из окна) намеренно игнорируем:
+                    // last_pos и pointer_down сохраняются, драг продолжается.
+                    _ => {}
+                }
+            }
+
+            if let Some(p) = pending_move.take() {
+                if self.pointer_down {
+                    let (x, y) = to_px(p);
+                    out.push(PointerInput::Move(x, y));
+                }
+            }
+
+            // Страховка от «залипшего» драга: кнопка уже не зажата, а Release мы не видели
+            // (отпустили за окном, потеря фокуса и т.п.).
+            if self.pointer_down && !i.pointer.primary_down() {
+                self.pointer_down = false;
+
+                let (x, y) = to_px(self.last_pos);
+                out.push(PointerInput::Release(x, y));
+            }
+        });
+
+        out
+    }
+}
 
 impl eframe::App for FireworkEguiApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
@@ -508,6 +726,8 @@ impl eframe::App for FireworkEguiApp {
             (state.listener, if changed { Some((w, h)) } else { None })
         };
 
+        let inputs = self.collect_input(ctx);
+
         if let Some(listener) = listener {
             if let Some((w, h)) = viewport_event {
                 listener(AdapterEvent::Viewport(w, h));
@@ -523,75 +743,52 @@ impl eframe::App for FireworkEguiApp {
                 listener(AdapterEvent::CloseRequest);
             }
 
-            ctx.input(|i| {
-                if let Some(pos) = i.pointer.latest_pos() {
-                    let x = pos.x.max(0.0) as u32;
-                    let y = pos.y.max(0.0) as u32;
-
-                    if i.pointer.any_pressed() {
-                        listener(AdapterEvent::Touch(x, y, AdapterClickPhase::Began));
-                    } else if i.pointer.any_down() && i.pointer.delta() != egui::Vec2::ZERO {
-                        listener(AdapterEvent::Touch(x, y, AdapterClickPhase::Moved));
-                    } else if i.pointer.any_released() {
-                        listener(AdapterEvent::Touch(x, y, AdapterClickPhase::Ended));
-                    }
-                }
-
-                for event in &i.events {
-                    match event {
-                        egui::Event::Text(text) => {
-                            for c in text.chars() {
-                                listener(AdapterEvent::Key(c as u32));
-                            }
-                        }
-                        egui::Event::Key {
-                            key: egui::Key::Backspace,
-                            pressed: true,
-                            ..
-                        } => {
-                            listener(AdapterEvent::Key(8));
-                        }
-                        egui::Event::Key {
-                            key: egui::Key::Enter,
-                            pressed: true,
-                            ..
-                        } => {
-                            listener(AdapterEvent::Key(13));
-                        }
-                        _ => {}
-                    }
-                }
-            });
+            for input in inputs {
+                dispatch_input(listener, input);
+            }
         }
 
         let mut objects_to_draw = Vec::new();
         let mut clip_rects = std::collections::HashMap::new();
         {
             let mut state = ADAPTER_STATE.lock().unwrap();
+            let st = &mut *state;
 
-            for (i, obj) in state.objects.iter().enumerate() {
-                if obj.alive {
-                    let v = resolve_vcanvas(&state.objects, obj);
+            // [FIX] Раньше сортировка применялась к списку, который каждый кадр строился
+            // заново, поэтому z-порядок соблюдался только в «грязных» кадрах.
+            // Теперь порядок кэшируется в draw_order и пересобирается только при dirty.
+            // Сортировка стабильная: при равном z порядок по индексу, как и в hit_test.
+            if st.dirty {
+                let mut order: Vec<usize> =
+                    (0..MAX_OBJECTS).filter(|&i| st.objects[i].alive).collect();
+                order.sort_by_key(|&i| st.objects[i].z_index);
 
-                    if obj.visible {
-                        let mut draw_obj = obj.clone();
-                        draw_obj.vcanvas = v;
-                        objects_to_draw.push(draw_obj);
-                    }
-
-                    clip_rects.insert(
-                        i,
-                        egui::Rect::from_min_size(
-                            egui::pos2((obj.pos.0 + v.0) as f32, (obj.pos.1 + v.1) as f32),
-                            egui::vec2(obj.size.0 as f32, obj.size.1 as f32),
-                        ),
-                    );
-                }
+                st.draw_order = order;
+                st.dirty = false;
             }
 
-            if state.dirty {
-                objects_to_draw.sort_by_key(|o| o.z_index);
-                state.dirty = false;
+            for &i in &st.draw_order {
+                let obj = &st.objects[i];
+
+                if !obj.alive {
+                    continue;
+                }
+
+                let v = resolve_vcanvas(&st.objects, obj);
+
+                if obj.visible {
+                    let mut draw_obj = obj.clone();
+                    draw_obj.vcanvas = v;
+                    objects_to_draw.push(draw_obj);
+                }
+
+                clip_rects.insert(
+                    i,
+                    egui::Rect::from_min_size(
+                        egui::pos2((obj.pos.0 + v.0) as f32, (obj.pos.1 + v.1) as f32),
+                        egui::vec2(obj.size.0 as f32, obj.size.1 as f32),
+                    ),
+                );
             }
         }
 
