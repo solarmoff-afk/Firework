@@ -95,6 +95,15 @@ impl<'ast> Analyzer {
                         }
                     }
 
+                    "on_touch" => {
+                        if let Some(component_name) = &self.context.now_component.0
+                            && let Some(component) =
+                                self.context.ir.component_structs.get_mut(component_name)
+                        {
+                            component.events.on_touch = true;
+                        }
+                    }
+
                     // Для таймера
                     "target" => {
                         timer_target = true;

@@ -2,7 +2,6 @@
 // Лицензия EPL 2.0, подробнее в файле LICENSE. Copyright (c) 2026 Firework
 
 use crate::CompileType;
-use crate::compiler::common::widget_kind::is_layout;
 
 use super::super::*;
 
@@ -75,13 +74,36 @@ impl CodeBuilder {
                 // берем ограничения от предыдущего уровня глубины
                 let previous_depth = depth - 1;
                 let previous_constraints = format_ident!("_fwc_constraints_{}", previous_depth);
-                let previous_pos_x = format_ident!("_fwc_pos_x_{}", previous_depth);
-                let previous_pos_y = format_ident!("_fwc_pos_y_{}", previous_depth);
+                let layout_size_ident = format_ident!("_fwc_layout_size_{}", depth);
+
+                self.layout_declaration_tokens.push((
+                    current_constraints.to_string(),
+                    quote_spanned! {span=>
+                        let mut #current_constraints = firework_ui::layout::Constraints {
+                            min_width: 0, max_width: 0, min_height: 0, max_height: 0
+                        };
+                    },
+                ));
+
+                self.layout_declaration_tokens.push((
+                    current_pos_x.to_string(),
+                    quote_spanned! {span=> let mut #current_pos_x = 0; },
+                ));
+
+                self.layout_declaration_tokens.push((
+                    current_pos_y.to_string(),
+                    quote_spanned! {span=> let mut #current_pos_y = 0; },
+                ));
+
+                self.layout_declaration_tokens.push((
+                    layout_size_ident.to_string(),
+                    quote_spanned! {span=>
+                        let mut #layout_size_ident = firework_ui::layout::Size { width: 0, height: 0 };
+                    },
+                ));
 
                 quote_spanned! {span=>
-                    let mut #current_constraints = #previous_constraints;
-                    let mut #current_pos_x = #previous_pos_x;
-                    let mut #current_pos_y = #previous_pos_y;
+                    #current_constraints = #previous_constraints;
                 }
             };
 
@@ -107,33 +129,43 @@ impl CodeBuilder {
                 children,
             );
 
-            let mut nested_size_decls = TokenStream::new();
-            let mut declared_ids = Vec::new();
-            for child in children {
-                if is_layout(&child.widget_type) && !declared_ids.contains(&child.id) {
-                    declared_ids.push(child.id);
-                    let child_layout_size = format_ident!("_fwc_layout_size_{}", child.id);
-                    nested_size_decls.extend(quote_spanned! {span=>
-                        let mut #child_layout_size = firework_ui::layout::Size { width: 0, height: 0 };
-                    });
+            if depth == 1 {
+                let mut declarations_tokens = TokenStream::new();
+                let mut seen_variables = Vec::new();
+                for (var_name, decl) in self.layout_declaration_tokens.drain(..) {
+                    if !seen_variables.contains(&var_name) {
+                        seen_variables.push(var_name);
+                        declarations_tokens.extend(decl);
+                    }
                 }
-            }
 
-            final_tokens.extend(quote_spanned!(span=>
-                {
-                    // println!("Layout begin placeholder");
+                final_tokens.extend(quote_spanned!(span=>
+                    {
+                        #declarations_tokens
+                        #init_layout
+
+                        #processed_body
+
+                        // Расчёт размеров всех виджетов
+                        #measure_tokens
+                        #arrange_tokens
+                    }
+                ));
+            } else {
+                self.layout_arrange_tokens
+                    .entry(depth)
+                    .or_default()
+                    .push_back(arrange_tokens);
+
+                final_tokens.extend(quote_spanned!(span=>
                     #init_layout
-                    #nested_size_decls
+                    {
+                        #processed_body
+                    }
 
-                    #processed_body
-
-                    // Расчёт размеров всех виджетов
                     #measure_tokens
-                    #arrange_tokens
-
-                    // println!("Layout end placeholder");
-                }
-            ));
+                ));
+            }
 
             return true;
         }

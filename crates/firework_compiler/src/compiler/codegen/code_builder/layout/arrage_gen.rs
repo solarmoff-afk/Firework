@@ -8,7 +8,7 @@ use super::super::*;
 
 impl CodeBuilder {
     pub fn generate_arrange(
-        &self,
+        &mut self,
         span: Span,
         screen_index: u128,
         depth: usize,
@@ -55,7 +55,20 @@ impl CodeBuilder {
             let child_size_ident = format_ident!("_fwc_child_size_{}_{}", depth, index);
 
             let access_widget = if is_layout(&child.widget_type) {
-                quote! {}
+                let child_arrange = self
+                    .layout_arrange_tokens
+                    .get_mut(&child.id)
+                    .and_then(|q| q.pop_front())
+                    .unwrap_or_default();
+
+                let child_pos_x = format_ident!("_fwc_pos_x_{}", child.id);
+                let child_pos_y = format_ident!("_fwc_pos_y_{}", child.id);
+
+                quote_spanned! {span=>
+                    #child_pos_x = _child_x;
+                    #child_pos_y = _child_y;
+                    #child_arrange
+                }
             } else {
                 self.generate_arrange_access_widget(
                     span,

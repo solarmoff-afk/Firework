@@ -1,7 +1,7 @@
 mod adapter;
 
 use adapter::egui_adapter;
-use firework_ui::{BuildContext, Prop, component, raw, ui};
+use firework_ui::{BuildContext, Prop, TouchEvent, component, raw, ui};
 
 component! {
     pub struct Button<T> {
@@ -33,13 +33,21 @@ component! {
 fn test_screen() {
     let mut x = spark!(10);
     let mut red = spark!(0u8);
+    let mut button_position = spark!((10, 10));
 
-    // horizontal! {
     rect! {
-        position: (10, 10),
+        position: button_position,
         size: 100,
         color: (0, 255, 0),
         rounded: 16,
+
+        on_touch: |e: TouchEvent| {
+            if e.is_moved() {
+                button_position.0 = (e.x as i32) - 50;
+                button_position.1 = (e.y as i32) - 50;
+            }
+        },
+
         on_click: || {
             x += 25;
         },
@@ -54,7 +62,6 @@ fn test_screen() {
             x -= 25;
         },
     }
-    // }
 
     component! {
         target: Button,

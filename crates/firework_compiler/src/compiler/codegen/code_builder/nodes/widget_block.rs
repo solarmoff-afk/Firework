@@ -128,15 +128,39 @@ impl CodeBuilder {
                         // Трнасформация замыкания
                         visitor.visit_expr_mut(&mut closure_expr);
 
+                        let event_call = match name.as_str() {
+                            "on_click" => quote_spanned! (span => {
+                                if _fwrt_hit_object_id == _fwc_wb_1.__id() && firework_ui::tiny_matches!(_fwrt_phase, firework_ui::AdapterClickPhase::Ended) {
+                                    let mut _fwc_cl = #closure_expr;
+                                    _fwc_cl();
+                                }
+                            }),
+
+                            "on_touch" => quote_spanned! (span => {
+                                if _fwrt_hit_object_id == _fwc_wb_1.__id() {
+                                    let _fwc_answer_event = firework_ui::TouchEvent {
+                                        x: _fwrt_x,
+                                        y: _fwrt_y,
+                                        phase: _fwrt_phase,
+                                    };
+
+                                    let mut _fwc_cl = #closure_expr;
+                                    _fwc_cl(_fwc_answer_event);
+                                }
+                            }),
+
+                            &_ => todo!(),
+                        };
+
                         widget_reactive.extend(quote_spanned! (span => {
                             if firework_ui::tiny_matches!(_fwc_event, firework_ui::LifeCycle::Event) {
                                 if let firework_ui::CurrentEvent::Touch {
-                                    hit_object_id: Some(id), phase, ..
+                                    hit_object_id: Some(_fwrt_hit_object_id),
+                                    phase: _fwrt_phase,
+                                    x: _fwrt_x,
+                                    y: _fwrt_y,
                                 } = firework_ui::take_current_event() {
-                                    if id == _fwc_wb_1.__id() && firework_ui::tiny_matches!(phase, firework_ui::AdapterClickPhase::Ended) {
-                                        let mut _fwc_cl = #closure_expr;
-                                        _fwc_cl();
-                                    }
+                                    #event_call
                                 }
                             }
                         }));
@@ -732,5 +756,5 @@ fn need_skip_props(props: &str) -> bool {
 }
 
 fn is_event(props: &str) -> bool {
-    props == "on_click"
+    props == "on_click" || props == "on_touch"
 }

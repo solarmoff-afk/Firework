@@ -11,7 +11,7 @@ use tracing::instrument;
 use cache::CodeBuilderCache;
 use proc_macro2::{Span, TokenStream};
 use quote::{format_ident, quote, quote_spanned};
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashMap, VecDeque};
 use syn::spanned::Spanned;
 
 use super::generator::bitmask_gen::*;
@@ -27,6 +27,19 @@ pub struct CodeBuilder {
     pub tokens: Vec<TokenStream>,
     pub flags: CompileFlags,
     pub cache: CodeBuilderCache,
+
+    /// Буфер объявлений внутренних переменных для расяёта вложенных лайаутов  При глубине
+    /// больше 1 переменные поднимаются на уровень корневого лайаута (depth == 1) чтобы они
+    /// не уничтожались при выходе из вложенных областей видимости и оставались доступны
+    /// родителю
+    pub layout_declaration_tokens: Vec<(String, TokenStream)>,
+
+    /// Очередь отложенных блоков фазы позцициоирования (фаза 2) для вложенных лайаутов
+    /// (ключ это глубина). Дочерний лайаут не может сразу расставить своих детей на этапе
+    /// генерации тела, так как ещё не знает свои итоговые координаты от родителя. Код его
+    /// расстановки сохраняется сюда и выполняется позже, то есть внутри фазы измерения
+    /// родительского лайаута
+    pub layout_arrange_tokens: HashMap<usize, VecDeque<TokenStream>>,
 }
 
 impl CodeBuilder {
@@ -35,6 +48,8 @@ impl CodeBuilder {
             tokens: Vec::new(),
             flags,
             cache: CodeBuilderCache::new(),
+            layout_declaration_tokens: Vec::new(),
+            layout_arrange_tokens: HashMap::new(),
         }
     }
 
@@ -172,6 +187,8 @@ impl CodeBuilder {
     /// следующей функции
     pub fn function_end(&mut self) {
         self.tokens.clear();
+        self.layout_declaration_tokens.clear();
+        self.layout_arrange_tokens.clear();
     }
 
     pub(crate) fn generate_check_spark_bit(&self, code: &mut String, id: usize) {
@@ -239,6 +256,8 @@ impl Default for CodeBuilder {
             tokens: Vec::new(),
             flags: CompileFlags::new(),
             cache: CodeBuilderCache::new(),
+            layout_declaration_tokens: Vec::new(),
+            layout_arrange_tokens: HashMap::new(),
         }
     }
 }

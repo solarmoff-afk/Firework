@@ -8,7 +8,7 @@ use super::super::*;
 
 impl CodeBuilder {
     pub fn generate_measure(
-        &self,
+        &mut self,
         span: Span,
         screen_index: u128,
         depth: usize,
@@ -125,12 +125,23 @@ impl CodeBuilder {
                 ),
             };
 
+            let assign_child_size = if depth == 1 {
+                quote_spanned! {span=> let #child_size_ident = }
+            } else {
+                self.layout_declaration_tokens.push((
+                    child_size_ident.to_string(),
+                    quote_spanned! {span=>
+                        let mut #child_size_ident = firework_ui::layout::Size { width: 0, height: 0 };
+                    },
+                ));
+                quote_spanned! {span=> #child_size_ident = }
+            };
+
             children_measure.extend(quote_spanned! {span=>
-                let #child_size_ident = {
+                #assign_child_size {
                     let _c = #constraints_tokens;
                     #access_widget
                 };
-
                 #accumulate_tokens
             });
         }

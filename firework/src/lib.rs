@@ -142,6 +142,31 @@ pub enum CurrentEvent {
     },
 }
 
+#[derive(Debug, Clone, Copy)]
+pub struct TouchEvent {
+    pub x: u32,
+    pub y: u32,
+    pub phase: AdapterClickPhase,
+}
+
+impl TouchEvent {
+    pub fn is_began(&self) -> bool {
+        matches!(self.phase, AdapterClickPhase::Began)
+    }
+
+    pub fn is_ended(&self) -> bool {
+        matches!(self.phase, AdapterClickPhase::Ended)
+    }
+
+    pub fn is_moved(&self) -> bool {
+        matches!(self.phase, AdapterClickPhase::Moved)
+    }
+
+    pub fn is_cancelled(&self) -> bool {
+        matches!(self.phase, AdapterClickPhase::Cancelled)
+    }
+}
+
 #[cfg(not(feature = "safety"))]
 static mut CURRENT_EVENT: CurrentEvent = CurrentEvent::None;
 

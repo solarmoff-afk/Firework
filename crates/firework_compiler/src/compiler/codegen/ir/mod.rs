@@ -144,6 +144,7 @@ impl ComponentDeclaration {
 #[derive(Debug, Clone, Default)]
 pub struct ComponentEvents {
     pub on_click: bool,
+    pub on_touch: bool,
     pub on_timeout: bool,
 }
 
