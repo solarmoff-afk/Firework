@@ -458,13 +458,17 @@ impl CodeBuilder {
                     };
 
                     {
-                        let _fwc_component_instance = _fwc_wb_1;
+                        let _fwc_component_instance = &mut *_fwc_wb_1;
                         #distributor
-                        _fwc_wb_1 = _fwc_component_instance;
                     }
 
                     #widget_reactive
                     #widget_update_bitmask
+
+                    {
+                        let _fwc_component_instance = &mut *_fwc_wb_1;
+                        #post_widget
+                    }
                 );
 
                 #[cfg(feature = "safety")]
@@ -671,9 +675,9 @@ impl CodeBuilder {
                             match _fwc_inst.#field_ident.as_mut() {
                                 Some(_fwc_wb_1) => {
                                     if #condition_statement {
-                                        _fwc_wb_1.visible(true);
+                                        firework_ui::std_widgets::widget::Widget::visible(_fwc_wb_1, true);
                                     } else {
-                                        _fwc_wb_1.visible(false);
+                                        firework_ui::std_widgets::widget::Widget::visible(_fwc_wb_1, false);
                                     }
                                 },
                                 None => {},
@@ -688,9 +692,9 @@ impl CodeBuilder {
                         match self.#field_ident.as_mut() {
                             Some(_fwc_wb_1) => {
                                 if #condition_statement {
-                                    _fwc_wb_1.visible(true);
+                                    firework_ui::std_widgets::widget::Widget::visible(_fwc_wb_1, true);
                                 } else {
-                                    _fwc_wb_1.visible(false);
+                                    firework_ui::std_widgets::widget::Widget::visible(_fwc_wb_1, false);
                                 }
                             },
                             None => {},
@@ -702,11 +706,11 @@ impl CodeBuilder {
                 if !is_component {
                     self.tokens.push(quote_spanned!(span=>
                         match #_match_value {
-                            Some(ref _fwc_wb_1) => {
+                            Some(_fwc_wb_1) => {
                                 if #condition_statement {
-                                    _fwc_wb_1.visible(true);
+                                    firework_ui::std_widgets::widget::Widget::visible(_fwc_wb_1, true);
                                 } else {
-                                    _fwc_wb_1.visible(false);
+                                    firework_ui::std_widgets::widget::Widget::visible(_fwc_wb_1, false);
                                 }
                             },
 
@@ -721,9 +725,9 @@ impl CodeBuilder {
                         match self.#field_ident.as_mut() {
                             Some(_fwc_wb_1) => {
                                 if #condition_statement {
-                                    _fwc_wb_1.visible(true);
+                                    firework_ui::std_widgets::widget::Widget::visible(_fwc_wb_1, true);
                                 } else {
-                                    _fwc_wb_1.visible(false);
+                                    firework_ui::std_widgets::widget::Widget::visible(_fwc_wb_1, false);
                                 }
                             },
 

@@ -158,7 +158,7 @@ impl CodegenVisitor<'_> {
 
             visible_tokens.extend(quote! {
                 if let Some(ref mut _fwc_element) = self.#name {
-                    _fwc_element.visible(visible);
+                    firework_ui::std_widgets::widget::Widget::visible(_fwc_element, visible);
                 }
             });
         }
@@ -174,7 +174,7 @@ impl CodegenVisitor<'_> {
 
             visible_tokens.extend(quote! {
                 if let Some(_fwc_element) = self.#name {
-                    _fwc_element.unmount();
+                    firework_ui::std_widgets::widget::Widget::unmount(_fwc_element);
                 }
             });
         }
