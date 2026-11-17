@@ -59,10 +59,9 @@ impl<'ast> Analyzer {
                 {
                     self.context.capacity = Some(val);
                 } else {
-                    self.context.errors.push(compile_error_spanned(
-                        attr,
-                        CAPACITY_INVALID_ARG_ERROR,
-                    ));
+                    self.context
+                        .errors
+                        .push(compile_error_spanned(attr, CAPACITY_INVALID_ARG_ERROR));
                 }
             }
 

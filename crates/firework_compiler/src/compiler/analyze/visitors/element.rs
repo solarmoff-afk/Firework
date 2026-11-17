@@ -290,7 +290,10 @@ impl<'ast> Analyzer {
                 // with_capacity для обоих векторов при инициализации, для no-alloc это
                 // рахзмер массива
                 skin_field = if let Some(capacity) = self.context.capacity {
-                    format!("firework_ui::DynList<{}, {}, {}>", key_type, skin_field, capacity)
+                    format!(
+                        "firework_ui::DynList<{}, {}, {}>",
+                        key_type, skin_field, capacity
+                    )
                 } else {
                     format!("firework_ui::DynList<{}, {}>", key_type, skin_field)
                 };
