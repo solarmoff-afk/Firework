@@ -5,6 +5,7 @@ pub mod layout;
 pub mod null_adapter;
 pub mod runtime;
 pub mod std_widgets;
+pub mod easing;
 
 mod runtime_errors;
 
