@@ -79,7 +79,7 @@ pub enum Easing {
 }
 
 impl Easing {
-    /// Возвращает EasingRaw с указателем на соответствующую функцию кривой. Можно вызывать 
+    /// Возвращает EasingRaw с указателем на соответствующую функцию кривой. Можно вызывать
     /// в const контексте
     #[inline]
     pub const fn to_raw(self) -> EasingRaw {
