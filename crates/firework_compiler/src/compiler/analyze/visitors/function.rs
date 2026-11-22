@@ -79,6 +79,15 @@ impl<'ast> Analyzer {
         }
 
         let function_name = node.sig().ident.to_string();
+        if self.context.flags.hot_reload
+            && !matches!(self.context.flags.compile_type, CompileType::Shared)
+        {
+            self.lifetime_manager
+                .scope
+                .screen_index_from_name(&function_name);
+            self.context.statement.screen_index = self.lifetime_manager.scope.screen_index;
+        }
+
         self.function_name = Some(function_name.clone());
         self.context.ir.screens.push((
             function_name.clone(),
@@ -152,7 +161,9 @@ impl<'ast> Analyzer {
         if !matches!(self.context.flags.compile_type, CompileType::Shared) {
             // Нужно сгенерировать индекс после анализации функции чтобы id экземпляра
             // был синхронизирован внутри блоков ir для одного экрана
-            self.lifetime_manager.scope.screen_index_generate();
+            if !self.context.flags.hot_reload {
+                self.lifetime_manager.scope.screen_index_generate();
+            }
 
             // Обнуление счётчика реактивных переменных чтобы можно было считать что индекс
             // реактивной переменной это бит в битовой маске

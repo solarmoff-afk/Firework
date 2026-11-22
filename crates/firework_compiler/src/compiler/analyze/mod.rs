@@ -381,6 +381,16 @@ impl<'ast> Visit<'ast> for Analyzer {
     }
 }
 
+fn deterministic_file_seed(file: &File) -> String {
+    for item in &file.items {
+        if let Item::Fn(item_fn) = item {
+            return item_fn.sig.ident.to_string();
+        }
+    }
+
+    String::from("__fwc_shared")
+}
+
 pub fn prepare_tokens(
     file: File,
     flags: CompileFlags,
@@ -391,8 +401,18 @@ pub fn prepare_tokens(
     Option<FireworkIR>,
 ) {
     let mut analyzer = Analyzer::new();
-    analyzer.lifetime_manager.scope.screen_index_generate();
     analyzer.context.flags = flags;
+
+    if flags.hot_reload {
+        let seed = deterministic_file_seed(&file);
+        analyzer
+            .lifetime_manager
+            .scope
+            .screen_index_from_name(&seed);
+    } else {
+        analyzer.lifetime_manager.scope.screen_index_generate();
+    }
+
     analyzer.visit_file(&file);
 
     for warn_tokens in &analyzer.linter.warnings {

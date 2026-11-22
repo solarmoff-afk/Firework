@@ -10,27 +10,52 @@ use syn::{Fields, Ident, ItemEnum, Type, parse_macro_input};
 
 #[proc_macro]
 pub fn shared(input: TokenStream) -> TokenStream {
-    process_macro(input, CompileType::Shared, false)
+    process_macro(
+        input,
+        CompileType::Shared,
+        false,
+        cfg!(feature = "hot_reload"),
+    )
 }
 
 #[proc_macro]
 pub fn component(input: TokenStream) -> TokenStream {
-    process_macro(input, CompileType::Component, false)
+    process_macro(
+        input,
+        CompileType::Component,
+        false,
+        cfg!(feature = "hot_reload"),
+    )
 }
 
 #[proc_macro]
 pub fn ui_block(input: TokenStream) -> TokenStream {
-    process_macro(input, CompileType::Screen, true)
+    process_macro(
+        input,
+        CompileType::Screen,
+        true,
+        cfg!(feature = "hot_reload"),
+    )
 }
 
 #[proc_macro_attribute]
 pub fn ui(_args: proc_macro::TokenStream, input: TokenStream) -> TokenStream {
-    process_macro(input, CompileType::Screen, true)
+    process_macro(
+        input,
+        CompileType::Screen,
+        true,
+        cfg!(feature = "hot_reload"),
+    )
 }
 
-fn process_macro(input: TokenStream, compile_type: CompileType, use_counter: bool) -> TokenStream {
+fn process_macro(
+    input: TokenStream,
+    compile_type: CompileType,
+    use_counter: bool,
+    hot_reload: bool,
+) -> TokenStream {
     let input = parse_macro_input!(input);
-    process_compile(input, compile_type, use_counter).into()
+    process_compile(input, compile_type, use_counter, hot_reload).into()
 }
 
 #[proc_macro_attribute]

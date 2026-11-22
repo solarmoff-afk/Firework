@@ -15,6 +15,7 @@ detail = ["firework_macro/debug_output"]
 trace = ["firework_macro/trace"]
 async = ["dep:tokio", "dep:futures", "dep:tokio-stream", "firework_macro/async"]
 ru = ["firework_macro/ru"]
+hot_reload = ["firework_macro/hot_reload"]
 test-mode = []
 
 [dependencies]

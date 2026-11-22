@@ -452,3 +452,25 @@ impl IntoCornerRadius for (u16, u16, u16, u16) {
         self
     }
 }
+
+/// Для хот релоада, так как для хот патчинга через subsecond нельзя случайно генерировать его
+pub const fn const_screen_id(module: &str, fn_name: &str) -> u128 {
+    const OFFSET_BASIS: u128 = 0x6c62272e07bb0142_62b821756295c58d;
+    const PRIME: u128 = 0x0000000001000000_000000000000013b;
+
+    const fn mix(mut hash: u128, bytes: &[u8], prime: u128) -> u128 {
+        let mut i = 0;
+        while i < bytes.len() {
+            hash ^= bytes[i] as u128;
+            hash = hash.wrapping_mul(prime);
+            i += 1;
+        }
+        hash
+    }
+
+    let hash = mix(OFFSET_BASIS, module.as_bytes(), PRIME);
+    let hash = mix(hash, b"::", PRIME);
+    let hash = mix(hash, fn_name.as_bytes(), PRIME);
+
+    if hash == 0 { 1 } else { hash }
+}

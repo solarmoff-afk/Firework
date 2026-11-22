@@ -28,6 +28,21 @@ impl CodegenVisitor<'_> {
         // Имя функции которая будет вызываться каждый кадр
         let tick_ident = format_ident!("_fwc_tick_{}", self.ui_id.unwrap_or(0));
 
+        // Для хот релоала нужен детерминированный id
+        let id_declaration = if self.flags.hot_reload {
+            quote! {
+                const _FWC_ID: u128 = ::firework_ui::const_screen_id(
+                    core::module_path!(),
+                    stringify!(#fn_path),
+                );
+                let _fwc_id: u128 = _FWC_ID;
+            }
+        } else {
+            quote! {
+                let _fwc_id: u128 = #id;
+            }
+        };
+
         // [FLASH PASS]
         // Flash pass это форма функции или метода которая позволяет использовать
         // одну функцию для нескольких вариантов цикла жизни. Если id экрана не
@@ -45,8 +60,7 @@ impl CodegenVisitor<'_> {
         //  Функция сама устанавливает себя как фокус (SET_FOCUS константа)
         let block_tokens = quote! {
             {
-                let _fwc_id: u128 = #id;
-
+                #id_declaration
                 #instance_init
 
                 if _fwc_id == ::firework_ui::get_focus_id() && !_fwc_build {

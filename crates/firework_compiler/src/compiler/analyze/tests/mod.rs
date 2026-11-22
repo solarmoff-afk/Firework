@@ -485,3 +485,27 @@ fn test_with_macro_helper() {
 
     assert_eq!(expected.len(), 2);
 }
+
+#[test]
+fn test_hot_reload_deterministic_screen_index() {
+    let tokens = quote::quote! {
+        fn home_screen() {
+            let mut x = spark!(10);
+        }
+    };
+
+    let mut flags = CompileFlags::new();
+    flags.hot_reload = true;
+
+    let file1: File = syn::parse2(tokens.clone()).unwrap();
+    let file2: File = syn::parse2(tokens).unwrap();
+
+    let ir1 = prepare_tokens(file1, flags, 0).2.unwrap();
+    let ir2 = prepare_tokens(file2, flags, 0).2.unwrap();
+
+    assert_eq!(ir1.screens[0].2, ir2.screens[0].2);
+    assert_eq!(
+        ir1.screen_structs.keys().collect::<Vec<_>>(),
+        ir2.screen_structs.keys().collect::<Vec<_>>()
+    );
+}

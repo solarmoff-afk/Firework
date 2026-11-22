@@ -20,10 +20,14 @@ pub fn process_compile(
     input: TokenStream2,
     compile_type: CompileType,
     use_counter: bool,
+    hot_reload: bool,
 ) -> TokenStream2 {
     let ast = FireworkAst { tokens: input };
 
-    let flags = CompileFlags { compile_type };
+    let flags = CompileFlags {
+        compile_type,
+        hot_reload,
+    };
 
     let id = if use_counter {
         BLOCK_COUNTER.fetch_add(1, Ordering::Relaxed)

@@ -91,6 +91,21 @@ impl Scope {
         let mut range = rand::thread_rng();
         self.screen_index = range.gen_range(0..=u128::MAX);
     }
+
+    /// Генерация айди для хот релоада, так как при хот патчинге айди должен быть
+    /// детерминирован
+    pub fn screen_index_from_name(&mut self, name: &str) {
+        const OFFSET_BASIS: u128 = 0x6c62272e07bb0142_62b821756295c58d;
+        const PRIME: u128 = 0x0000000001000000_000000000000013b;
+
+        let mut hash = OFFSET_BASIS;
+        for &byte in name.as_bytes() {
+            hash ^= byte as u128;
+            hash = hash.wrapping_mul(PRIME);
+        }
+
+        self.screen_index = if hash == 0 { 1 } else { hash };
+    }
 }
 
 pub struct LifetimeManager {

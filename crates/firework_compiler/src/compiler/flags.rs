@@ -11,12 +11,14 @@ pub enum CompileType {
 #[derive(Debug, Clone, Copy)]
 pub struct CompileFlags {
     pub compile_type: CompileType,
+    pub hot_reload: bool,
 }
 
 impl CompileFlags {
     pub fn new() -> Self {
         Self {
             compile_type: CompileType::Screen,
+            hot_reload: false,
         }
     }
 }
